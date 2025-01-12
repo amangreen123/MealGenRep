@@ -10,7 +10,7 @@ const UserInput = () => {
     const inputRef = useRef(null);
 
     const handleAddIngredient = () => {
-        const value = inputRef.current.value;
+        const value = inputRef.current.value.trim();
 
         if(value){
             setIngredients(prevState => [...prevState, value]);
@@ -51,7 +51,9 @@ const UserInput = () => {
             <div>
                 <h3>Current Ingredients</h3>
                 <ul>
-                    {ingredients.map((ingredient, index) => (
+                    {ingredients.filter((ingredient, index, self) =>
+                        self.indexOf(ingredient) === index
+                    ).map((ingredient, index) => (
                         <li key={index}>{ingredient}</li>
                     ))}
                 </ul>
@@ -62,9 +64,13 @@ const UserInput = () => {
 
             <h3>Recipes</h3>
             <ul>
-                {recipes.map((recipe) => (
-                    <li key={recipe.id}>{recipe.title}</li>
-                ))}
+                {recipes
+                    .filter((recipe, index, self) =>
+                        recipe.title && index === self.findIndex((r) => r.id === recipe.id)
+                    )
+                    .map((recipe) => (
+                        <li key={recipe.id}>{recipe.title}</li>
+                    ))}
             </ul>
         </div>
     );
