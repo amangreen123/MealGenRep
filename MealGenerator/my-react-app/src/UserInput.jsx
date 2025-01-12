@@ -11,10 +11,24 @@ const UserInput = () => {
 
     const handleAddIngredient = () => {
         const value = inputRef.current.value;
+
         if(value){
             setIngredients(prevState => [...prevState, value]);
             inputRef.current.value = '';
         }
+
+        if (ingredients.includes(value)) {
+            alert('This ingredient is already in the list');
+            return;
+        }
+
+        if (value === '') {
+            alert('Please enter an ingredient');
+            return;
+        }
+
+        setIngredients([...ingredients, value]);
+        inputRef.current.value = '';
     }
 
     const handleSearch = () => {
@@ -43,7 +57,7 @@ const UserInput = () => {
                 </ul>
             </div>
 
-            {loading && <p>Loading...</p>}
+            {loading && <p>Awaiting Input</p>}
             {error && <p>Error: {error}</p>}
 
             <h3>Recipes</h3>
