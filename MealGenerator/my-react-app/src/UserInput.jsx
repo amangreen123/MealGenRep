@@ -1,4 +1,5 @@
 import React, {useState, useRef} from 'react';
+import {Link,useNavigate} from "react-router-dom";
 import usefetchMeals from "./getMeals.jsx";
 
 
@@ -6,23 +7,21 @@ const UserInput = () => {
 
     //const [input, setInput] = useState('')
     const [ingredients, setIngredients] = useState([])
+    const [recipeId, setRecipeId] = useState('')
     const {recipes, error, loading, getRecipes} = usefetchMeals();
     const inputRef = useRef(null);
 
+    const navigate = useNavigate();
+
     const handleAddIngredient = () => {
         const value = inputRef.current.value.trim();
-
-        if(value){
-            setIngredients(prevState => [...prevState, value]);
-            inputRef.current.value = '';
-        }
 
         if (ingredients.includes(value)) {
             alert('This ingredient is already in the list');
             return;
         }
 
-        if (value === '') {
+        if (!value) {
             alert('Please enter an ingredient');
             return;
         }
@@ -31,11 +30,15 @@ const UserInput = () => {
         inputRef.current.value = '';
     }
 
-    const handleSearch = () => {
+    const handleSearch = (recipeId) => {
         if(ingredients.length  > 0){
             getRecipes(ingredients);
         }
     };
+
+    const clickHandler = (recipe) => {
+        navigate(`/${recipe.id}`,{state: {recipe}});
+    }
 
     return(
         <div>
@@ -51,26 +54,24 @@ const UserInput = () => {
             <div>
                 <h3>Current Ingredients</h3>
                 <ul>
-                    {ingredients.filter((ingredient, index, self) =>
-                        self.indexOf(ingredient) === index
-                    ).map((ingredient, index) => (
-                        <li key={index}>{ingredient}</li>
-                    ))}
+                    <ul>
+                        {ingredients.map((ingredient, index) => (
+                            <li key={index}>{ingredient}</li>
+                        ))}
+                    </ul>
                 </ul>
             </div>
 
             {loading && <p>Awaiting Input</p>}
-            {error && <p>Error: {error}</p>}
+            {error && <p>Error: Unable to fetch recipes. Please try again later.</p>}
 
             <h3>Recipes</h3>
             <ul>
-                {recipes
-                    .filter((recipe, index, self) =>
-                        recipe.title && index === self.findIndex((r) => r.id === recipe.id)
-                    )
-                    .map((recipe) => (
-                        <li key={recipe.id}>{recipe.title}</li>
-                    ))}
+                {recipes.map((recipe) => (
+                    <li key={recipe.id} onClick={() => clickHandler(recipe)}>
+                        {recipe.title}
+                    </li>
+                ))}
             </ul>
         </div>
     );

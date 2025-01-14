@@ -15,6 +15,7 @@ export const useFetchMeals = () => {
 
         if (cache.current[key]) {
             setRecipes(cache.current[key]);
+            setLoading(false);
             console.log('Data from cache', cache.current[key]);
             return;
         }
