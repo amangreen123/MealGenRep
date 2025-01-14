@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import getInstructions from "./getInstructions.jsx";
-import IngredientAmount from "./IngredientAmount.jsx";
+import getInstructions from "./getInstructions";
+import IngredientAmount from "./IngredientAmount";
 
 // Component to list ingredients
 const IngredientList = ({ ingredients }) => (
@@ -16,13 +16,20 @@ const IngredientList = ({ ingredients }) => (
     </ul>
 );
 
+// Component to display recipe details
+
+
 const RecipeDetails = () => {
     const { state } = useLocation();
     const recipe = state?.recipe;
 
     const [loading, setLoading] = useState(true);
-    const [instructions, setInstructions] = useState(null);
+    const [recipeDetails, setRecipeDetails] = useState(null);
     const [error, setError] = useState(null);
+
+    console.log("Recipe Data:", recipe);
+    console.log("recipeDetails Data:", recipeDetails);
+
 
     // Return early if recipe is not found
     if (!recipe) {
@@ -31,12 +38,12 @@ const RecipeDetails = () => {
 
     // Fetch data on recipe id change
     useEffect(() => {
-        const fetchMacrosAndSteps = async () => {
+        const fetchRecipeData = async () => {
             try {
                 setLoading(true);
                 const data = await getInstructions(recipe.id);
-                console.log("API Response:", data);
-                setInstructions(data);
+                console.log("Fetched Recipe Data:", );
+                setRecipeDetails(data);
             } catch (error) {
                 setError(error.message || "An error occurred while fetching recipe details");
             } finally {
@@ -44,15 +51,17 @@ const RecipeDetails = () => {
             }
         };
 
-        fetchMacrosAndSteps();
+        fetchRecipeData();
     }, [recipe]);
 
     // Return loading, error, or recipe details
     if (loading) return <h1>Loading...</h1>;
     if (error) return <h1>{error}</h1>;
 
-    // Check if macrosAndSteps and nutrition data exist
-    const nutrition = instructions?.nutrition;
+
+    // Destructure the data into meaningful variables
+    const { instructions, macros } = recipeDetails;
+
 
     return (
         <div>
@@ -62,29 +71,38 @@ const RecipeDetails = () => {
                 alt={recipe.title}
                 style={{width: "100%", maxWidth: "500px"}}
             />
-
-            <h3>Used Ingredients</h3>
+            <h3>What Ingredients You Have</h3>
             <IngredientList ingredients={recipe.usedIngredients}/>
 
-            <h3>Missed Ingredients</h3>
+            <h3>Missing Ingredients</h3>
             <IngredientList ingredients={recipe.missedIngredients}/>
 
             <h3>Amount Needed</h3>
             <ul>
-                {instructions.extendedIngredients?.map((ingredient) => (
-                    <li key={ingredient.id || ingredient.name || `${ingredient.amount}${ingredient.unit}`}>
+                {recipe.missedIngredients?.map((ingredient) => (
+                    <li key={ingredient.id || ingredient.name || `${ingredient.amount} ${ingredient.unit}`}>
                         <IngredientAmount ingredient={ingredient}/>
                     </li>
                 ))}
             </ul>
 
-            <h3>Unused Ingredients</h3>
-            <IngredientList ingredients={instructions.unusedIngredients}/>
 
+            {/* Instructions Section */}
             {instructions && (
                 <>
                     <h3>Instructions</h3>
-                    <p>{instructions.instructions || "No instructions available."}</p>
+                    <p>{instructions || "No instructions available."}</p>
+                </>
+            )}
+
+            {/* Nutrition Data Section */}
+            {macros && (
+                <>
+                    <h3>Nutrition</h3>
+                    <p>{macros.calories} Total Calories</p>
+                    <p>{macros.carbs} Carbs</p>
+                    <p>{macros.fat} Fat</p>
+                    <p>{macros.protein} Protein</p>
                 </>
             )}
         </div>
