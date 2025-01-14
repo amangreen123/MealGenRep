@@ -16,7 +16,7 @@ const UserInput = () => {
     const handleAddIngredient = () => {
         const value = inputRef.current.value.trim();
 
-        if (ingredients.includes(value)) {
+        if (ingredients.some(ingredient => ingredient.toLowerCase() === value)) {
             alert('This ingredient is already in the list');
             return;
         }
@@ -78,4 +78,3 @@ const UserInput = () => {
 };
 
 export default UserInput;
-

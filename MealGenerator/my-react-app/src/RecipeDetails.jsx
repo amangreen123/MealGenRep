@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import getInstructions from "./getInstructions";
+import getInstructions from "./GetInstructions.jsx";
 import IngredientAmount from "./IngredientAmount";
 
 // Component to list ingredients
