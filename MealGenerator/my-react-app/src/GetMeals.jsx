@@ -16,7 +16,7 @@ export const useFetchMeals = () => {
         if (cache.current[key]) {
             setRecipes(cache.current[key]);
             setLoading(false);
-            console.log('Data from cache', cache.current[key]);
+            console.log("Using Cached Recipes for Key:", key, cache.current[key]);
             return;
         }
 
@@ -44,9 +44,10 @@ export const useFetchMeals = () => {
             setLoading(false);
         }
    };
-    //console.log("What is this" + typeof getRecipes);
 
-    return { recipes, error, loading, getRecipes };
+   const getCachedRecipes = () => cache.current
+
+    return { recipes, error, loading, getRecipes,getCachedRecipes };
 };
 
 export default useFetchMeals;

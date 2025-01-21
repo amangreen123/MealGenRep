@@ -1,7 +1,8 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Roboto', 'Arial', sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  font-size: 16px; /* Base font size */
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -13,10 +14,18 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Responsive typography */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
+  transition: color 0.25s;
 }
 a:hover {
   color: #535bf2;
@@ -25,14 +34,19 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.5em;
   line-height: 1.1;
+  text-align: center;
+  transition: font-size 0.25s;
 }
 
 button {
@@ -44,7 +58,11 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
+  margin: 10px 0;
+  min-height: 48px; /* Ensures touch-friendly size */
+  min-width: 48px; /* Ensures touch-friendly size */
+  touch-action: manipulation; /* Improves touch interactions */
 }
 button:hover {
   border-color: #646cff;
@@ -52,6 +70,27 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Responsive layout */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Responsive grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
 }
 
 @media (prefers-color-scheme: light) {
@@ -64,5 +103,36 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* Additional media queries for different screen sizes */
+@media (max-width: 1024px) {
+  h1 {
+    font-size: 2.2em;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2em;
+  }
+  button {
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8em;
+  }
+  body {
+    padding: 10px;
+  }
+  .container {
+    padding: 0 10px;
+  }
+  button {
+    width: 100%;
   }
 }

@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {Link,useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import usefetchMeals from "./getMeals.jsx";
 
 
@@ -8,7 +8,7 @@ const UserInput = () => {
     //const [input, setInput] = useState('')
     const [ingredients, setIngredients] = useState([])
     const [recipeId, setRecipeId] = useState('')
-    const {recipes, error, loading, getRecipes} = usefetchMeals();
+    const {recipes, error, loading, getRecipes,getCachedRecipes} = usefetchMeals();
     const inputRef = useRef(null);
 
     const navigate = useNavigate();
@@ -25,7 +25,6 @@ const UserInput = () => {
             alert('Please enter an ingredient');
             return;
         }
-
         setIngredients([...ingredients, value]);
         inputRef.current.value = '';
     }
@@ -37,7 +36,7 @@ const UserInput = () => {
     };
 
     const clickHandler = (recipe) => {
-        navigate(`/${recipe.id}`,{state: {recipe}});
+        navigate(`/${recipe.id}`, { state: { recipe } });
     }
 
     return(
@@ -53,13 +52,12 @@ const UserInput = () => {
 
             <div>
                 <h3>Current Ingredients</h3>
-                <ul>
                     <ul>
                         {ingredients.map((ingredient, index) => (
                             <li key={index}>{ingredient}</li>
                         ))}
                     </ul>
-                </ul>
+                    {/* <pre>{JSON.stringify(getCachedRecipes(),null,2)}</pre> */}
             </div>
 
             {loading && <p>Awaiting Input</p>}

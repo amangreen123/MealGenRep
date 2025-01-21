@@ -9,7 +9,9 @@ export const getInstructions = async (id) => {
         const parsedData = JSON.parse(cachedData);
         const cacheTime = parsedData.timestamp;
         const currentTime = Date.now();
-        const cacheDuration = 24 * 60 * 60 * 1000; // 24 hours
+        const cacheDuration = 24 * 60 * 60 * 1000; // 24
+
+        console.log("Cached Data for ID:", id, parsedData);
 
         // Return cached data if within the expiry duration
         if (currentTime - cacheTime < cacheDuration) {

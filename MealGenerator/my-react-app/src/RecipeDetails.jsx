@@ -42,7 +42,6 @@ const RecipeDetails = () => {
             try {
                 setLoading(true);
                 const data = await getInstructions(recipe.id);
-                console.log("Fetched Recipe Data:", );
                 setRecipeDetails(data);
             } catch (error) {
                 setError(error.message || "An error occurred while fetching recipe details");
@@ -68,8 +67,9 @@ const RecipeDetails = () => {
             <h1>Recipe Details</h1>
             <img
                 src={recipe.image}
+                srcSet={`${recipe.image}?w=480 480w, ${recipe.image}?w=768 768w`}
+                sizes="(max-width: 768px) 100vw, 50vw"
                 alt={recipe.title}
-                style={{width: "100%", maxWidth: "500px"}}
             />
             <h3>What Ingredients You Have</h3>
             <IngredientList ingredients={recipe.usedIngredients}/>
