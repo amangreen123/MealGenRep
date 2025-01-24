@@ -5,19 +5,21 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Users from './UserInput.jsx'
 import RecipeDetails from "./RecipeDetails.jsx";
 import GoogleAnalytics from "./GoogleAnalytics.jsx";
+import ReactGA from "react-ga4";
 
+ReactGA.initialize("G-5VEDN0823V")
 
-createRoot(document.getElementById('root')).render(
-
-  <StrictMode>
-      <GoogleAnalytics />
-      <BrowserRouter>
+const App = () => (
+    <StrictMode>
+        <GoogleAnalytics />
+        <BrowserRouter>
             <Routes>
-
                 <Route path="/" element={<Users />} />
-                <Route path={"/:recipeId"} element={<RecipeDetails />} />
+                <Route path="/:recipeId" element={<RecipeDetails />} />
             </Routes>
-      </BrowserRouter>
-  </StrictMode>
+        </BrowserRouter>
+    </StrictMode>
+);
 
-)
+createRoot(document.getElementById('root')).render(<App />)
+

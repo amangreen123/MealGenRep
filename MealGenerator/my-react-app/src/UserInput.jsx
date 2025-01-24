@@ -5,7 +5,7 @@ import usefetchMeals from "./getMeals.jsx";
 
 const UserInput = () => {
 
-    //const [input, setInput] = useState('')
+    const [inputString, setInputString] = useState('');
     const [ingredients, setIngredients] = useState([])
     const [recipeId, setRecipeId] = useState('')
     const {recipes, error, loading, getRecipes,getCachedRecipes} = usefetchMeals();
@@ -13,23 +13,46 @@ const UserInput = () => {
 
     const navigate = useNavigate();
 
-    const handleAddIngredient = () => {
-        const value = inputRef.current.value.trim();
-
-        if (ingredients.some(ingredient => ingredient.toLowerCase() === value)) {
-            alert('This ingredient is already in the list');
-            return;
-        }
-
-        if (!value) {
-            alert('Please enter an ingredient');
-            return;
-        }
-        setIngredients([...ingredients, value]);
-        inputRef.current.value = '';
+    const handleInputChange = ({target: {value}}) => {
+        setInputString(value)
     }
 
-    const handleSearch = (recipeId) => {
+    const handleAddIngredient = () => {
+
+        const newIngredients = inputString
+            .split(',')
+            .map(item => item.trim())
+            .filter(item => item !== '');
+
+        const uniqueIngredients = newIngredients.filter(
+                newIngr => !ingredients.some(
+                existingIngr => existingIngr.toLowerCase() === newIngr.toLowerCase()
+                )
+        );
+
+        if(uniqueIngredients.length === 0){
+            alert('No new ingredients to add or all ingredients already exist');
+            return;
+        }
+
+        //const value = inputRef.current.value.trim();
+        // if (ingredients.some(ingredient => ingredient.toLowerCase() === value)) {
+        //     alert('This ingredient is already in the list');
+        //     return;
+        // }
+        //
+        // if (!value) {
+        //     alert('Please enter an ingredient');
+        //     return;
+        // }
+        //setIngredients([...ingredients, value]);
+        //inputRef.current.value = '';
+
+        setIngredients([...ingredients, ...uniqueIngredients]);
+        setInputString('');
+    }
+
+    const handleSearch = () => {
         if(ingredients.length  > 0){
             getRecipes(ingredients);
         }
@@ -44,7 +67,8 @@ const UserInput = () => {
             <h1>Meal Generator</h1>
             <input
                 type="text"
-                ref={inputRef}
+                value={inputString}
+                onChange={handleInputChange}
                 placeholder="Enter ingredients"
             />
             <button onClick={handleAddIngredient}>Add Ingredient</button>
