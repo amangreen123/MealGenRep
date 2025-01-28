@@ -124,7 +124,7 @@ const RecipeDetails = () => {
                             alt={recipe.title}
                             className="w-full h-64 object-cover rounded-lg shadow-lg mb-4"
                         />
-                        <div className="flex space-x-4 mb-4">
+                        {/*  <div className="flex space-x-4 mb-4">
                             <div className="flex items-center">
                                 <Clock className="w-5 h-5 mr-2" />
                                 <span>{recipe.readyInMinutes || "N/A"} mins</span>
@@ -138,6 +138,7 @@ const RecipeDetails = () => {
                                 <span>{recipe.dishTypes?.join(", ") || "N/A"}</span>
                             </div>
                         </div>
+                        */}
                         {macros && (
                             <Card className="bg-gray-800/50 border-gray-700 mb-4">
                                 <CardHeader>

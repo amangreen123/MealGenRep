@@ -1,9 +1,14 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import useFetchMeals from "./getMeals.jsx"
+
+//Imports UI components from the UI library
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
+//Imports the custom hooks
+import useFetchMeals from "./getMeals.jsx"
+
 
 import {
     ChefHat,
@@ -17,6 +22,7 @@ import {
     Apple,
     Milk,
 } from "lucide-react"
+import GetNutrition from "@/GetNutrition.jsx";
 
 const popularIngredients = [
     { name: "Eggs", icon: Egg },
@@ -30,11 +36,11 @@ const popularIngredients = [
 ]
 
 const UserInput = () => {
+
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const { recipes, error, loading, getRecipes } = useFetchMeals()
     const navigate = useNavigate()
-
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
     }
@@ -109,6 +115,16 @@ const UserInput = () => {
                                 </div>
                             </div>
                         </CardContent>
+                    </Card>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ChefHat className="w-6 h-6" />
+                                Nutrition Information
+                            </CardTitle>
+                            <CardContent>
+                            </CardContent>
+                        </CardHeader>
                     </Card>
 
                     <Card className="bg-gray-800/50 border-gray-700">
