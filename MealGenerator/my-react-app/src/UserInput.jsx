@@ -1,7 +1,9 @@
 import React, {useState, useRef} from 'react';
 import {useNavigate} from "react-router-dom";
 import usefetchMeals from "./getMeals.jsx";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const UserInput = () => {
 
@@ -62,41 +64,54 @@ const UserInput = () => {
         navigate(`/${recipe.id}`, { state: { recipe } });
     }
 
-    return(
-        <div>
-            <h1>Meal Generator</h1>
-            <input
-                type="text"
-                value={inputString}
-                onChange={handleInputChange}
-                placeholder="Enter ingredients"
-            />
-            <button onClick={handleAddIngredient}>Add Ingredient</button>
-            <button onClick={handleSearch}>Search Recipes</button>
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+                <h1 className="text-3xl font-bold">Meal Generator</h1>
 
-            <div>
-                <h3>Current Ingredients</h3>
-                    <ul>
+                <div className="flex space-x-2">
+                    <Input
+                        type="text"
+                        value={inputString}
+                        onChange={handleInputChange}
+                        placeholder="Enter ingredients"
+                        className="flex-grow"
+                    />
+                    <Button onClick={handleAddIngredient}>Add Ingredient</Button>
+                    <Button onClick={handleSearch}>Search Recipes</Button>
+                </div>
+
+                <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h3 className="text-xl font-semibold mb-2">Current Ingredients</h3>
+                    <ul className="list-disc pl-5">
                         {ingredients.map((ingredient, index) => (
                             <li key={index}>{ingredient}</li>
                         ))}
                     </ul>
-                    {/* <pre>{JSON.stringify(getCachedRecipes(),null,2)}</pre> */}
+                </div>
+
+                {loading && <p className="text-gray-400">Awaiting Input</p>}
+                {error && <p className="text-red-500">Error: Unable to fetch recipes. Please try again later.</p>}
+
+                <div>
+                    <h3 className="text-xl font-semibold mb-2">Recipes</h3>
+                    <div className="space-y-4">
+                        {recipes.map((recipe) => (
+                            <Card key={recipe.id} className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors" onClick={() => clickHandler(recipe)}>
+                                <CardHeader>
+                                    <CardTitle>{recipe.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {/* Add more recipe details here */}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
             </div>
-
-            {loading && <p>Awaiting Input</p>}
-            {error && <p>Error: Unable to fetch recipes. Please try again later.</p>}
-
-            <h3>Recipes</h3>
-            <ul>
-                {recipes.map((recipe) => (
-                    <li key={recipe.id} onClick={() => clickHandler(recipe)}>
-                        {recipe.title}
-                    </li>
-                ))}
-            </ul>
         </div>
     );
 };
+
 
 export default UserInput;
