@@ -48,7 +48,7 @@ const UserInput = () => {
 
     const handleAddIngredient = async () => {
         const newIngredients = inputString
-            .split(",")
+            .split(" ")
             .map((item) => item.trim())
             .filter((item) => item !== "")
 
@@ -95,7 +95,7 @@ const UserInput = () => {
                         <CardContent>
                             <div className="space-y-4">
                                 <Input
-                                    placeholder="Enter ingredients (comma separated)"
+                                    placeholder="Enter ingredients (space separated)"
                                     value={inputString}
                                     onChange={handleInputChange}
                                     className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
@@ -205,4 +205,3 @@ const UserInput = () => {
 }
 
 export default UserInput
-
