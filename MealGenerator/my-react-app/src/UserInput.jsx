@@ -22,7 +22,7 @@ import {
     Apple,
     Milk,
 } from "lucide-react"
-import GetNutrition from "@/GetNutrition.jsx";
+
 
 const popularIngredients = [
     { name: "Eggs", icon: Egg },
@@ -45,7 +45,7 @@ const UserInput = () => {
         setInputString(value)
     }
 
-    const handleAddIngredient = () => {
+    const handleAddIngredient = async () => {
         const newIngredients = inputString
             .split(",")
             .map((item) => item.trim())
@@ -116,6 +116,7 @@ const UserInput = () => {
                             </div>
                         </CardContent>
                     </Card>
+
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -123,9 +124,11 @@ const UserInput = () => {
                                 Nutrition Information
                             </CardTitle>
                             <CardContent>
+                                
                             </CardContent>
                         </CardHeader>
                     </Card>
+
 
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
