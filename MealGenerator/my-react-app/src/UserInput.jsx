@@ -22,6 +22,7 @@ import {
     Apple,
     Milk,
 } from "lucide-react"
+import RecipeBuilder from "@/RecipeBuilder.jsx";
 
 
 const popularIngredients = [
@@ -117,18 +118,19 @@ const UserInput = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gray-800/50 border-gray-700">
+                    <RecipeBuilder />
+                    {/* <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <ChefHat className="w-6 h-6" />
                                 Nutrition Information
                             </CardTitle>
                             <CardContent>
-                                
+
                             </CardContent>
                         </CardHeader>
                     </Card>
-
+                    */}
 
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
