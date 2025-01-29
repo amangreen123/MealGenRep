@@ -19,6 +19,7 @@ import {
     Apple,
     Milk,
 } from "lucide-react";
+
 import RecipeBuilder from "@/RecipeBuilder.jsx";
 
 const popularIngredients = [
