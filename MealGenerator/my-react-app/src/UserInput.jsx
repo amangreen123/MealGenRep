@@ -149,16 +149,16 @@ const UserInput = () => {
                                 Current Ingredients
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <ul className="list-disc pl-5">
-                                {ingredients.map((ingredient, index) => (
-                                    <li key={index}>{ingredient}</li>
-                                ))}
-                            </ul>
+                        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {ingredients.map((ingredient, index) => (
+                                <div key={index} className="bg-gray-900 p-2 rounded-md text-center text-white shadow-md">
+                                    {ingredient}
+                                </div>
+                            ))}
                         </CardContent>
                     </Card>
-
                 </div>
+
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
