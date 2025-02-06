@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import useFetchMeals from "./getMeals.jsx"
 // import RecipeBuilder from "@/RecipeBuilder.jsx"
+
 import {
     Search,
     Egg,
@@ -21,8 +22,6 @@ import {
     Loader2,
     X,
 } from "lucide-react"
-
-import GaladrielComponent from "@/GaladrielComponent.jsx";
 import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
 
 const popularIngredients = [
@@ -40,7 +39,7 @@ const UserInput = () => {
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
-    const { recipes, error, getRecipes } = useFetchMeals()
+    const { recipes, error, getRecipes} = useFetchMeals()
     const navigate = useNavigate()
 
     const handleInputChange = ({ target: { value } }) => {
@@ -48,40 +47,37 @@ const UserInput = () => {
     }
 
     const handleAddIngredient = async () => {
-        const newIngredients = inputString
-            .split(" ")
-            .map((item) => item.trim())
-            .filter((item) => item !== "")
+        if (inputString.trim() === "") {
+            alert("Please enter valid ingredients.")
+            return
+        }
 
         setIsSearching(true)
 
-        try{
-            const result = await getGaladrielResponse(newIngredients.join(", "));
+        try {
+            const result = await getGaladrielResponse(inputString)
+            //console.log("AI Response:", result)
 
-            if(result.choices && result.choices[0].message.content){
+            if (result !== "No valid ingredients") {
+                const suggestedIngredients = result.split(", ").map((item) => item.trim())
 
-                const suggestions = result.choices[0].message.content;
-
-                const suggestedIngredients = suggestions.split(", ").map(item => item.trim());
-
-                const uniqueIngredients = newIngredients.filter(
+                const uniqueIngredients = suggestedIngredients.filter(
                     (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
                 )
 
-                if (uniqueIngredients.length === 0) {
-                    alert("No new ingredients to add or all ingredients already exist")
-                    return
-                }
-                setIngredients([...ingredients, ...uniqueIngredients])
+                //console.log("Unique Ingredients to Add:", uniqueIngredients)
+                setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients])
                 setInputString("")
+
+            } else {
+                alert("No valid ingredients were found. Please try again.")
             }
         } catch (error) {
-            console.error("Error during Verification :", error);
-            alert("Error during Verification. Please try again later.");
+            console.error("Error during Verification:", error)
+            alert("Error during ingredient verification. Please try again later.")
         } finally {
             setIsSearching(false)
         }
-
     }
 
     const handleRemoveIngredient = (ingredientToRemove) => {
@@ -108,6 +104,7 @@ const UserInput = () => {
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-5xl mx-auto space-y-8">
                 <h1 className="text-4xl font-bold text-center mb-8">MEAL FORGER</h1>
+
                 <Tabs defaultValue="search" className="w-full">
                     <TabsList className="grid w-full grid-cols-1">
                         <TabsTrigger value="search">Search Recipes</TabsTrigger>
