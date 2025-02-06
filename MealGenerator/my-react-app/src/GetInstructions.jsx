@@ -34,7 +34,9 @@ export const getInstructions = async (id) => {
 
         const macrosAndSteps = {
             instructions: getInstruction.data.instructions,
-            macros: getMacros.data
+            macros: getMacros.data,
+            usedIngredients: getInstruction.data.usedIngredients,
+            missedIngredients: getInstruction.data.missedIngredients
         };
 
         // Store the response in localStorage with a timestamp

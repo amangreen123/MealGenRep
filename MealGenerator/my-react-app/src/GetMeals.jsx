@@ -30,6 +30,8 @@ export const useFetchMeals = () => {
                         diet: diet ? diet.toLowerCase() : undefined, // Add diet filter if provided
                         apiKey,
                         sort: "min-missing-ingredients", // Sort by recipes with the least missing ingredients
+                        fillIngredients: true, // Include missing ingredients in the response
+                        addRecipeInformation: true, // Include recipe information in the response
                     },
                 }
             );
