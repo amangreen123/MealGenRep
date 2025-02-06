@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,9 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import useFetchMeals from "./getMeals.jsx"
-// import RecipeBuilder from "@/RecipeBuilder.jsx"
-
 import {
     Search,
     Egg,
@@ -22,7 +23,7 @@ import {
     Loader2,
     X,
 } from "lucide-react"
-import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
+import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
 const popularIngredients = [
     { name: "Eggs", icon: Egg },
@@ -39,7 +40,8 @@ const UserInput = () => {
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
-    const { recipes, error, getRecipes} = useFetchMeals()
+    const [selectedDiet, setSelectedDiet] = useState(null)
+    const { recipes, error, getRecipes } = useFetchMeals()
     const navigate = useNavigate()
 
     const handleInputChange = ({ target: { value } }) => {
@@ -56,19 +58,13 @@ const UserInput = () => {
 
         try {
             const result = await getGaladrielResponse(inputString)
-            //console.log("AI Response:", result)
-
             if (result !== "No valid ingredients") {
                 const suggestedIngredients = result.split(", ").map((item) => item.trim())
-
                 const uniqueIngredients = suggestedIngredients.filter(
                     (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
                 )
-
-                //console.log("Unique Ingredients to Add:", uniqueIngredients)
                 setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients])
                 setInputString("")
-
             } else {
                 alert("No valid ingredients were found. Please try again.")
             }
@@ -87,13 +83,13 @@ const UserInput = () => {
     const handleSearch = () => {
         if (ingredients.length > 0) {
             setIsSearching(true)
-            getRecipes(ingredients).finally(() => setIsSearching(false))
+            getRecipes(ingredients, selectedDiet).finally(() => setIsSearching(false))
         }
     }
 
     const handleQuickSearch = (ingredient) => {
         setIsSearching(true)
-        getRecipes([ingredient]).finally(() => setIsSearching(false))
+        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false))
     }
 
     const clickHandler = (recipe) => {
@@ -108,7 +104,6 @@ const UserInput = () => {
                 <Tabs defaultValue="search" className="w-full">
                     <TabsList className="grid w-full grid-cols-1">
                         <TabsTrigger value="search">Search Recipes</TabsTrigger>
-                        {/* <TabsTrigger value="build">Build Recipe</TabsTrigger> */}
                     </TabsList>
                     <TabsContent value="search">
                         <div className="mt-6">
@@ -182,6 +177,20 @@ const UserInput = () => {
                                         </CardContent>
                                     </Card>
 
+                                    <Select value={selectedDiet} onValueChange={setSelectedDiet}>
+                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white mb-4">
+                                            <SelectValue placeholder="Select Diet (Optional)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={null}>No Specific Diet</SelectItem>
+                                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                                            <SelectItem value="vegan">Vegan</SelectItem>
+                                            <SelectItem value="gluten-free">Gluten Free</SelectItem>
+                                            <SelectItem value="ketogenic">Ketogenic</SelectItem>
+                                            <SelectItem value="paleo">Paleo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+
                                     <Button
                                         onClick={handleSearch}
                                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
@@ -226,9 +235,6 @@ const UserInput = () => {
                             </CardContent>
                         </Card>
                     </TabsContent>
-                    {/* <TabsContent value="build">
-            <RecipeBuilder />
-          </TabsContent> */}
                 </Tabs>
             </div>
         </div>
