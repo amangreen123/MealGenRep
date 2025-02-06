@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { PlusCircle, ChefHat } from "lucide-react"
+import {PlusCircle, ChefHat, MinusCircle} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,15 +40,17 @@ export default function RecipeBuilder() {
                     name: newIngredient,
                     amount: Number.parseFloat(newAmount),
                     unit: newUnit,
-                    calories: nutritionData.calories,
-                    protein: nutritionData.totalNutrients.PROCNT?.quantity || 0,
-                    carbs: nutritionData.totalNutrients.CHOCDF?.quantity || 0,
-                    fat: nutritionData.totalNutrients.FAT?.quantity || 0,
+                    calories: Math.round(nutritionData.calories || 0),
+                    protein: Math.round(nutritionData.totalNutrients.PROCNT?.quantity || 0),
+                    carbs: Math.round(nutritionData.totalNutrients.CHOCDF?.quantity || 0),
+                    fat: Math.round(nutritionData.totalNutrients.FAT?.quantity || 0),
                 }
                 setIngredients([...ingredients, ingredient])
                 setNewIngredient("")
                 setNewAmount("")
                 setNewUnit("")
+                console.log("Protein:", ingredient.protein)
+
             } catch (error) {
                 console.error("Error adding ingredient:", error)
             } finally {
@@ -59,7 +61,7 @@ export default function RecipeBuilder() {
 
     const totalMacros = ingredients.reduce(
         (acc, ing) => ({
-            calories: Math.round(acc.calories + ing.calories),
+            calories: acc.calories + ing.calories,
             protein: Number((acc.protein + ing.protein).toFixed(1)),
             carbs: Number((acc.carbs + ing.carbs).toFixed(1)),
             fat: Number((acc.fat + ing.fat).toFixed(1)),
@@ -95,8 +97,11 @@ export default function RecipeBuilder() {
                         <Button onClick={addIngredient} className="button" disabled={loading}>
                             <PlusCircle className="w-4 h-4" />
                         </Button>
-                    </div>
+                        <Button className="bg-red-500 hover:bg-red-600" disabled={loading}>
+                            <MinusCircle className="w-4 h-4" />
+                        </Button>
 
+                    </div>
                     <ScrollArea className="h-[300px] w-full">
                         <Table>
                             <TableHeader>
