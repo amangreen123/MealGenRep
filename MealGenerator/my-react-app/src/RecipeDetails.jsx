@@ -201,4 +201,3 @@ const InstructionsCard = ({ instructions }) => {
 }
 
 export default RecipeDetails
-

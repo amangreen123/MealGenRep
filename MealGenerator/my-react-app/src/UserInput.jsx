@@ -16,13 +16,15 @@ import {
     Carrot,
     Beef,
     Fish,
-    ChevronsUpIcon as Cheese,
     Apple,
-    Milk,
+    Bird,
     PlusCircle,
     Loader2,
     X,
 } from "lucide-react"
+
+import { FaCheese } from "react-icons/fa";
+
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
 const popularIngredients = [
@@ -31,9 +33,9 @@ const popularIngredients = [
     { name: "Vegetables", icon: Carrot },
     { name: "Beef", icon: Beef },
     { name: "Fish", icon: Fish },
-    { name: "Cheese", icon: Cheese },
+    { name: "Cheese", icon: FaCheese },
     { name: "Fruit", icon: Apple },
-    { name: "Milk", icon: Milk },
+    { name: "Chicken", icon: Bird },
 ]
 
 const UserInput = () => {
@@ -242,4 +244,3 @@ const UserInput = () => {
 }
 
 export default UserInput
-
