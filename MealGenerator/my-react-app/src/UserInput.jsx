@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import {Dialog, DialogContent, DialogTitle, DialogTrigger} from "@/components/ui/dialog"
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 
@@ -271,6 +271,10 @@ const UserInput = () => {
     )
 }
 
+const stripHtml = (html) => {
+    return html.replace(/<\/?[^>]+(>|$)/g, ""); // Removes all HTML tags
+};
+
 const RecipeCard = ({ recipe, onClick }) => (
     <Dialog>
         <DialogTrigger asChild>
@@ -286,19 +290,20 @@ const RecipeCard = ({ recipe, onClick }) => (
             </Card>
         </DialogTrigger>
         <DialogContent className="bg-gray-800 text-white">
-            <h2 className="text-2xl font-bold mb-4">{recipe.title || recipe.strMeal}</h2>
+            <DialogTitle>{recipe.title || recipe.strMeal}</DialogTitle>
             <img
                 src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
                 alt={recipe.title || recipe.strMeal}
                 className="w-full h-48 object-cover rounded-md mb-4"
             />
-            <p className="mb-4">{recipe.summary || "No summary available."}</p>
+            <p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p> {/* Stripping HTML tags */}
             <Button onClick={onClick} className="w-full">
                 View Full Recipe
             </Button>
         </DialogContent>
     </Dialog>
-)
+);
+
 
 const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
     const pageNumbers = []
