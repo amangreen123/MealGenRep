@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import useFetchMeals from "./getMeals.jsx"
+import useTheMealDB from "./getTheMealDB.jsx"
+
 import {
     Search,
     Egg,
@@ -44,6 +46,7 @@ const UserInput = () => {
     const [isSearching, setIsSearching] = useState(false)
     const [selectedDiet, setSelectedDiet] = useState(null)
     const { recipes, error, getRecipes } = useFetchMeals()
+    const { getMealDBRecipes,MealDBRecipes, loading} = useTheMealDB()
     const navigate = useNavigate()
 
     const handleInputChange = ({ target: { value } }) => {
@@ -83,10 +86,13 @@ const UserInput = () => {
     }
 
     const handleSearch = () => {
+
         if (ingredients.length > 0) {
             setIsSearching(true)
             getRecipes(ingredients, selectedDiet).finally(() => setIsSearching(false))
+            getMealDBRecipes(ingredients)
         }
+
     }
 
     const handleQuickSearch = (ingredient) => {
@@ -223,11 +229,24 @@ const UserInput = () => {
                                                 >
                                                     <CardContent className="p-4">
                                                         <img
-                                                            src={recipe.image || "/placeholder.svg"}
+                                                            src={recipe.image  || "/placeholder.svg"}
                                                             alt={recipe.title}
                                                             className="w-full h-32 object-cover rounded-md mb-2"
                                                         />
                                                         <h4 className="font-semibold text-sm line-clamp-2">{recipe.title}</h4>
+                                                    </CardContent>
+
+                                                </Card>
+                                            ))}
+                                            {MealDBRecipes.map(meal => (
+                                                <Card>
+                                                    <CardContent>
+                                                        <img
+                                                            src={meal.strMealThumb}
+                                                            alt={meal.strMeal}
+                                                            className="w-full h-32 object-cover rounded-md mb-2"
+                                                        />
+                                                        <h4 className="font-semibold text-sm line-clamp-2">{meal.strMeal}</h4>
                                                     </CardContent>
                                                 </Card>
                                             ))}
