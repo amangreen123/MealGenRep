@@ -1,21 +1,16 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import useFetchMeals from "./getMeals.jsx";
-import useTheMealDB from "./getTheMealDB.jsx";
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import useFetchMeals from "./getMeals.jsx"
+import useTheMealDB from "./getTheMealDB.jsx"
 
 import {
     Search,
@@ -29,10 +24,12 @@ import {
     PlusCircle,
     Loader2,
     X,
-} from "lucide-react";
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react"
 
-import { FaCheese } from "react-icons/fa";
-import { getGaladrielResponse } from "@/getGaladrielResponse.jsx";
+import { FaCheese } from "react-icons/fa"
+import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
 const popularIngredients = [
     { name: "Eggs", icon: Egg },
@@ -43,93 +40,96 @@ const popularIngredients = [
     { name: "Cheese", icon: FaCheese },
     { name: "Fruit", icon: Apple },
     { name: "Chicken", icon: Bird },
-];
+]
 
 const UserInput = () => {
-    const [inputString, setInputString] = useState("");
-    const [ingredients, setIngredients] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
-    const [selectedDiet, setSelectedDiet] = useState(null);
-    const { recipes, error, getRecipes } = useFetchMeals();
-    const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB();
-    const navigate = useNavigate();
+    const [inputString, setInputString] = useState("")
+    const [ingredients, setIngredients] = useState([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [selectedDiet, setSelectedDiet] = useState(null)
+    const { recipes, error, getRecipes } = useFetchMeals()
+    const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
+    const [allRecipes, setAllRecipes] = useState([])
+    const [currentPage, setCurrentPage] = useState(1)
+    const recipesPerPage = 6
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
+        setAllRecipes([...recipes, ...mealDBRecipesArray])
+    }, [recipes, MealDBRecipes])
 
     const handleInputChange = ({ target: { value } }) => {
-        setInputString(value);
-    };
+        setInputString(value)
+    }
 
     const handleAddIngredient = async () => {
         if (inputString.trim() === "") {
-            alert("Please enter valid ingredients.");
-            return;
+            alert("Please enter valid ingredients.")
+            return
         }
 
-        setIsSearching(true);
+        setIsSearching(true)
 
         try {
-            const result = await getGaladrielResponse(inputString);
+            const result = await getGaladrielResponse(inputString)
             if (result !== "No valid ingredients") {
-                const suggestedIngredients = result
-                    .split(", ")
-                    .map((item) => item.trim());
+                const suggestedIngredients = result.split(", ").map((item) => item.trim())
                 const uniqueIngredients = suggestedIngredients.filter(
-                    (newIngr) =>
-                        !ingredients.some(
-                            (existingIngr) =>
-                                existingIngr.toLowerCase() === newIngr.toLowerCase()
-                        )
-                );
-                setIngredients((prevIngredients) => [
-                    ...prevIngredients,
-                    ...uniqueIngredients,
-                ]);
-                setInputString("");
+                    (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
+                )
+                setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients])
+                setInputString("")
             } else {
-                alert("No valid ingredients were found. Please try again.");
+                alert("No valid ingredients were found. Please try again.")
             }
         } catch (error) {
-            console.error("Error during Verification:", error);
-            alert("Error during ingredient verification. Please try again later.");
+            console.error("Error during Verification:", error)
+            alert("Error during ingredient verification. Please try again later.")
         } finally {
-            setIsSearching(false);
+            setIsSearching(false)
         }
-    };
+    }
 
     const handleRemoveIngredient = (ingredientToRemove) => {
-        setIngredients(
-            ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
-        );
-    };
+        setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
+    }
 
     const handleSearch = async () => {
         if (ingredients.length > 0) {
-            setIsSearching(true);
+            setIsSearching(true)
             try {
-                await Promise.all([
-                    getRecipes(ingredients, selectedDiet),
-                    getMealDBRecipes(ingredients),
-                ]);
+                await Promise.all([getRecipes(ingredients, selectedDiet), getMealDBRecipes(ingredients)])
+                setCurrentPage(1)
             } catch (error) {
-                console.error("Error during search:", error);
+                console.error("Error during search:", error)
+                // You might want to set an error state here to display to the user
             } finally {
-                setIsSearching(false);
+                setIsSearching(false)
             }
         }
-    };
+    }
 
     const handleQuickSearch = (ingredient) => {
-        setIsSearching(true);
-        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false));
-    };
+        setIsSearching(true)
+        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false))
+        getMealDBRecipes([ingredient])
+        setCurrentPage(1)
+    }
 
     const clickHandler = (recipe) => {
-
         if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe } });
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe } })
         } else {
-            navigate(`/recipe/${recipe.id}`, { state: { recipe } });
+            navigate(`/recipe/${recipe.id}`, { state: { recipe } })
         }
-    };
+    }
+
+    const indexOfLastRecipe = currentPage * recipesPerPage
+    const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage
+    const currentRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe)
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
@@ -142,27 +142,23 @@ const UserInput = () => {
                     </TabsList>
                     <TabsContent value="search">
                         <div className="mt-6">
-                            <h3 className="text-2xl font-semibold mb-4 text-center">
-                                Quick Search
-                            </h3>
-                            <Card className="bg-gray-800/50 border-gray-700">
-                                <CardContent className="p-4">
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                        {popularIngredients.map((item) => (
-                                            <Button
-                                                key={item.name}
-                                                variant="outline"
-                                                onClick={() => handleQuickSearch(item.name)}
-                                                className="flex flex-col items-center justify-center p-2 h-24 w-full"
-                                                disabled={isSearching}
-                                            >
-                                                <item.icon className="w-8 h-8 mb-2" />
-                                                <span className="text-sm text-center">{item.name}</span>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <h3 className="text-2xl font-semibold mb-4 text-center">Quick Search</h3>
+                            <ScrollArea className="h-[150px] w-full">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4">
+                                    {popularIngredients.map((item) => (
+                                        <Button
+                                            key={item.name}
+                                            variant="outline"
+                                            onClick={() => handleQuickSearch(item.name)}
+                                            className="flex flex-col items-center justify-center p-2 h-24 w-full"
+                                            disabled={isSearching}
+                                        >
+                                            <item.icon className="w-8 h-8 mb-2" />
+                                            <span className="text-sm text-center">{item.name}</span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
                         </div>
                         <Card className="bg-gray-800/50 border-gray-700 mt-6">
                             <CardHeader>
@@ -175,7 +171,7 @@ const UserInput = () => {
                                 <div className="space-y-4">
                                     <div className="flex gap-2">
                                         <Input
-                                            placeholder="Enter Ingredients Separated By Spaces"
+                                            placeholder="Enter Ingredients"
                                             value={inputString}
                                             onChange={handleInputChange}
                                             className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
@@ -196,10 +192,7 @@ const UserInput = () => {
                                             <ScrollArea className="h-20">
                                                 <div className="flex flex-wrap gap-2">
                                                     {ingredients.map((ingredient, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center"
-                                                        >
+                                                        <div key={index} className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
                                                             {ingredient}
                                                             <Button
                                                                 variant="ghost"
@@ -245,58 +238,28 @@ const UserInput = () => {
                                         )}
                                     </Button>
                                 </div>
-                                {error && (
-                                    <p className="text-red-500 mt-6">
-                                        Error: Unable to fetch recipes. Please try again later.
-                                    </p>
-                                )}
-                                {recipes.length > 0 && (
+                                {error && <p className="text-red-500 mt-6">Error: Unable to fetch recipes. Please try again later.</p>}
+                                {allRecipes.length > 0 ? (
                                     <div className="mt-6">
-                                        <h3 className="text-xl font-semibold mb-4">
-                                            Recipes
-                                        </h3>
+                                        <h3 className="text-xl font-semibold mb-4">Recipes ({allRecipes.length})</h3>
                                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {recipes.map((recipe) => (
-                                                <Card
-                                                    key={recipe.id}
-                                                    className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                                            {currentRecipes.map((recipe) => (
+                                                <RecipeCard
+                                                    key={recipe.id || recipe.idMeal}
+                                                    recipe={recipe}
                                                     onClick={() => clickHandler(recipe)}
-                                                >
-                                                    <CardContent className="p-4">
-                                                        <img
-                                                            src={recipe.image || "/placeholder.svg"}
-                                                            alt={recipe.title}
-                                                            className="w-full h-32 object-cover rounded-md mb-2"
-                                                        />
-                                                        <h4 className="font-semibold text-sm line-clamp-2">
-                                                            {recipe.title}
-                                                        </h4>
-                                                    </CardContent>
-                                                </Card>
+                                                />
                                             ))}
-                                            {MealDBRecipes.map((meal) => {
-                                                //console.log(meal);
-                                                return (
-                                                    <Card
-                                                        key={meal.idMeal}
-                                                        className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"
-                                                        onClick={() => clickHandler(meal)}
-                                                    >
-                                                        <CardContent>
-                                                            <img
-                                                                src={meal.strMealThumb || "/placeholder.svg"}
-                                                                alt={meal.strMeal}
-                                                                className="w-full h-32 object-cover rounded-md mb-2"
-                                                            />
-                                                            <h4 className="font-semibold text-sm line-clamp-2">
-                                                                {meal.strMeal}
-                                                            </h4>
-                                                        </CardContent>
-                                                    </Card>
-                                                );
-                                            })}
                                         </div>
+                                        <Pagination
+                                            recipesPerPage={recipesPerPage}
+                                            totalRecipes={allRecipes.length}
+                                            paginate={paginate}
+                                            currentPage={currentPage}
+                                        />
                                     </div>
+                                ) : (
+                                    <p className="text-center mt-6">No recipes found. Try adjusting your search criteria.</p>
                                 )}
                             </CardContent>
                         </Card>
@@ -304,7 +267,73 @@ const UserInput = () => {
                 </Tabs>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default UserInput;
+const RecipeCard = ({ recipe, onClick }) => (
+    <Dialog>
+        <DialogTrigger asChild>
+            <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
+                <CardContent className="p-4">
+                    <img
+                        src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
+                        alt={recipe.title || recipe.strMeal}
+                        className="w-full h-32 object-cover rounded-md mb-2"
+                    />
+                    <h4 className="font-semibold text-sm line-clamp-2">{recipe.title || recipe.strMeal}</h4>
+                </CardContent>
+            </Card>
+        </DialogTrigger>
+        <DialogContent className="bg-gray-800 text-white">
+            <h2 className="text-2xl font-bold mb-4">{recipe.title || recipe.strMeal}</h2>
+            <img
+                src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
+                alt={recipe.title || recipe.strMeal}
+                className="w-full h-48 object-cover rounded-md mb-4"
+            />
+            <Button onClick={onClick} className="w-full">
+                View Full Recipe
+            </Button>
+        </DialogContent>
+    </Dialog>
+)
+
+const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
+    const pageNumbers = []
+
+    for (let i = 1; i <= Math.ceil(totalRecipes / recipesPerPage); i++) {
+        pageNumbers.push(i)
+    }
+
+    return (
+        <nav className="flex justify-center mt-4">
+            <ul className="flex space-x-2">
+                <li>
+                    <Button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} variant="outline" size="icon">
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                </li>
+                {pageNumbers.map((number) => (
+                    <li key={number}>
+                        <Button onClick={() => paginate(number)} variant={currentPage === number ? "default" : "outline"}>
+                            {number}
+                        </Button>
+                    </li>
+                ))}
+                <li>
+                    <Button
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === Math.ceil(totalRecipes / recipesPerPage)}
+                        variant="outline"
+                        size="icon"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </li>
+            </ul>
+        </nav>
+    )
+}
+
+export default UserInput
+
