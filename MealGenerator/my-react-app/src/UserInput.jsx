@@ -103,7 +103,6 @@ const UserInput = () => {
                 setCurrentPage(1)
             } catch (error) {
                 console.error("Error during search:", error)
-                // You might want to set an error state here to display to the user
             } finally {
                 setIsSearching(false)
             }
@@ -143,22 +142,24 @@ const UserInput = () => {
                     <TabsContent value="search">
                         <div className="mt-6">
                             <h3 className="text-2xl font-semibold mb-4 text-center">Quick Search</h3>
-                            <ScrollArea className="h-[150px] w-full">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4">
-                                    {popularIngredients.map((item) => (
-                                        <Button
-                                            key={item.name}
-                                            variant="outline"
-                                            onClick={() => handleQuickSearch(item.name)}
-                                            className="flex flex-col items-center justify-center p-2 h-24 w-full"
-                                            disabled={isSearching}
-                                        >
-                                            <item.icon className="w-8 h-8 mb-2" />
-                                            <span className="text-sm text-center">{item.name}</span>
-                                        </Button>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                            <Card className="bg-gray-800/50 border-gray-700">
+                                <CardContent className="p-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        {popularIngredients.map((item) => (
+                                            <Button
+                                                key={item.name}
+                                                variant="outline"
+                                                onClick={() => handleQuickSearch(item.name)}
+                                                className="flex flex-col items-center justify-center p-2 h-24 w-full"
+                                                disabled={isSearching}
+                                            >
+                                                <item.icon className="w-8 h-8 mb-2" />
+                                                <span className="text-sm text-center">{item.name}</span>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                         <Card className="bg-gray-800/50 border-gray-700 mt-6">
                             <CardHeader>
@@ -258,9 +259,9 @@ const UserInput = () => {
                                             currentPage={currentPage}
                                         />
                                     </div>
-                                ) : (
-                                    <p className="text-center mt-6">No recipes found. Try adjusting your search criteria.</p>
-                                )}
+                                 ) : ( 
+                                     <p className="text-center mt-6"> </p>
+                                 )}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -291,6 +292,7 @@ const RecipeCard = ({ recipe, onClick }) => (
                 alt={recipe.title || recipe.strMeal}
                 className="w-full h-48 object-cover rounded-md mb-4"
             />
+            <p className="mb-4">{recipe.summary || "No summary available."}</p>
             <Button onClick={onClick} className="w-full">
                 View Full Recipe
             </Button>
