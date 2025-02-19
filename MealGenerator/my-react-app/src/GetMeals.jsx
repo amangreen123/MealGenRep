@@ -40,7 +40,7 @@ export const useFetchMeals = () => {
 
             cache.current[key] = results;
             setRecipes(results);
-            console.log('Food Data', results);
+            //console.log('Food Data', results);
 
         } catch (error) {
             setError(error.message || "An error occurred while fetching recipes.");

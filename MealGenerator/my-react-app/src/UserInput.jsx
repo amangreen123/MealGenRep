@@ -259,9 +259,9 @@ const UserInput = () => {
                                             currentPage={currentPage}
                                         />
                                     </div>
-                                 ) : ( 
-                                     <p className="text-center mt-6"> </p>
-                                 )}
+                                ) : (
+                                    <p className="text-center mt-6"> </p>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -338,4 +338,3 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
 }
 
 export default UserInput
-

@@ -47,6 +47,7 @@ const RecipeDetails = () => {
             try {
                 setLoading(true)
                 const data = await getInstructions(recipe.id)
+                console.log("Recipe Details", data)
                 setRecipeDetails(data)
             } catch (error) {
                 setError(error.message || "An error occurred while fetching recipe details")
