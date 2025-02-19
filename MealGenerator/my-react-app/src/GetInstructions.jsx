@@ -47,6 +47,11 @@ export const getInstructions = async (id) => {
 
         return macrosAndSteps; // Return the structured data
     } catch (error) {
+        //error for when I reach the API limit
+        if (error.response && error.response.status === 402) {
+            console.error("API limit reached. Please try again later.");
+            throw new Error("API limit reached. Please try again later.");
+        }
         console.error("Error fetching recipe details:", error);
         throw new Error("An error occurred while fetching recipe details.");
     }

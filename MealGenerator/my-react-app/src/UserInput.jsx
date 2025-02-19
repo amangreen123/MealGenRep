@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {Dialog, DialogContent, DialogTitle, DialogTrigger} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 
@@ -285,24 +285,36 @@ const RecipeCard = ({ recipe, onClick }) => (
                         alt={recipe.title || recipe.strMeal}
                         className="w-full h-32 object-cover rounded-md mb-2"
                     />
-                    <h4 className="font-semibold text-sm line-clamp-2">{recipe.title || recipe.strMeal}</h4>
+                    <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
+                        {recipe.title || recipe.strMeal}
+                    </h4>
                 </CardContent>
             </Card>
         </DialogTrigger>
+
         <DialogContent className="bg-gray-800 text-white">
-            <DialogTitle>{recipe.title || recipe.strMeal}</DialogTitle>
-            <img
-                src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
-                alt={recipe.title || recipe.strMeal}
-                className="w-full h-48 object-cover rounded-md mb-4"
-            />
-            <p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p> {/* Stripping HTML tags */}
-            <Button onClick={onClick} className="w-full">
-                View Full Recipe
-            </Button>
+        <DialogTitle className="font-medium text-gray-300 text-lg">
+                {recipe.title || recipe.strMeal}
+            </DialogTitle>
+            <DialogDescription asChild>
+                <div className="text-white font-bold">
+                    <img
+                        src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
+                        alt={recipe.title || recipe.strMeal}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                    />
+                    <p className="mb-4">
+                        {stripHtml(recipe.summary) || "No summary available."}
+                    </p>
+                    <Button onClick={onClick} className="w-full font-bold">
+                        View Full Recipe
+                    </Button>
+                </div>
+            </DialogDescription>
         </DialogContent>
     </Dialog>
 );
+
 
 
 const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
