@@ -1,15 +1,21 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import useFetchMeals from "./getMeals.jsx"
-import useTheMealDB from "./getTheMealDB.jsx"
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import useFetchMeals from "./getMeals.jsx";
+import useTheMealDB from "./getTheMealDB.jsx";
 
 import {
     Search,
@@ -23,11 +29,10 @@ import {
     PlusCircle,
     Loader2,
     X,
-} from "lucide-react"
+} from "lucide-react";
 
 import { FaCheese } from "react-icons/fa";
-
-import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
+import { getGaladrielResponse } from "@/getGaladrielResponse.jsx";
 
 const popularIngredients = [
     { name: "Eggs", icon: Egg },
@@ -38,71 +43,93 @@ const popularIngredients = [
     { name: "Cheese", icon: FaCheese },
     { name: "Fruit", icon: Apple },
     { name: "Chicken", icon: Bird },
-]
+];
 
 const UserInput = () => {
-    const [inputString, setInputString] = useState("")
-    const [ingredients, setIngredients] = useState([])
-    const [isSearching, setIsSearching] = useState(false)
-    const [selectedDiet, setSelectedDiet] = useState(null)
-    const { recipes, error, getRecipes } = useFetchMeals()
-    const { getMealDBRecipes,MealDBRecipes, loading} = useTheMealDB()
-    const navigate = useNavigate()
+    const [inputString, setInputString] = useState("");
+    const [ingredients, setIngredients] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedDiet, setSelectedDiet] = useState(null);
+    const { recipes, error, getRecipes } = useFetchMeals();
+    const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB();
+    const navigate = useNavigate();
 
     const handleInputChange = ({ target: { value } }) => {
-        setInputString(value)
-    }
+        setInputString(value);
+    };
 
     const handleAddIngredient = async () => {
         if (inputString.trim() === "") {
-            alert("Please enter valid ingredients.")
-            return
+            alert("Please enter valid ingredients.");
+            return;
         }
 
-        setIsSearching(true)
+        setIsSearching(true);
 
         try {
-            const result = await getGaladrielResponse(inputString)
+            const result = await getGaladrielResponse(inputString);
             if (result !== "No valid ingredients") {
-                const suggestedIngredients = result.split(", ").map((item) => item.trim())
+                const suggestedIngredients = result
+                    .split(", ")
+                    .map((item) => item.trim());
                 const uniqueIngredients = suggestedIngredients.filter(
-                    (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
-                )
-                setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients])
-                setInputString("")
+                    (newIngr) =>
+                        !ingredients.some(
+                            (existingIngr) =>
+                                existingIngr.toLowerCase() === newIngr.toLowerCase()
+                        )
+                );
+                setIngredients((prevIngredients) => [
+                    ...prevIngredients,
+                    ...uniqueIngredients,
+                ]);
+                setInputString("");
             } else {
-                alert("No valid ingredients were found. Please try again.")
+                alert("No valid ingredients were found. Please try again.");
             }
         } catch (error) {
-            console.error("Error during Verification:", error)
-            alert("Error during ingredient verification. Please try again later.")
+            console.error("Error during Verification:", error);
+            alert("Error during ingredient verification. Please try again later.");
         } finally {
-            setIsSearching(false)
+            setIsSearching(false);
         }
-    }
+    };
 
     const handleRemoveIngredient = (ingredientToRemove) => {
-        setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
-    }
+        setIngredients(
+            ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
+        );
+    };
 
-    const handleSearch = () => {
-
+    const handleSearch = async () => {
         if (ingredients.length > 0) {
-            setIsSearching(true)
-            getRecipes(ingredients, selectedDiet).finally(() => setIsSearching(false))
-            getMealDBRecipes(ingredients)
+            setIsSearching(true);
+            try {
+                await Promise.all([
+                    getRecipes(ingredients, selectedDiet),
+                    getMealDBRecipes(ingredients),
+                ]);
+            } catch (error) {
+                console.error("Error during search:", error);
+            } finally {
+                setIsSearching(false);
+            }
         }
-
-    }
+    };
 
     const handleQuickSearch = (ingredient) => {
-        setIsSearching(true)
-        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false))
-    }
+        setIsSearching(true);
+        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false));
+    };
 
     const clickHandler = (recipe) => {
-        navigate(`/${recipe.id}`, { state: { recipe } })
-    }
+
+        if (recipe.idMeal) {
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe } });
+        } else {
+            navigate(`/recipe/${recipe.id}`, { state: { recipe } });
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
@@ -115,7 +142,9 @@ const UserInput = () => {
                     </TabsList>
                     <TabsContent value="search">
                         <div className="mt-6">
-                            <h3 className="text-2xl font-semibold mb-4 text-center">Quick Search</h3>
+                            <h3 className="text-2xl font-semibold mb-4 text-center">
+                                Quick Search
+                            </h3>
                             <Card className="bg-gray-800/50 border-gray-700">
                                 <CardContent className="p-4">
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -159,7 +188,6 @@ const UserInput = () => {
                                             Add
                                         </Button>
                                     </div>
-
                                     <Card className="bg-gray-700/50 border-gray-600">
                                         <CardHeader>
                                             <CardTitle>Current Ingredients</CardTitle>
@@ -168,7 +196,10 @@ const UserInput = () => {
                                             <ScrollArea className="h-20">
                                                 <div className="flex flex-wrap gap-2">
                                                     {ingredients.map((ingredient, index) => (
-                                                        <div key={index} className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
+                                                        <div
+                                                            key={index}
+                                                            className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center"
+                                                        >
                                                             {ingredient}
                                                             <Button
                                                                 variant="ghost"
@@ -214,12 +245,16 @@ const UserInput = () => {
                                         )}
                                     </Button>
                                 </div>
-
-                                {error && <p className="text-red-500 mt-6">Error: Unable to fetch recipes. Please try again later.</p>}
-
+                                {error && (
+                                    <p className="text-red-500 mt-6">
+                                        Error: Unable to fetch recipes. Please try again later.
+                                    </p>
+                                )}
                                 {recipes.length > 0 && (
                                     <div className="mt-6">
-                                        <h3 className="text-xl font-semibold mb-4">Found Recipes</h3>
+                                        <h3 className="text-xl font-semibold mb-4">
+                                            Recipes
+                                        </h3>
                                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {recipes.map((recipe) => (
                                                 <Card
@@ -229,27 +264,37 @@ const UserInput = () => {
                                                 >
                                                     <CardContent className="p-4">
                                                         <img
-                                                            src={recipe.image  || "/placeholder.svg"}
+                                                            src={recipe.image || "/placeholder.svg"}
                                                             alt={recipe.title}
                                                             className="w-full h-32 object-cover rounded-md mb-2"
                                                         />
-                                                        <h4 className="font-semibold text-sm line-clamp-2">{recipe.title}</h4>
-                                                    </CardContent>
-
-                                                </Card>
-                                            ))}
-                                            {MealDBRecipes.map(meal => (
-                                                <Card>
-                                                    <CardContent>
-                                                        <img
-                                                            src={meal.strMealThumb}
-                                                            alt={meal.strMeal}
-                                                            className="w-full h-32 object-cover rounded-md mb-2"
-                                                        />
-                                                        <h4 className="font-semibold text-sm line-clamp-2">{meal.strMeal}</h4>
+                                                        <h4 className="font-semibold text-sm line-clamp-2">
+                                                            {recipe.title}
+                                                        </h4>
                                                     </CardContent>
                                                 </Card>
                                             ))}
+                                            {MealDBRecipes.map((meal) => {
+                                                //console.log(meal);
+                                                return (
+                                                    <Card
+                                                        key={meal.idMeal}
+                                                        className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                                                        onClick={() => clickHandler(meal)}
+                                                    >
+                                                        <CardContent>
+                                                            <img
+                                                                src={meal.strMealThumb || "/placeholder.svg"}
+                                                                alt={meal.strMeal}
+                                                                className="w-full h-32 object-cover rounded-md mb-2"
+                                                            />
+                                                            <h4 className="font-semibold text-sm line-clamp-2">
+                                                                {meal.strMeal}
+                                                            </h4>
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -259,7 +304,7 @@ const UserInput = () => {
                 </Tabs>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default UserInput
+export default UserInput;
