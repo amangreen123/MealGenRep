@@ -199,6 +199,7 @@ const InstructionsCard = ({ instructions }) => {
         ? instructions.split("\r\n").filter((step) => step.trim() !== "")
         : [];
 
+
     return (
         <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>

@@ -43,6 +43,7 @@ const popularIngredients = [
 ]
 
 const UserInput = () => {
+
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
@@ -53,6 +54,7 @@ const UserInput = () => {
     const [currentPage, setCurrentPage] = useState(1)
     const recipesPerPage = 6
     const navigate = useNavigate()
+
 
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
@@ -73,8 +75,10 @@ const UserInput = () => {
 
         try {
             const result = await getGaladrielResponse(inputString)
+
             if (result !== "No valid ingredients") {
-                const suggestedIngredients = result.split(", ").map((item) => item.trim())
+
+                const suggestedIngredients = result.split(',').map((item) => item.trim())
                 const uniqueIngredients = suggestedIngredients.filter(
                     (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
                 )
@@ -272,6 +276,9 @@ const UserInput = () => {
 }
 
 const stripHtml = (html) => {
+    if (!html) {
+        return ""; // Return an empty string if html is null or undefined
+    }
     return html.replace(/<\/?[^>]+(>|$)/g, ""); // Removes all HTML tags
 };
 

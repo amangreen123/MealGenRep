@@ -20,7 +20,7 @@ export const getGaladrielResponse = async (message) => {
                     4. Only allow common, edible ingredients used in cooking.
                     5. If an input is ambiguous but could be a valid ingredient, interpret it as the ingredient.
                     6. If an ingredient is a type of food (e.g. "fruit" or "vegetable"), interpret it as a specific food (e.g. "apple" or "carrot").
-                    7. For each input item, respond with either the validated ingredient name or "Not a valid ingredient" if it's not a recognized food item.`
+                    7. For each input item, return the validated ingredient name if it is recognized. If the item is not a valid food ingredient, return an error message in the format: 'Error: [input item] is not a valid ingredient.`
                 },
                 {
                     role: "user",
