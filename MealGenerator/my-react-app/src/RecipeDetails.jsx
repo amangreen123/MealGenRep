@@ -194,41 +194,42 @@ const RecipeDetails = () => {
 }
 
 const LoadingState = () => (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-            <Skeleton className="h-10 w-24" />
-            <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="w-full aspect-video rounded-lg" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Skeleton className="h-20 rounded-lg" />
-                        <Skeleton className="h-20 rounded-lg" />
+    <div
+        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+        <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+            <CardContent className="p-6 text-center">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-gray-700/50 rounded w-3/4 mx-auto"/>
+                    <div className="h-64 bg-gray-700/50 rounded"/>
+                    <div className="space-y-2">
+                        <div className="h-4 bg-gray-700/50 rounded w-1/2 mx-auto"/>
+                        <div className="h-4 bg-gray-700/50 rounded w-3/4 mx-auto"/>
                     </div>
                 </div>
-                <Skeleton className="h-[400px] rounded-lg" />
-            </div>
-            <Skeleton className="h-[300px] rounded-lg" />
-        </div>
+                <p className="mt-4 text-gray-400">Loading recipe details...</p>
+            </CardContent>
+        </Card>
     </div>
 )
 
 const RecipeNotFound = () => (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+    <div
+        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
         <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
             <CardContent className="p-6">
                 <h1 className="text-2xl font-bold text-center mb-4">Recipe not found</h1>
                 <p className="text-center text-gray-400 mb-6">
                     The recipe you're looking for doesn't exist or has been removed.
                 </p>
-                <BackButton className="w-full" />
+                <BackButton className="w-full"/>
             </CardContent>
         </Card>
     </div>
 )
 
-const ErrorState = ({ error }) => (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+const ErrorState = ({error}) => (
+    <div
+        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
         <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
             <CardContent className="p-6">
                 <h1 className="text-2xl font-bold text-center mb-4">Error</h1>
