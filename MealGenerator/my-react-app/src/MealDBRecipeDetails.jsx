@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx";
+import {getUSDAInfo} from "@/GetUSDAInfo.jsx";
+
 
 const MealDBIngredientList = ({ meal, title }) => {
-
+    const [macros, setMacros] = useState({});
     const getIngredients = (meal) => {
         const ingredients = [];
         for (let i = 1; i <= 20; i++) {
@@ -25,20 +27,38 @@ const MealDBIngredientList = ({ meal, title }) => {
 
     const ingredients = getIngredients(meal);
 
+    useEffect(() => {
+        const fetchUSDAInfo = async () => {
+            const macrosData = {};
+            for (const item of ingredients){
+                const macroData = await getUSDAInfo(item.ingredient);
+                macrosData[item.ingredient] = macroData  || {calories: 0, protein: 0, fat: 0, carbs: 0};
+            }
+            setMacros(macrosData);
+        }
+        fetchUSDAInfo();
+
+    }, [meal]); // React to changes in `meal`
+
     return (
         <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold">{title || "Ingredients"}</CardTitle>
+                <CardTitle className="text-lg font-semibold">{title || "Ingredients & Macros"}</CardTitle>
             </CardHeader>
             <CardContent>
                 {ingredients.length > 0 ? (
                     <ul className="space-y-2">
                         {ingredients.map((item, index) => (
-                            <li key={index} className="flex items-center">
-                                <Badge variant="outline" className="mr-2">
-                                    {item.measure}
-                                </Badge>
-                                {item.ingredient}
+                            <li key={index} className="flex flex-col space-y-1">
+                                <span className="flex items-center">
+                                    <Badge variant="outline" className="mr-2">{item.measure}</Badge>
+                                    {item.ingredient}
+                                </span>
+                                <span className="text-gray-400 text-sm">
+                                    {macros[item.ingredient]
+                                        ? `Calories: ${macros[item.ingredient].calories} kcal | Protein: ${macros[item.ingredient].protein}g | Fat: ${macros[item.ingredient].fat}g | Carbs: ${macros[item.ingredient].carbs}g`
+                                        : "Loading..."}
+                                </span>
                             </li>
                         ))}
                     </ul>

@@ -12,8 +12,6 @@ export const useTheMealDB = () => {
     const cache = useRef({})
 
     const getMealDBRecipes = async (ingredients) => {
-        // Ensure ingredients is an array and take the first ingredient
-        // TheMealDB API works best with single ingredient searches
         const mainIngredient = Array.isArray(ingredients) ? ingredients[0] : ingredients
         const key = mainIngredient.toLowerCase().trim()
 
