@@ -1,57 +1,54 @@
-import axios from "axios";
+import axios from "axios"
 
-const apiKey = import.meta.env.VITE_USDA_KEY;
-const BASE_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
+const USDA_API_KEY = import.meta.env.VITE_USDA_KEY;
+const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1"
 
-export const getUSDAInfo = async (ingredientName) => {
+// Cache object to store USDA responses
+const cache = new Map()
 
-    const cachedData = localStorage.getItem(`macros-${ingredientName}`);
-
-    if(cachedData){
-        console.log(`Cache hit for ${ingredientName}`);
-
-        return JSON.parse(cachedData);
+export const getUSDAInfo = async (ingredient) => {
+    // Check cache first
+    if (cache.has(ingredient)) {
+        return cache.get(ingredient)
     }
 
     try {
-        const response = await axios.get(BASE_URL, {
-            params:{
-                api_key: apiKey,
-                query: ingredientName,
-                dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)",
-                pageSize: 1
+        // Search for the ingredient
+        const searchResponse = await axios.get(`${USDA_API_URL}/foods/search`, {
+            params: {
+                api_key: USDA_API_KEY,
+                query: ingredient,
+                dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)", // Use survey data for more common foods
+                pageSize: 1, // Get only the most relevant result
             },
-        });
+        })
 
-        if(response.data.foods.length === 0){
-            console.warn(`No data found for ${ingredientName}`)
-
-            return null;
+        if (!searchResponse.data.foods || searchResponse.data.foods.length === 0) {
+            console.log(`No USDA data found for: ${ingredient}`)
+            return null
         }
 
-        const food = response.data.foods[0];
+        const food = searchResponse.data.foods[0]
 
-        const macros = {
-            calories: food.foodNutrients.find(n => n.nutrientName === "Energy")?.value || 0,
-            protein: food.foodNutrients.find(n => n.nutrientName === "Protein")?.value || 0,
-            fat: food.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0,
-            carbs: food.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
-        };
+        // Extract relevant nutritional information
+        const nutrients = {
+            calories: food.foodNutrients.find((n) => n.nutrientName === "Energy")?.value || 0,
+            protein: food.foodNutrients.find((n) => n.nutrientName === "Protein")?.value || 0,
+            fat: food.foodNutrients.find((n) => n.nutrientName === "Total lipid (fat)")?.value || 0,
+            carbs: food.foodNutrients.find((n) => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
+            servingSize: food.servingSize || 100,
+            servingUnit: food.servingSizeUnit || "g",
+        }
 
-        localStorage.setItem(`macros-${ingredientName}`, JSON.stringify(macros));
+        // Cache the result
+        cache.set(ingredient, nutrients)
 
-        //console.log("USDA API Response:", response.data);
-
-        return macros;
-
-    } catch {
-        console.error(`Error Fetching USDA data for ${ingredientName}`);
-        console.log("API Key:", apiKey);
-        console.log("Request URL:", `${BASE_URL}?query=${ingredientName}&api_key=${apiKey}`);
-        return null;
+        return nutrients
+    } catch (error) {
+        console.error(`Error fetching USDA data for ${ingredient}:`, error)
+        return null
     }
-
-};
+}
 
 
 
