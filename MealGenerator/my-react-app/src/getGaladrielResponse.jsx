@@ -29,6 +29,8 @@ export const getGaladrielResponse = async (message) => {
             ],
         });
 
+
+        // Extract the response text from the completion
         let responseText = completion.choices[0]?.message?.content.trim();
 
         // Split the response into individual items

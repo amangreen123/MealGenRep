@@ -56,6 +56,7 @@ const UserInput = () => {
     const navigate = useNavigate()
 
 
+
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
         setAllRecipes([...recipes, ...mealDBRecipesArray])
@@ -181,6 +182,19 @@ const UserInput = () => {
                                             onChange={handleInputChange}
                                             className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
                                         />
+                                        <Select value={selectedDiet} onValueChange={setSelectedDiet}>
+                                            <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white mb-4">
+                                                <SelectValue placeholder="Select Diet (Optional)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={null}>No Specific Diet</SelectItem>
+                                                <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                                                <SelectItem value="vegan">Vegan</SelectItem>
+                                                <SelectItem value="gluten-free">Gluten Free</SelectItem>
+                                                <SelectItem value="ketogenic">Ketogenic</SelectItem>
+                                                <SelectItem value="paleo">Paleo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <Button
                                             onClick={handleAddIngredient}
                                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
@@ -214,19 +228,7 @@ const UserInput = () => {
                                         </CardContent>
                                     </Card>
 
-                                    <Select value={selectedDiet} onValueChange={setSelectedDiet}>
-                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white mb-4">
-                                            <SelectValue placeholder="Select Diet (Optional)" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={null}>No Specific Diet</SelectItem>
-                                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                                            <SelectItem value="vegan">Vegan</SelectItem>
-                                            <SelectItem value="gluten-free">Gluten Free</SelectItem>
-                                            <SelectItem value="ketogenic">Ketogenic</SelectItem>
-                                            <SelectItem value="paleo">Paleo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+
 
                                     <Button
                                         onClick={handleSearch}
