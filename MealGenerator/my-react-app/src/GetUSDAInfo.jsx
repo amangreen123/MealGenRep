@@ -5,7 +5,7 @@ const BASE_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
 
 export const getUSDAInfo = async (ingredientName) => {
 
-    const cachedData = localStorage.getItem(ingredientName);
+    const cachedData = localStorage.getItem(`macros-${ingredientName}`);
 
     if(cachedData){
         console.log(`Cache hit for ${ingredientName}`);
@@ -32,13 +32,15 @@ export const getUSDAInfo = async (ingredientName) => {
         const food = response.data.foods[0];
 
         const macros = {
-            calories: food.foodNutrients.find(n => n.nutrientName === "Energy").value,
-            protein: food.foodNutrients.find(n => n.nutrientName === "Protein").value,
-            fat: food.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)").value,
-            carbs: food.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference").value,
-        }
+            calories: food.foodNutrients.find(n => n.nutrientName === "Energy")?.value || 0,
+            protein: food.foodNutrients.find(n => n.nutrientName === "Protein")?.value || 0,
+            fat: food.foodNutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0,
+            carbs: food.foodNutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
+        };
 
         localStorage.setItem(`macros-${ingredientName}`, JSON.stringify(macros));
+
+        //console.log("USDA API Response:", response.data);
 
         return macros;
 

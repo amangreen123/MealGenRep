@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import getInstructions from "./GetInstructions.jsx"
+import {getUSDAInfo} from "@/GetUSDAInfo.jsx";
 
 const IngredientList = ({ ingredients, title }) => (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -44,10 +45,10 @@ const RecipeDetails = () => {
     useEffect(() => {
         const fetchRecipeData = async () => {
             if (!recipe) return
+
             try {
                 setLoading(true)
                 const data = await getInstructions(recipe.id)
-                console.log("Recipe Details", data)
                 setRecipeDetails(data)
             } catch (error) {
                 setError(error.message || "An error occurred while fetching recipe details")
@@ -55,7 +56,6 @@ const RecipeDetails = () => {
                 setLoading(false)
             }
         }
-
         fetchRecipeData()
     }, [recipe])
 

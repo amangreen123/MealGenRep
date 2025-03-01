@@ -36,17 +36,19 @@ export const getInstructions = async (id) => {
             instructions: getInstruction.data.instructions,
             macros: getMacros.data,
             usedIngredients: getInstruction.data.usedIngredients,
-            missedIngredients: getInstruction.data.missedIngredients
-
+            missedIngredients: getInstruction.data.missedIngredients,
+            usdaNutrients: usdaData
         };
 
-
+        console.log("Fetched USAD:", usdaData);
 
         // Store the response in localStorage with a timestamp
         localStorage.setItem(id, JSON.stringify({
             timestamp: Date.now(),
             data: macrosAndSteps
         }));
+
+
 
         return macrosAndSteps; // Return the structured data
     } catch (error) {
