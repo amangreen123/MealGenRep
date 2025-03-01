@@ -53,19 +53,19 @@ const NutritionTabs = ({ recipe, recipeDetails }) => {
             <TabsContent value="summary" className="mt-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{macros.calories}</div>
+                        <div className="text-2xl font-bold">{Math.round(macros.calories)}</div>
                         <div className="text-sm text-gray-400">Calories</div>
                     </div>
                     <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{macros.protein}g</div>
+                        <div className="text-2xl font-bold">{Math.round(macros.protein)}g</div>
                         <div className="text-sm text-gray-400">Protein</div>
                     </div>
                     <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{macros.fat}g</div>
+                        <div className="text-2xl font-bold">{Math.round(macros.fat)}g</div>
                         <div className="text-sm text-gray-400">Fat</div>
                     </div>
                     <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{macros.carbs}g</div>
+                        <div className="text-2xl font-bold">{Math.round(macros.carbs)}g</div>
                         <div className="text-sm text-gray-400">Carbs</div>
                     </div>
                 </div>
