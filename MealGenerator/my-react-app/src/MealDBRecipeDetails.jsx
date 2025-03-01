@@ -251,7 +251,6 @@ const MealDBRecipeDetails = () => {
                         </Card>
                     </div>
                 </div>
-
                 {/* Instructions */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>

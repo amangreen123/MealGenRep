@@ -183,8 +183,9 @@ const UserInput = () => {
                                             className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
                                         />
                                         <Select value={selectedDiet} onValueChange={setSelectedDiet}>
-                                            <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white mb-4">
-                                                <SelectValue placeholder="Select Diet (Optional)" />
+                                            <SelectTrigger
+                                                className="w-full bg-gray-900 border-gray-700 text-white mb-4">
+                                                <SelectValue placeholder="Select Diet (Optional)"/>
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value={null}>No Specific Diet</SelectItem>
@@ -199,37 +200,50 @@ const UserInput = () => {
                                             onClick={handleAddIngredient}
                                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                                         >
-                                            <PlusCircle className="w-4 h-4 mr-2" />
+                                            <PlusCircle className="w-4 h-4 mr-2"/>
                                             Add
                                         </Button>
                                     </div>
-                                    <Card className="bg-gray-700/50 border-gray-600">
-                                        <CardHeader>
-                                            <CardTitle>Current Ingredients</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <ScrollArea className="h-20">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {ingredients.map((ingredient, index) => (
-                                                        <div key={index} className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
-                                                            {ingredient}
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="ml-2 h-4 w-4 p-0"
-                                                                onClick={() => handleRemoveIngredient(ingredient)}
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </ScrollArea>
-                                        </CardContent>
-                                    </Card>
-
-
-
+                                    {/*<Card className="bg-gray-700/50 border-gray-600">*/}
+                                    {/*    <CardHeader>*/}
+                                    {/*        <CardTitle>Current Ingredients</CardTitle>*/}
+                                    {/*    </CardHeader>*/}
+                                    {/*    <CardContent>*/}
+                                    {/*        <ScrollArea className="h-20">*/}
+                                    {/*            <div className="flex flex-wrap gap-2">*/}
+                                    {/*                {ingredients.map((ingredient, index) => (*/}
+                                    {/*                    <div key={index} className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">*/}
+                                    {/*                        {ingredient}*/}
+                                    {/*                        <Button*/}
+                                    {/*                            variant="ghost"*/}
+                                    {/*                            size="sm"*/}
+                                    {/*                            className="ml-2 h-4 w-4 p-0"*/}
+                                    {/*                            onClick={() => handleRemoveIngredient(ingredient)}*/}
+                                    {/*                        >*/}
+                                    {/*                            <X className="h-3 w-3" />*/}
+                                    {/*                        </Button>*/}
+                                    {/*                    </div>*/}
+                                    {/*                ))}*/}
+                                    {/*            </div>*/}
+                                    {/*        </ScrollArea>*/}
+                                    {/*    </CardContent>*/}
+                                    {/*</Card>*/}
+                                    <div className="flex flex-wrap gap-2">
+                                        {ingredients.map((ingredient, index) => (
+                                            <div key={index}
+                                                 className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
+                                                {ingredient}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="ml-2 h-4 w-4 p-0"
+                                                    onClick={() => handleRemoveIngredient(ingredient)}
+                                                >
+                                                    <X className="h-3 w-3"/>
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                     <Button
                                         onClick={handleSearch}
                                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
@@ -237,7 +251,7 @@ const UserInput = () => {
                                     >
                                         {isSearching ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
                                                 Searching...
                                             </>
                                         ) : (
@@ -245,7 +259,9 @@ const UserInput = () => {
                                         )}
                                     </Button>
                                 </div>
-                                {error && <p className="text-red-500 mt-6">Error: Unable to fetch recipes. Please try again later.</p>}
+                                {error &&
+                                    <p className="text-red-500 mt-6">Error: Unable to fetch recipes. Please try again
+                                        later.</p>}
                                 {allRecipes.length > 0 ? (
                                     <div className="mt-6">
                                         <h3 className="text-xl font-semibold mb-4">Recipes ({allRecipes.length})</h3>
