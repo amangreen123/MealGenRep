@@ -11,6 +11,83 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import getInstructions from "./GetInstructions.jsx"
 
+
+const IngredientDetail = ({ ingredient, usdaNutrients }) => {
+
+    const nutrientData = usdaNutrients[ingredient.name]
+
+    return (
+        <div className="bg-gray-700/30 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">{ingredient.name}</span>
+                <Badge variant="outline">
+                    {ingredient.amount} {ingredient.unit}
+                </Badge>
+            </div>
+            {nutrientData ? (
+                <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                    <span>Calories: {nutrientData.calories} kcal</span>
+                    <span>Protein: {nutrientData.protein}g</span>
+                    <span>Fat: {nutrientData.fat}g</span>
+                    <span>Carbs: {nutrientData.carbs}g</span>
+                </div>
+            ) : (
+                <div className="text-sm text-gray-400">Nutritional info not available</div>
+            )}
+        </div>
+    )
+}
+
+
+const NutritionTabs = ({ recipe, recipeDetails }) => {
+    const { macros, usdaNutrients } = recipeDetails
+    const allIngredients = [...(recipe.usedIngredients || []), ...(recipe.missedIngredients || [])]
+
+    return (
+        <Tabs defaultValue="summary">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary" className="mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold">{macros.calories}</div>
+                        <div className="text-sm text-gray-400">Calories</div>
+                    </div>
+                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold">{macros.protein}g</div>
+                        <div className="text-sm text-gray-400">Protein</div>
+                    </div>
+                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold">{macros.fat}g</div>
+                        <div className="text-sm text-gray-400">Fat</div>
+                    </div>
+                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold">{macros.carbs}g</div>
+                        <div className="text-sm text-gray-400">Carbs</div>
+                    </div>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="ingredients" className="mt-4">
+                <ScrollArea className="h-[400px]">
+                    <div className="space-y-4">
+                        {allIngredients.map((ingredient, index) => (
+                            <IngredientDetail
+                                key={index}
+                                ingredient={ingredient}
+                                usdaNutrients={usdaNutrients}
+                            />
+                        ))}
+                    </div>
+                </ScrollArea>
+            </TabsContent>
+        </Tabs>
+    )
+}
+
 const RecipeDetails = () => {
     const { state } = useLocation()
     const recipe = state?.recipe
@@ -47,6 +124,7 @@ const RecipeDetails = () => {
             <div className="max-w-4xl mx-auto space-y-6">
                 <BackButton />
                 <div className="grid md:grid-cols-2 gap-6">
+                    {/* Left column */}
                     <div className="space-y-6">
                         <h1 className="text-3xl font-bold">{recipe.title}</h1>
                         <img
@@ -54,17 +132,16 @@ const RecipeDetails = () => {
                             alt={recipe.title}
                             className="w-full aspect-video object-cover rounded-lg shadow-lg"
                         />
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
-                                <Clock className="w-5 h-5 text-gray-400" />
+                                <Clock className="w-5 h-5 text-gray-400"/>
                                 <div>
                                     <div className="text-sm text-gray-400">Cook Time</div>
                                     <div className="font-medium">{recipe.readyInMinutes || "N/A"} mins</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
-                                <Users className="w-5 h-5 text-gray-400" />
+                                <Users className="w-5 h-5 text-gray-400"/>
                                 <div>
                                     <div className="text-sm text-gray-400">Servings</div>
                                     <div className="font-medium">{recipe.servings || "N/A"}</div>
@@ -73,65 +150,17 @@ const RecipeDetails = () => {
                         </div>
                     </div>
 
+                    {/* Right column */}
                     <div className="space-y-6">
                         <Card className="bg-gray-800/50 border-gray-700">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Scale className="w-5 h-5" />
+                                    <Scale className="w-5 h-5"/>
                                     Nutrition Information
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Tabs defaultValue="summary">
-                                    <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="summary">Summary</TabsTrigger>
-                                        <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="summary" className="mt-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                                                <div className="text-2xl font-bold">{macros?.calories || 0}</div>
-                                                <div className="text-sm text-gray-400">Calories</div>
-                                            </div>
-                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                                                <div className="text-2xl font-bold">{macros?.protein || 0}g</div>
-                                                <div className="text-sm text-gray-400">Protein</div>
-                                            </div>
-                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                                                <div className="text-2xl font-bold">{macros?.fat || 0}g</div>
-                                                <div className="text-sm text-gray-400">Fat</div>
-                                            </div>
-                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                                                <div className="text-2xl font-bold">{macros?.carbs || 0}g</div>
-                                                <div className="text-sm text-gray-400">Carbs</div>
-                                            </div>
-                                        </div>
-                                    </TabsContent>
-
-                                    <TabsContent value="ingredients" className="mt-4">
-                                        <ScrollArea className="h-[400px]">
-                                            <div className="space-y-4">
-                                                {[...(recipe.usedIngredients || []), ...(recipe.missedIngredients || [])].map((ingredient, index) => (
-                                                    <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="font-medium">{ingredient.name}</span>
-                                                            <Badge variant="outline">
-                                                                {ingredient.amount} {ingredient.unit}
-                                                            </Badge>
-                                                        </div>
-                                                        {macros && (
-                                                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
-                                                                <span>Required: {ingredient.amount} {ingredient.unit}</span>
-                                                                <span>{ingredient.aisle}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                    </TabsContent>
-                                </Tabs>
+                                <NutritionTabs recipe={recipe} recipeDetails={recipeDetails}/>
                             </CardContent>
                         </Card>
                     </div>
@@ -145,7 +174,7 @@ const RecipeDetails = () => {
                         <CardContent>
                             <ScrollArea className="h-[300px]">
                                 <ol className="list-decimal list-inside space-y-4">
-                                    {instructions
+                                {instructions
                                         .replace(/<[^>]*>/g, '')
                                         .split('.')
                                         .filter(step => step.trim())

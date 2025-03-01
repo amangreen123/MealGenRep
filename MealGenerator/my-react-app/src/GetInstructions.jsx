@@ -1,4 +1,5 @@
 import axios from "axios"
+import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 
 export const getInstructions = async (id) => {
     const apiKey = import.meta.env.VITE_API_KEY
@@ -17,74 +18,87 @@ export const getInstructions = async (id) => {
     }
 
     try {
-        // Fetch both recipe instructions and nutrition information in parallel
-        const [instructionResponse, nutritionResponse] = await Promise.all([
+        // Fetch recipe data
+        const [instructionResponse, macrosResponse] = await Promise.all([
             axios.get(`https://api.spoonacular.com/recipes/${id}/information`, {
-                params: {
-                    apiKey,
-                    includeNutrition: true,
-                },
+                params: { apiKey },
             }),
             axios.get(`https://api.spoonacular.com/recipes/${id}/nutritionWidget.json`, {
                 params: { apiKey },
             }),
         ])
 
-        // Extract relevant data from responses
-        const recipeData = instructionResponse.data
-        const nutritionData = nutritionResponse.data
+        // Get all ingredients
+        const allIngredients = [
+            ...(instructionResponse.data.extendedIngredients || []),
+            ...(instructionResponse.data.usedIngredients || []),
+            ...(instructionResponse.data.missedIngredients || []),
+        ]
 
-        // Structure the response data
-        const macrosAndSteps = {
-            instructions: recipeData.instructions || "No instructions available.",
-            macros: {
-                calories: nutritionData.calories || 0,
-                protein: nutritionData.protein?.match(/\d+/)?.[0] || 0,
-                fat: nutritionData.fat?.match(/\d+/)?.[0] || 0,
-                carbs: nutritionData.carbs?.match(/\d+/)?.[0] || 0,
-            },
-            usedIngredients:
-                recipeData.extendedIngredients?.map((ingredient) => ({
-                    id: ingredient.id,
-                    name: ingredient.name,
-                    amount: ingredient.amount,
-                    unit: ingredient.unit,
-                    image: ingredient.image,
-                })) || [],
-            missedIngredients: [],
-            extendedIngredients: recipeData.extendedIngredients || [],
-            summary: recipeData.summary,
-            servings: recipeData.servings,
-            readyInMinutes: recipeData.readyInMinutes,
-            image: recipeData.image,
-            dishTypes: recipeData.dishTypes,
+        // Fetch USDA data for each ingredient
+        const usdaNutrients = {}
+        let totalMacros = {
+            calories: 0,
+            protein: 0,
+            fat: 0,
+            carbs: 0
         }
 
-        // Cache the structured data
+        for (const ingredient of allIngredients) {
+
+            if (ingredient.name) {
+
+                const normalizeName = (name) => name.toLowerCase().trim();
+                const key = normalizeName(ingredient.name);
+
+                const usdaData = await getUSDAInfo(ingredient.name)
+                console.log("USDA data for", ingredient.name, usdaData)
+
+                if (usdaData) {
+
+                    usdaNutrients[ingredient.name] = {
+                        calories: usdaData.calories,
+                        protein: usdaData.protein,
+                        fat: usdaData.fat,
+                        carbs: usdaData.carbs,
+                    }
+                    console.log(`Stored USDA data for: ${ingredient.name}`, usdaNutrients[ingredient.name])
+
+                    // Add to total macros
+                    totalMacros.calories += usdaNutrients[ingredient.name].calories
+                    totalMacros.protein += usdaNutrients[ingredient.name].protein
+                    totalMacros.fat += usdaNutrients[ingredient.name].fat
+                    totalMacros.carbs += usdaNutrients[ingredient.name].carbs
+                }
+            }
+        }
+
+        const recipeData = {
+            instructions: instructionResponse.data.instructions,
+            macros: totalMacros,
+            usedIngredients: instructionResponse.data.usedIngredients || [],
+            missedIngredients: instructionResponse.data.missedIngredients || [],
+            usdaNutrients,
+            extendedIngredients: instructionResponse.data.extendedIngredients || [],
+        }
+
         localStorage.setItem(
             `recipe-${id}`,
             JSON.stringify({
                 timestamp: Date.now(),
-                data: macrosAndSteps,
-            }),
+                data: recipeData,
+            })
         )
 
-        return macrosAndSteps
+        return recipeData
     } catch (error) {
         if (error.response?.status === 402) {
-            console.error("API quota exceeded")
-            throw new Error("Daily API quota has been reached. Please try again tomorrow.")
+            console.error("API limit reached. Please try again later.")
+            throw new Error("API limit reached. Please try again later.")
         }
-
-        if (error.response?.status === 404) {
-            console.error("Recipe not found")
-            throw new Error("Recipe not found. Please try another recipe.")
-        }
-
         console.error("Error fetching recipe details:", error)
-        throw new Error("An error occurred while fetching recipe details. Please try again later.")
+        throw new Error("An error occurred while fetching recipe details.")
     }
 }
 
 export default getInstructions
-
