@@ -5,40 +5,70 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 
-import {
-    Search,
-    Egg,
-    CroissantIcon as Bread,
-    Carrot,
-    Beef,
-    Fish,
-    Apple,
-    Bird,
-    PlusCircle,
-    Loader2,
-    X,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react"
 
-import { FaCheese } from "react-icons/fa"
+import {PlusCircle, Loader2, X, ChevronLeft,ChevronRight } from "lucide-react"
+
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
+import {
+    GiSlicedBread,
+    GiCarrot,
+    GiCow,
+    GiFishingHook,
+    GiCheeseWedge,
+    GiFruitBowl,
+    GiChickenLeg,
+    GiCupcake
+} from "react-icons/gi"
+
 const popularIngredients = [
-    { name: "Eggs", icon: Egg },
-    { name: "Bread", icon: Bread },
-    { name: "Vegetables", icon: Carrot },
-    { name: "Beef", icon: Beef },
-    { name: "Fish", icon: Fish },
-    { name: "Cheese", icon: FaCheese },
-    { name: "Fruit", icon: Apple },
-    { name: "Chicken", icon: Bird },
+    {
+        name: "Dessert",
+        icon: GiCupcake,
+        color: "text-yellow-400 group-hover:text-yellow-500",
+    },
+    {
+        name: "Bread",
+        icon: GiSlicedBread,
+        color: "text-amber-600 group-hover:text-amber-700",
+    },
+    {
+        name: "Vegetables",
+        icon: GiCarrot,
+        color: "text-green-800 group-hover:text-green-600",
+    },
+    {
+        name: "Beef",
+        icon: GiCow,
+        color: "text-red-500 group-hover:text-red-600",
+        size: "w-50 h-50",
+
+    },
+    {
+        name: "Fish",
+        icon: GiFishingHook,
+        color: "text-blue-400 group-hover:text-blue-500",
+    },
+    {
+        name: "Cheese",
+        icon: GiCheeseWedge,
+        color: "text-yellow-300 group-hover:text-yellow-400",
+    },
+    {
+        name: "Fruit",
+        icon: GiFruitBowl,
+        color: "text-pink-500 group-hover:text-pink-600",
+    },
+    {
+        name: "Chicken",
+        icon: GiChickenLeg,
+        color: "text-orange-400 group-hover:text-orange-500",
+    },
 ]
 
 const UserInput = () => {
@@ -160,11 +190,27 @@ const UserInput = () => {
         }
     }
 
-    const handleQuickSearch = (ingredient) => {
-        setIsSearching(true)
-        getRecipes([ingredient], selectedDiet).finally(() => setIsSearching(false))
-        getMealDBRecipes([ingredient])
-        setCurrentPage(1)
+    const handleQuickSearch = async (ingredient) => {
+        setIsSearching(true);
+        // Clear any previous ingredients and errors
+        setIngredients([ingredient]);
+        setErrorMessage("");
+
+        try {
+            // Fetch recipes from both sources
+            await Promise.all([
+                getRecipes([ingredient], selectedDiet),
+                getMealDBRecipes([ingredient])
+            ]);
+
+            // Reset to first page when new search is performed
+            setCurrentPage(1);
+        } catch (error) {
+            console.error("Error during quick search:", error);
+            setErrorMessage(`Failed to search for ${ingredient} recipes`);
+        } finally {
+            setIsSearching(false);
+        }
     }
 
     const clickHandler = (recipe) => {
@@ -199,101 +245,79 @@ const UserInput = () => {
             <div className="max-w-5xl mx-auto space-y-8">
                 <h1 className="text-4xl font-bold text-center mb-8">MEAL FORGER</h1>
 
-                <Tabs defaultValue="search" className="w-full">
-                    <TabsList className="grid w-full grid-cols-1">
-                        <TabsTrigger value="search">Search Recipes</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="search">
-                        <div className="mt-6">
-                            <h3 className="text-2xl font-semibold mb-4 text-center">Quick Search</h3>
-                            <Card className="bg-gray-800/50 border-gray-700">
-                                <CardContent className="p-4">
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                        {popularIngredients.map((item) => (
-                                            <Button
-                                                key={item.name}
-                                                variant="outline"
-                                                onClick={() => handleQuickSearch(item.name)}
-                                                className="flex flex-col items-center justify-center p-2 h-24 w-full"
-                                                disabled={isSearching}
-                                            >
-                                                <item.icon className="w-8 h-8 mb-2" />
-                                                <span className="text-sm text-center">{item.name}</span>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <Card className="bg-gray-800/50 border-gray-700 mt-6">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Search className="w-6 h-6" />
-                                    Advanced Recipe Search
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="Enter Ingredients"
-                                            value={inputString}
-                                            onChange={handleInputChange}
-                                            className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
-                                        />
-                                        <Select value={selectedDiet} onValueChange={setSelectedDiet}>
-                                            <SelectTrigger
-                                                className="w-full bg-gray-900 border-gray-700 text-white mb-4">
-                                                <SelectValue placeholder="Select Diet (Optional)"/>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value={null}>No Specific Diet</SelectItem>
-                                                <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                                                <SelectItem value="vegan">Vegan</SelectItem>
-                                                <SelectItem value="gluten-free">Gluten Free</SelectItem>
-                                                <SelectItem value="ketogenic">Ketogenic</SelectItem>
-                                                <SelectItem value="paleo">Paleo</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <Button
-                                            onClick={handleAddIngredient}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                        >
-                                            <PlusCircle className="w-4 h-4 mr-2"/>
-                                            Add
-                                        </Button>
-                                    </div>
+                <div className="space-y-6">
+                    {/* Combined Search Section */}
+                    <Card className="bg-gray-800/50 border-gray-700">
+                        <CardHeader>
+                            <CardTitle className="text-2xl text-center">Find Recipes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Quick Search Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {popularIngredients.map((item) => (
+                                    <Button
+                                        key={item.name}
+                                        variant="outline"
+                                        onClick={() => handleQuickSearch(item.name)}
+                                        className="group flex flex-col items-center justify-center p-4 h-32 w-full transition-all duration-200 hover:bg-gray-700/50"
+                                        disabled={isSearching}
+                                    >
+                                        <item.icon className={`w-12 h-12 mb-3 transition-colors ${item.color}`}/>
+                                        <span
+                                            className="text-base text-center group-hover:text-white">{item.name}</span>
+                                    </Button>
+                                ))}
+                            </div>
 
-                                    {/*<Card className="bg-gray-700/50 border-gray-600">*/}
-                                    {/*    <CardHeader>*/}
-                                    {/*        <CardTitle>Current Ingredients</CardTitle>*/}
-                                    {/*    </CardHeader>*/}
-                                    {/*    <CardContent>*/}
-                                    {/*        <ScrollArea className="h-20">*/}
-                                    {/*            <div className="flex flex-wrap gap-2">*/}
-                                    {/*                {ingredients.map((ingredient, index) => (*/}
-                                    {/*                    <div key={index} className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">*/}
-                                    {/*                        {ingredient}*/}
-                                    {/*                        <Button*/}
-                                    {/*                            variant="ghost"*/}
-                                    {/*                            size="sm"*/}
-                                    {/*                            className="ml-2 h-4 w-4 p-0"*/}
-                                    {/*                            onClick={() => handleRemoveIngredient(ingredient)}*/}
-                                    {/*                        >*/}
-                                    {/*                            <X className="h-3 w-3" />*/}
-                                    {/*                        </Button>*/}
-                                    {/*                    </div>*/}
-                                    {/*                ))}*/}
-                                    {/*            </div>*/}
-                                    {/*        </ScrollArea>*/}
-                                    {/*    </CardContent>*/}
-                                    {/*</Card>*/}
+                            {/* Divider with text */}
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-gray-700"/>
+                                </div>
+                                <div className="relative flex justify-center text-base uppercase">
+                                <span className="px-4 py-2 text-gray-200 font-bold bg-gray-800">
+                                    or search by ingredients
+                                </span>
+                                </div>
+                            </div>
 
-                                    <div className="flex flex-wrap gap-2">
-                                        {errorMessage ? (
-                                            <p className="text-red-500">{errorMessage}</p>
-                                        ) : (
-                                            ingredients.map((ingredient, index) => (
+                            {/* Search Input Section */}
+                            <div className="space-y-4">
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Enter Ingredients"
+                                        value={inputString}
+                                        onChange={handleInputChange}
+                                        className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
+                                    />
+                                    <Select value={selectedDiet} onValueChange={setSelectedDiet}>
+                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
+                                            <SelectValue placeholder="Select Diet (Optional)"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={null}>No Specific Diet</SelectItem>
+                                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                                            <SelectItem value="vegan">Vegan</SelectItem>
+                                            <SelectItem value="gluten-free">Gluten Free</SelectItem>
+                                            <SelectItem value="ketogenic">Ketogenic</SelectItem>
+                                            <SelectItem value="paleo">Paleo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        onClick={handleAddIngredient}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    >
+                                        <PlusCircle className="w-4 h-4 mr-2"/>
+                                        Add
+                                    </Button>
+                                </div>
+
+                                {/* Error Message or Ingredients List */}
+                                <div className="flex flex-wrap gap-2">
+                                    {errorMessage ? (
+                                        <p className="text-red-500">{errorMessage}</p>
+                                    ) : (
+                                        ingredients.map((ingredient, index) => (
                                             <div key={index}
                                                  className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
                                                 {ingredient}
@@ -307,53 +331,47 @@ const UserInput = () => {
                                                 </Button>
                                             </div>
                                         ))
-                                        )}
-                                    </div>
-
-                                    <Button
-                                        onClick={handleSearch}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
-                                        disabled={ingredients.length === 0 || isSearching}
-                                    >
-                                        {isSearching ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
-                                                Searching...
-                                            </>
-                                        ) : (
-                                            "Generate Recipes"
-                                        )}
-                                    </Button>
+                                    )}
                                 </div>
-                                {error &&
-                                    <p className="text-red-500 mt-6">Error: Unable to fetch recipes. Please try again
-                                        later.</p>}
-                                {allRecipes.length > 0 ? (
-                                    <div className="mt-6">
-                                        <h3 className="text-xl font-semibold mb-4">Recipes ({allRecipes.length})</h3>
-                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {currentRecipes.map((recipe) => (
-                                                <RecipeCard
-                                                    key={recipe.id || recipe.idMeal}
-                                                    recipe={recipe}
-                                                    onClick={() => clickHandler(recipe)}
-                                                />
-                                            ))}
-                                        </div>
-                                        <Pagination
-                                            recipesPerPage={recipesPerPage}
-                                            totalRecipes={allRecipes.length}
-                                            paginate={paginate}
-                                            currentPage={currentPage}
-                                        />
-                                    </div>
-                                ) : (
-                                    <p className="text-center mt-6"> </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+
+                                <Button
+                                    onClick={handleSearch}
+                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+                                    disabled={ingredients.length === 0 || isSearching}
+                                >
+                                    {isSearching ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
+                                            Searching...
+                                        </>
+                                    ) : (
+                                        "Generate Recipes"
+                                    )}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Results Section */}
+                    {error && <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again
+                        later.</p>}
+                    {allRecipes.length > 0 && (
+                        <div className="space-y-4">
+                            <h3 className="text-xl font-semibold text-center">Found Recipes ({allRecipes.length})</h3>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {currentRecipes.map((recipe) => (
+                                    <RecipeCard key={recipe.id || recipe.idMeal} recipe={recipe} onClick={() => clickHandler(recipe)} />
+                                ))}
+                            </div>
+                            <Pagination
+                                recipesPerPage={recipesPerPage}
+                                totalRecipes={allRecipes.length}
+                                paginate={paginate}
+                                currentPage={currentPage}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )
