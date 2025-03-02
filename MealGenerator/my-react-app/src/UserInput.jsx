@@ -73,38 +73,63 @@ const UserInput = () => {
             return;
         }
 
-        setIsSearching(true)
+        setIsSearching(true);
 
         try {
-            const result = await getGaladrielResponse(inputString);
+            // Split the input string into individual ingredients
+            const ingredientsArray = inputString.split(' ').map(item => item.trim());
 
-            if (result !== "No valid ingredients") {
-                const suggestedIngredients = result.split(',').map((item) => item.trim());
+            // Process each ingredient
+            for (const ingredient of ingredientsArray) {
+                if (!ingredient) continue;
 
-                if(suggestedIngredients.every(item => item.startsWith('Error:'))){
-                    setErrorMessage(`No valid ingredients found from your response, ${inputString}. Please enter valid ingredients.`);
+                // Check for duplicates BEFORE processing with getGaladrielResponse
+                if (ingredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
+                    setErrorMessage(`${ingredient} has already been added`);
+                    continue; // Skip to the next ingredient
                 }
-                const uniqueIngredients = suggestedIngredients.filter(
-                    (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:') //Check that it doesn't have errors
-                );
 
-                if(uniqueIngredients.length > 0){
-                    setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients]);
-                    setErrorMessage("");
-                }else {
-                    setErrorMessage(`Error: ${inputString} has already been added`);
+                const result = await getGaladrielResponse(ingredient);
+
+                if (result !== "No valid ingredients") {
+                    const suggestedIngredients = result.split(',').map((item) => item.trim());
+                    const newSuggested = suggestedIngredients.filter(newIngr => !newIngr.startsWith('Error:'));
+
+                    if (newSuggested.length <= 0) {
+                        setErrorMessage(`No valid ingredients found from your response, ${ingredient}. Please enter valid ingredients.`);
+                        continue;
+                    }
+
+                    // Filter out duplicates from the suggested ingredients
+                    const validIngredients = suggestedIngredients.filter(
+                        (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:')
+                    );
+
+                    // Ensure no duplicates are added to the final list
+                    const uniqueIngredients = validIngredients.filter(newIngr => !ingredients.some(existingIngr =>
+                        existingIngr.toLowerCase() === newIngr.toLowerCase()));
+
+                    if (uniqueIngredients.length > 0) {
+                        // Update the ingredients state with the new unique ingredients
+                        setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients]);
+                        setErrorMessage("");
+                    } else {
+                        setErrorMessage(`${ingredient} has already been added`);
+                    }
+                } else {
+                    setErrorMessage(`No valid ingredients were found from your response, ${ingredient}. Please enter valid ingredients.`);
                 }
-                setInputString("");
-            } else {
-                setErrorMessage(`No valid ingredients were found from your response, ${inputString}. Please enter valid ingredients.`);
             }
         } catch (error) {
-            console.error("Error during Verification:", error)
-            setErrorMessage("An error occurred while verifying ingredients. Please try again.");
+            console.error("Error during Verification:", error);
+            setErrorMessage("Error during ingredient verification. Please try again.");
         } finally {
-            setIsSearching(false)
+            setIsSearching(false);
+            setInputString("");
         }
+
     }
+
 
 
 
@@ -155,7 +180,6 @@ const UserInput = () => {
             const timer = setTimeout(() => {
                 setShowInput(true)
                 setErrorMessage("")
-                
             }, 1000);
             return () => clearTimeout(timer);
         }
