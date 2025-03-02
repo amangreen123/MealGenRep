@@ -29,7 +29,6 @@ export const getGaladrielResponse = async (message) => {
             ],
         });
 
-
         // Extract the response text from the completion
         let responseText = completion.choices[0]?.message?.content.trim();
 
@@ -42,6 +41,10 @@ export const getGaladrielResponse = async (message) => {
         // If no items remain after filtering, return a "no valid ingredients" message
         if (filteredItems.length === 0) {
             return "No valid ingredients found";
+        }
+
+        if (filteredItems[0].startsWith("Error:")) {
+            return filteredItems[0];
         }
 
         // Join the filtered items back into a single string

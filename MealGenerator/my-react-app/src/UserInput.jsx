@@ -48,6 +48,7 @@ const UserInput = () => {
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
     const [selectedDiet, setSelectedDiet] = useState(null)
+    const [errorMessage, setErrorMessage] = useState("")
     const { recipes, error, getRecipes } = useFetchMeals()
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
     const [allRecipes, setAllRecipes] = useState([])
@@ -68,33 +69,44 @@ const UserInput = () => {
 
     const handleAddIngredient = async () => {
         if (inputString.trim() === "") {
-            alert("Please enter valid ingredients.")
-            return
+            setErrorMessage("Please enter valid ingredients.");
+            return;
         }
 
         setIsSearching(true)
 
         try {
-            const result = await getGaladrielResponse(inputString)
+            const result = await getGaladrielResponse(inputString);
 
             if (result !== "No valid ingredients") {
+                const suggestedIngredients = result.split(',').map((item) => item.trim());
 
-                const suggestedIngredients = result.split(',').map((item) => item.trim())
+                if(suggestedIngredients.every(item => item.startsWith('Error:'))){
+                    setErrorMessage("No valid ingredients found from your response.");
+                }
                 const uniqueIngredients = suggestedIngredients.filter(
-                    (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()),
-                )
-                setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients])
-                setInputString("")
+                    (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:') //Check that it doesn't have errors
+                );
+
+                if(uniqueIngredients.length > 0){
+                    setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients]);
+                    setErrorMessage("");
+                }else {
+                    setErrorMessage(`Error: ${inputString} is not a valid ingredient.`);
+                }
+                setInputString("");
             } else {
-                alert("No valid ingredients were found. Please try again.")
+                setErrorMessage("No valid ingredients were found. Please try again.");
             }
         } catch (error) {
             console.error("Error during Verification:", error)
-            alert("Error during ingredient verification. Please try again later.")
+            setErrorMessage("An error occurred while verifying ingredients. Please try again.");
         } finally {
             setIsSearching(false)
         }
     }
+
+
 
     const handleRemoveIngredient = (ingredientToRemove) => {
         setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
@@ -204,6 +216,7 @@ const UserInput = () => {
                                             Add
                                         </Button>
                                     </div>
+
                                     {/*<Card className="bg-gray-700/50 border-gray-600">*/}
                                     {/*    <CardHeader>*/}
                                     {/*        <CardTitle>Current Ingredients</CardTitle>*/}
@@ -228,8 +241,12 @@ const UserInput = () => {
                                     {/*        </ScrollArea>*/}
                                     {/*    </CardContent>*/}
                                     {/*</Card>*/}
+
                                     <div className="flex flex-wrap gap-2">
-                                        {ingredients.map((ingredient, index) => (
+                                        {errorMessage ? (
+                                            <p className="text-red-500">{errorMessage}</p>
+                                        ) : (
+                                            ingredients.map((ingredient, index) => (
                                             <div key={index}
                                                  className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
                                                 {ingredient}
@@ -242,8 +259,10 @@ const UserInput = () => {
                                                     <X className="h-3 w-3"/>
                                                 </Button>
                                             </div>
-                                        ))}
+                                        ))
+                                        )}
                                     </div>
+
                                     <Button
                                         onClick={handleSearch}
                                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
