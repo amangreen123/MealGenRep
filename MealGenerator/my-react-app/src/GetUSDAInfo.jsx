@@ -18,7 +18,7 @@ export const getUSDAInfo = async (ingredient) => {
             params: {
                 api_key: USDA_API_KEY,
                 query: ingredient,
-                dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)", // Use survey data for more common foods
+                dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)",
                 pageSize: 1, // Get only the most relevant result
             },
         })

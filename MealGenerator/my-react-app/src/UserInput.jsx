@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import useFetchMeals from "./getMeals.jsx"
@@ -78,18 +77,17 @@ const UserInput = () => {
         // Create a temporary array to keep track of all ingredients being added in this batch
         let tempIngredients = [...ingredients];
         let hasAddedAny = false;
+        let errorMessages = [];
 
         try {
             // Split the input string into individual ingredients
-            const ingredientsArray = inputString.split(' ').map(item => item.trim());
+            const ingredientsArray = inputString.split(' ').map(item => item.trim()).filter(item => item);
 
             // Process each ingredient
             for (const ingredient of ingredientsArray) {
-                if (!ingredient) continue;
-
                 // Check for duplicates against BOTH existing ingredients AND ones we're adding in this batch
                 if (tempIngredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
-                    setErrorMessage(`${ingredient} has already been added`);
+                    errorMessages.push(`"${ingredient}" has already been added`);
                     continue; // Skip to the next ingredient
                 }
 
@@ -100,7 +98,7 @@ const UserInput = () => {
                     const newSuggested = suggestedIngredients.filter(newIngr => !newIngr.startsWith('Error:'));
 
                     if (newSuggested.length <= 0) {
-                        setErrorMessage(`No valid ingredients found from your response, ${ingredient}. Please enter valid ingredients.`);
+                        errorMessages.push(`"${ingredient}" is not a valid ingredient`);
                         continue;
                     }
 
@@ -115,17 +113,23 @@ const UserInput = () => {
                         tempIngredients = [...tempIngredients, ...validIngredients];
                         hasAddedAny = true;
                     } else {
-                        setErrorMessage(`${ingredient} has already been added`);
+                        errorMessages.push(`"${ingredient}" has already been added`);
                     }
                 } else {
-                    setErrorMessage(`${ingredient} is not an valid ingredient. Please enter valid ingredients.`);
+                    errorMessages.push(`"${ingredient}" is not a valid ingredient`);
                 }
             }
 
             // Only update the state once at the end
             if (hasAddedAny) {
                 setIngredients(tempIngredients);
-                setErrorMessage("");
+            }
+
+            // Set a single, combined error message if there are any errors
+            if (errorMessages.length > 0) {
+                setErrorMessage(errorMessages.join('. '));
+            } else if (hasAddedAny) {
+                setErrorMessage(""); // Clear error message only if we added something successfully
             }
         } catch (error) {
             console.error("Error during Verification:", error);
