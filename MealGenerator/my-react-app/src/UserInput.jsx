@@ -82,7 +82,7 @@ const UserInput = () => {
                 const suggestedIngredients = result.split(',').map((item) => item.trim());
 
                 if(suggestedIngredients.every(item => item.startsWith('Error:'))){
-                    setErrorMessage("No valid ingredients found from your response.");
+                    setErrorMessage(`No valid ingredients found from your response, ${inputString}. Please enter valid ingredients.`);
                 }
                 const uniqueIngredients = suggestedIngredients.filter(
                     (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:') //Check that it doesn't have errors
@@ -92,11 +92,11 @@ const UserInput = () => {
                     setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients]);
                     setErrorMessage("");
                 }else {
-                    setErrorMessage(`Error: ${inputString} is not a valid ingredient.`);
+                    setErrorMessage(`Error: ${inputString} has already been added`);
                 }
                 setInputString("");
             } else {
-                setErrorMessage("No valid ingredients were found. Please try again.");
+                setErrorMessage(`No valid ingredients were found from your response, ${inputString}. Please enter valid ingredients.`);
             }
         } catch (error) {
             console.error("Error during Verification:", error)
@@ -146,6 +146,20 @@ const UserInput = () => {
     const currentRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe)
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
+    const [showInput, setShowInput] = useState(true)
+
+    useEffect(() => {
+        if(errorMessage){
+            setShowInput(false)
+            const timer = setTimeout(() => {
+                setShowInput(true)
+                setErrorMessage("")
+                
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [errorMessage])
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
