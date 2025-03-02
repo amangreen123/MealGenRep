@@ -75,6 +75,10 @@ const UserInput = () => {
 
         setIsSearching(true);
 
+        // Create a temporary array to keep track of all ingredients being added in this batch
+        let tempIngredients = [...ingredients];
+        let hasAddedAny = false;
+
         try {
             // Split the input string into individual ingredients
             const ingredientsArray = inputString.split(' ').map(item => item.trim());
@@ -83,8 +87,8 @@ const UserInput = () => {
             for (const ingredient of ingredientsArray) {
                 if (!ingredient) continue;
 
-                // Check for duplicates BEFORE processing with getGaladrielResponse
-                if (ingredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
+                // Check for duplicates against BOTH existing ingredients AND ones we're adding in this batch
+                if (tempIngredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
                     setErrorMessage(`${ingredient} has already been added`);
                     continue; // Skip to the next ingredient
                 }
@@ -100,25 +104,28 @@ const UserInput = () => {
                         continue;
                     }
 
-                    // Filter out duplicates from the suggested ingredients
+                    // Filter out duplicates against our temporary array
                     const validIngredients = suggestedIngredients.filter(
-                        (newIngr) => !ingredients.some((existingIngr) => existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:')
+                        (newIngr) => !tempIngredients.some((existingIngr) =>
+                            existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:')
                     );
 
-                    // Ensure no duplicates are added to the final list
-                    const uniqueIngredients = validIngredients.filter(newIngr => !ingredients.some(existingIngr =>
-                        existingIngr.toLowerCase() === newIngr.toLowerCase()));
-
-                    if (uniqueIngredients.length > 0) {
-                        // Update the ingredients state with the new unique ingredients
-                        setIngredients((prevIngredients) => [...prevIngredients, ...uniqueIngredients]);
-                        setErrorMessage("");
+                    if (validIngredients.length > 0) {
+                        // Update our temporary array
+                        tempIngredients = [...tempIngredients, ...validIngredients];
+                        hasAddedAny = true;
                     } else {
                         setErrorMessage(`${ingredient} has already been added`);
                     }
                 } else {
-                    setErrorMessage(`No valid ingredients were found from your response, ${ingredient}. Please enter valid ingredients.`);
+                    setErrorMessage(`${ingredient} is not an valid ingredient. Please enter valid ingredients.`);
                 }
+            }
+
+            // Only update the state once at the end
+            if (hasAddedAny) {
+                setIngredients(tempIngredients);
+                setErrorMessage("");
             }
         } catch (error) {
             console.error("Error during Verification:", error);
@@ -127,9 +134,7 @@ const UserInput = () => {
             setIsSearching(false);
             setInputString("");
         }
-
     }
-
 
 
 
