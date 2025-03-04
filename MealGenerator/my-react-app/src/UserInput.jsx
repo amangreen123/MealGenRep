@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 
-
 import {PlusCircle, Loader2, X, ChevronLeft,ChevronRight } from "lucide-react"
 
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
@@ -25,6 +24,10 @@ import {
     GiChickenLeg,
     GiCupcake
 } from "react-icons/gi"
+
+import MealForgerLogo from "./Images/MealForger_Logo.png"
+
+
 
 const popularIngredients = [
     {
@@ -243,8 +246,18 @@ const UserInput = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-5xl mx-auto space-y-8">
-                <h1 className="text-4xl font-bold text-center mb-8">MEAL FORGER</h1>
-
+                {/* Logo Container */}
+                <div className="text-center space-y-2">
+                    <div className="relative flex justify-center items-center mb-4">
+                        <img
+                            src={MealForgerLogo}
+                            alt="Meal Forger Logo"
+                            className="w-80 h-auto"
+                        />
+                    </div>
+                    <h2 className="text-xl font-medium text-gray-300">Find recipes with ingredients you already
+                        have</h2>
+                </div>
                 <div className="space-y-6">
                     {/* Combined Search Section */}
                     <Card className="bg-gray-800/50 border-gray-700">
@@ -305,7 +318,7 @@ const UserInput = () => {
                                     </Select>
                                     <Button
                                         onClick={handleAddIngredient}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                        className="gradient-button text-white font-bold py-2 px-4 rounded"
                                     >
                                         <PlusCircle className="w-4 h-4 mr-2"/>
                                         Add
@@ -336,7 +349,7 @@ const UserInput = () => {
 
                                 <Button
                                     onClick={handleSearch}
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+                                    className="gradient-button text-white font-bold py-2 px-4 rounded w-full"
                                     disabled={ingredients.length === 0 || isSearching}
                                 >
                                     {isSearching ? (
@@ -359,8 +372,9 @@ const UserInput = () => {
                         <div className="space-y-4">
                             <h3 className="text-xl font-semibold text-center">Found Recipes ({allRecipes.length})</h3>
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {currentRecipes.map((recipe) => (
-                                    <RecipeCard key={recipe.id || recipe.idMeal} recipe={recipe} onClick={() => clickHandler(recipe)} />
+                                {currentRecipes.map((recipe) => (
+                                    <RecipeCard key={recipe.id || recipe.idMeal} recipe={recipe}
+                                                onClick={() => clickHandler(recipe)}/>
                                 ))}
                             </div>
                             <Pagination
