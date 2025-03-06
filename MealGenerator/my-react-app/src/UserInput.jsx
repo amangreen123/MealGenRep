@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -247,16 +248,11 @@ const UserInput = () => {
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-5xl mx-auto space-y-8">
                 {/* Logo Container */}
-                <div className="text-center space-y-2">
-                    <div className="relative flex justify-center items-center mb-4">
-                        <img
-                            src={MealForgerLogo}
-                            alt="Meal Forger Logo"
-                            className="w-80 h-auto"
-                        />
+                <div className="logo-container flex justify-center items-center">
+                    <div className="w-64 h-auto">
+                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo"
+                             className="max-w-full max-h-full"/>
                     </div>
-                    <h2 className="text-xl font-medium text-gray-300">Find recipes with ingredients you already
-                        have</h2>
                 </div>
                 <div className="space-y-6">
                     {/* Combined Search Section */}
@@ -275,16 +271,20 @@ const UserInput = () => {
                                         className="group flex flex-col items-center justify-center p-4 h-32 w-full transition-all duration-200 hover:bg-gray-700/50"
                                         disabled={isSearching}
                                     >
-                                        <item.icon className={`w-12 h-12 mb-3 transition-colors ${item.color}`}/>
+                                        {/* Icon */}
+                                        <item.icon
+                                            className={`category-icon w-20 h-16 mb-3 transition-colors ${item.color}`}/>
                                         <span
-                                            className="text-base text-center group-hover:text-white">{item.name}</span>
+                                            className="text-lg font-medium text-center group-hover:text-white">{item.name}
+                                        </span>
+
                                     </Button>
                                 ))}
                             </div>
 
                             {/* Divider with text */}
                             <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
+                            <div className="absolute inset-0 flex items-center">
                                     <span className="w-full border-t border-gray-700"/>
                                 </div>
                                 <div className="relative flex justify-center text-base uppercase">
