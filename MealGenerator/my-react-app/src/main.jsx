@@ -23,6 +23,7 @@ const TrackPageViews = () => {
 const App = () => (
     <StrictMode>
         <GoogleAnalytics />
+        <TrackPageViews />
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Users />} />
