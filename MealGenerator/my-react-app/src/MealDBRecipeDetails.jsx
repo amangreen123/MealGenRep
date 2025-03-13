@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import {useLocation, useNavigate, useParams} from "react-router-dom"
 import { ChevronLeft, Globe2, UtensilsCrossed, Scale, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,10 @@ const MealDBRecipeDetails = () => {
     const [error, setError] = useState(null)
     const navigate = useNavigate()
 
+    const {state} = useLocation()
+    const userIngredients = state?.userIngredients || [];
+
+
     const getIngredients = (meal) => {
         const ingredients = []
         for (let i = 1; i <= 20; i++) {
@@ -36,6 +40,21 @@ const MealDBRecipeDetails = () => {
         }
         return ingredients
     }
+
+    //Compares the user ingredients with the recipe ingredients
+    const compareIngredients = (recipeIngredients, userIngredients) => {
+        const userIngredientsLower = userIngredients.map((ingredient) => ingredient.toLowerCase());
+        const hasIngredients = recipeIngredients.filter((item) =>
+            userIngredientsLower.includes(item.ingredient.toLowerCase())
+        );
+        const missingIngredients = recipeIngredients.filter(
+            (item) => !userIngredientsLower.includes(item.ingredient.toLowerCase())
+        );
+        return { hasIngredients, missingIngredients };
+    };
+
+
+
 
     useEffect(() => {
         const fetchRecipeData = async () => {
@@ -149,6 +168,7 @@ const MealDBRecipeDetails = () => {
     }
 
     const ingredients = getIngredients(recipeDetails)
+    const { hasIngredients, missingIngredients } = compareIngredients(ingredients, userIngredients)
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
@@ -253,6 +273,31 @@ const MealDBRecipeDetails = () => {
                     </div>
                 </div>
 
+                {/* Ingredients You Have */}
+                <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ShoppingCart className="w-5 h-5" />
+                            Ingredients You Have
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 mb-4">
+                            <p className="text-gray-400">Here's what you already have:</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {hasIngredients.map((item, index) => (
+                                <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
+                                    <div className="font-medium mb-1">{item.ingredient}</div>
+                                    <Badge variant="outline">{item.measure}</Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+
+
                 {/* Shopping List Section */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
@@ -275,6 +320,7 @@ const MealDBRecipeDetails = () => {
                         </div>
                     </CardContent>
                 </Card>
+
 
                 {/* Instructions */}
                 <Card className="bg-gray-800/50 border-gray-700">

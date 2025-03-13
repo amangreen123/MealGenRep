@@ -62,7 +62,7 @@ export const getInstructions = async (id) => {
                         fat: usdaData.fat,
                         carbs: usdaData.carbs,
                     }
-                    console.log(`Stored USDA data for: ${ingredient.name}`, usdaNutrients[ingredient.name])
+                    //console.log(`Stored USDA data for: ${ingredient.name}`, usdaNutrients[ingredient.name])
 
                     // Add to total macros
                     totalMacros.calories += usdaNutrients[ingredient.name].calories

@@ -219,9 +219,9 @@ const UserInput = () => {
 
     const clickHandler = (recipe) => {
         if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe } })
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients } })
         } else {
-            navigate(`/recipe/${recipe.id}`, { state: { recipe } })
+            navigate(`/recipe/${recipe.id}`, { state: { recipe, userIngredients: ingredients } })
         }
     }
 

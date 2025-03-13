@@ -110,6 +110,7 @@ const RecipeDetails = () => {
     if (error) return <ErrorState error={error} />
 
     const { instructions, macros } = recipeDetails || {}
+    
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
@@ -158,6 +159,31 @@ const RecipeDetails = () => {
                     </div>
                 </div>
 
+
+                {/* Ingredient You Have Section */}
+                <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            Ingredients You Have
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 mb-4">
+                            <p className="text-gray-400">Here's what you have:</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {recipe.usedIngredients.map((ingredient, index) => (
+                                <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
+                                    <div className="font-medium mb-1">{ingredient.name}</div>
+                                    <Badge variant="outline">
+                                        {ingredient.amount} {ingredient.unit}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Shopping List Section */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
@@ -182,6 +208,8 @@ const RecipeDetails = () => {
                         </div>
                     </CardContent>
                 </Card>
+
+
 
                 {instructions && (
                     <Card className="bg-gray-800/50 border-gray-700">
