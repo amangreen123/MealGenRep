@@ -51,7 +51,7 @@ export const getInstructions = async (id) => {
                 const normalizeName = (name) => name.toLowerCase().trim();
                 const key = normalizeName(ingredient.name);
 
-                const usdaData = await getUSDAInfo(ingredient.name)
+                const usdaData = await getUSDAInfo(key)
                 console.log("USDA data for", ingredient.name, usdaData)
 
                 if (usdaData) {

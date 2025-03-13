@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { ChevronLeft, Globe2, UtensilsCrossed, Scale } from "lucide-react"
+import { ChevronLeft, Globe2, UtensilsCrossed, Scale, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +62,7 @@ const MealDBRecipeDetails = () => {
 
                     for (const item of ingredients) {
                         const macroData = await getUSDAInfo(item.ingredient)
+
                         if (macroData) {
                             macrosData[item.ingredient] = macroData
                             totalCals += macroData.calories || 0
@@ -251,6 +252,30 @@ const MealDBRecipeDetails = () => {
                         </Card>
                     </div>
                 </div>
+
+                {/* Shopping List Section */}
+                <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ShoppingCart className="w-5 h-5" />
+                            Shopping List
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 mb-4">
+                            <p className="text-gray-400">Here's what you'll need to make this recipe:</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {ingredients.map((item, index) => (
+                                <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
+                                    <div className="font-medium mb-1">{item.ingredient}</div>
+                                    <Badge variant="outline">{item.measure}</Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Instructions */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>

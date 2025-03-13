@@ -2,18 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
-import { ChevronLeft, Clock, Users, Utensils, Scale, Globe2 } from 'lucide-react'
+import { ChevronLeft, Clock, Users, Scale, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
 import getInstructions from "./GetInstructions.jsx"
 
-
 const IngredientDetail = ({ ingredient, usdaNutrients }) => {
-
     const nutrientData = usdaNutrients[ingredient.name]
 
     return (
@@ -37,7 +34,6 @@ const IngredientDetail = ({ ingredient, usdaNutrients }) => {
         </div>
     )
 }
-
 
 const NutritionTabs = ({ recipe, recipeDetails }) => {
     const { macros, usdaNutrients } = recipeDetails
@@ -75,11 +71,7 @@ const NutritionTabs = ({ recipe, recipeDetails }) => {
                 <ScrollArea className="h-[400px]">
                     <div className="space-y-4">
                         {allIngredients.map((ingredient, index) => (
-                            <IngredientDetail
-                                key={index}
-                                ingredient={ingredient}
-                                usdaNutrients={usdaNutrients}
-                            />
+                            <IngredientDetail key={index} ingredient={ingredient} usdaNutrients={usdaNutrients} />
                         ))}
                     </div>
                 </ScrollArea>
@@ -134,14 +126,14 @@ const RecipeDetails = () => {
                         />
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
-                                <Clock className="w-5 h-5 text-gray-400"/>
+                                <Clock className="w-5 h-5 text-gray-400" />
                                 <div>
                                     <div className="text-sm text-gray-400">Cook Time</div>
                                     <div className="font-medium">{recipe.readyInMinutes || "N/A"} mins</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
-                                <Users className="w-5 h-5 text-gray-400"/>
+                                <Users className="w-5 h-5 text-gray-400" />
                                 <div>
                                     <div className="text-sm text-gray-400">Servings</div>
                                     <div className="font-medium">{recipe.servings || "N/A"}</div>
@@ -155,16 +147,41 @@ const RecipeDetails = () => {
                         <Card className="bg-gray-800/50 border-gray-700">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Scale className="w-5 h-5"/>
+                                    <Scale className="w-5 h-5" />
                                     Nutrition Information
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <NutritionTabs recipe={recipe} recipeDetails={recipeDetails}/>
+                                <NutritionTabs recipe={recipe} recipeDetails={recipeDetails} />
                             </CardContent>
                         </Card>
                     </div>
                 </div>
+
+                {/* Shopping List Section */}
+                <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ShoppingCart className="w-5 h-5" />
+                            Shopping List
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 mb-4">
+                            <p className="text-gray-400">Here's what you'll need to make this recipe:</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {recipe.missedIngredients.map((ingredient, index) => (
+                                <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
+                                    <div className="font-medium mb-1">{ingredient.name}</div>
+                                    <Badge variant="outline">
+                                        {ingredient.amount} {ingredient.unit}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {instructions && (
                     <Card className="bg-gray-800/50 border-gray-700">
@@ -174,10 +191,10 @@ const RecipeDetails = () => {
                         <CardContent>
                             <ScrollArea className="h-[300px]">
                                 <ol className="list-decimal list-inside space-y-4">
-                                {instructions
-                                        .replace(/<[^>]*>/g, '')
-                                        .split('.')
-                                        .filter(step => step.trim())
+                                    {instructions
+                                        .replace(/<[^>]*>/g, "")
+                                        .split(".")
+                                        .filter((step) => step.trim())
                                         .map((step, index) => (
                                             <li key={index} className="pl-2">
                                                 {step.trim()}
@@ -194,16 +211,15 @@ const RecipeDetails = () => {
 }
 
 const LoadingState = () => (
-    <div
-        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
         <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
             <CardContent className="p-6 text-center">
                 <div className="animate-pulse space-y-4">
-                    <div className="h-8 bg-gray-700/50 rounded w-3/4 mx-auto"/>
-                    <div className="h-64 bg-gray-700/50 rounded"/>
+                    <div className="h-8 bg-gray-700/50 rounded w-3/4 mx-auto" />
+                    <div className="h-64 bg-gray-700/50 rounded" />
                     <div className="space-y-2">
-                        <div className="h-4 bg-gray-700/50 rounded w-1/2 mx-auto"/>
-                        <div className="h-4 bg-gray-700/50 rounded w-3/4 mx-auto"/>
+                        <div className="h-4 bg-gray-700/50 rounded w-1/2 mx-auto" />
+                        <div className="h-4 bg-gray-700/50 rounded w-3/4 mx-auto" />
                     </div>
                 </div>
                 <p className="mt-4 text-gray-400">Loading recipe details...</p>
@@ -213,23 +229,21 @@ const LoadingState = () => (
 )
 
 const RecipeNotFound = () => (
-    <div
-        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
         <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
             <CardContent className="p-6">
                 <h1 className="text-2xl font-bold text-center mb-4">Recipe not found</h1>
                 <p className="text-center text-gray-400 mb-6">
                     The recipe you're looking for doesn't exist or has been removed.
                 </p>
-                <BackButton className="w-full"/>
+                <BackButton className="w-full" />
             </CardContent>
         </Card>
     </div>
 )
 
-const ErrorState = ({error}) => (
-    <div
-        className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+const ErrorState = ({ error }) => (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
         <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
             <CardContent className="p-6">
                 <h1 className="text-2xl font-bold text-center mb-4">Error</h1>
@@ -248,3 +262,4 @@ const BackButton = ({ className = "" }) => (
 )
 
 export default RecipeDetails
+
