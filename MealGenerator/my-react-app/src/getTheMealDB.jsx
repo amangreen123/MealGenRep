@@ -47,6 +47,7 @@ export const useTheMealDB = () => {
             cache.current[key] = results
             setMealDBRecipes(results)
             console.log("MealDB recipes found:", results.length)
+
         } catch (error) {
             const errorMessage =
                 error.response?.status === 403

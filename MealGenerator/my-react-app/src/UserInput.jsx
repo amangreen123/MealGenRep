@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
+import useTheCocktailDB from "./GetCocktailDB.jsx";
 
 import {PlusCircle, Loader2, X, ChevronLeft,ChevronRight } from "lucide-react"
 
