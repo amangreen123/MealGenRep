@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Users from './UserInput.jsx';
 import RecipeDetails from "./RecipeDetails.jsx";
 import MealDBRecipeDetails from "./MealDBRecipeDetails.jsx";
+import DrinkDetails from "./DrinkDetails.jsx"
 import GoogleAnalytics from "./GoogleAnalytics.jsx";
 
 
@@ -23,7 +24,6 @@ const TrackPageViews = () => {
     return null;
 };
 
-// Separate the Routes component that includes TrackPageViews
 const AppRoutes = () => {
     return (
         <>
@@ -32,6 +32,7 @@ const AppRoutes = () => {
                 <Route path="/" element={<Users />} />
                 <Route path="/recipe/:recipeId" element={<RecipeDetails />} />
                 <Route path="/mealdb-recipe/:id" element={<MealDBRecipeDetails />} />
+                <Route path="/drink/:id" element={<DrinkDetails />} />
             </Routes>
         </>
     );

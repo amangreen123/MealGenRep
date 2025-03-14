@@ -86,6 +86,7 @@ const UserInput = () => {
     const [selectedDiet, setSelectedDiet] = useState(null)
     const [errorMessage, setErrorMessage] = useState("")
     const { recipes, error, getRecipes } = useFetchMeals()
+
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
     const {CocktailDBDrinks, getCocktailDBDrinks} = useTheCocktailDB()
 
@@ -94,6 +95,8 @@ const UserInput = () => {
     const recipesPerPage = 6
     const navigate = useNavigate()
 
+    const [filterType, setFiliterType] = useState("all")
+    const [recipeType, setRecipeType] = useState("all")
 
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
@@ -105,8 +108,18 @@ const UserInput = () => {
             }))
             : []
 
-        setAllRecipes([...recipes, ...mealDBRecipesArray, ...cocktailDBRecipesArray])
-    }, [recipes, MealDBRecipes, CocktailDBDrinks, setAllRecipes])
+        let filteredRecipes = []
+
+        if (recipeType === "all") {
+            filteredRecipes = [...recipes, ...mealDBRecipesArray, ...cocktailDBRecipesArray]
+        } else if (recipeType === "drinks") {
+            filteredRecipes = [...cocktailDBRecipesArray]
+        } else if (recipeType === "meals") {
+            filteredRecipes = [...recipes, ...mealDBRecipesArray]
+        }
+
+        setAllRecipes(filteredRecipes)
+    }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -117,7 +130,6 @@ const UserInput = () => {
             setErrorMessage("Please enter valid ingredients.");
             return;
         }
-
         setIsSearching(true);
 
         // Create a temporary array to keep track of all ingredients being added in this batch
@@ -217,7 +229,7 @@ const UserInput = () => {
             await Promise.all([
                 getRecipes([ingredient], selectedDiet),
                 getMealDBRecipes([ingredient]),
-                getCocktailDBDrinks(ingredients)
+                getCocktailDBDrinks([ingredients])
             ]);
 
             // Reset to first page when new search is performed
@@ -230,9 +242,14 @@ const UserInput = () => {
         }
     }
 
+    //testing purpose http://localhost:5173/drink/15675
+
     const clickHandler = (recipe) => {
         if (recipe.isDrink) {
-            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients } })
+            console.log("Drink", recipe)
+            console.log("UserIngredients", ingredients)
+            console.log("Navigating with state:", { drink: recipe, userIngredients: ingredients });
+            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients } });
         } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients } })
         } else {
@@ -329,6 +346,16 @@ const UserInput = () => {
                                             <SelectItem value="gluten-free">Gluten Free</SelectItem>
                                             <SelectItem value="ketogenic">Ketogenic</SelectItem>
                                             <SelectItem value="paleo">Paleo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={recipeType} onValueChange={setRecipeType}>
+                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
+                                            <SelectValue placeholder="Recipe Type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Recipes</SelectItem>
+                                            <SelectItem value="meals">Meals Only</SelectItem>
+                                            <SelectItem value="drinks">Drinks Only</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Button

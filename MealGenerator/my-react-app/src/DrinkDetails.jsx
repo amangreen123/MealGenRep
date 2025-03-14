@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import {useLocation, useNavigate, useParams} from "react-router-dom"
 import { ChevronLeft, Clock, Globe2, Scale } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import getDrinkDetails from "@/getDrinkDetails.jsx"
-import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
+
+import getDrinkDetails from "./getDrinkDetails.jsx"
+import { getUSDAInfo } from "./GetUSDAInfo.jsx"
 
 const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
     const drinkData = usdaNutrients[ingredient]
@@ -35,6 +36,12 @@ const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
 
 const DrinkDetails = () => {
     const { id } = useParams()
+    const location = useLocation()
+    const state = location.state
+
+    console.log("URL Params ID:", id);
+    console.log("State Data:", state);
+
     const [loading, setLoading] = useState(true)
     const [drinkDetails, setDrinkDetails] = useState(null)
     const [ingredients, setIngredients] = useState([])
@@ -47,6 +54,8 @@ const DrinkDetails = () => {
     })
     const [error, setError] = useState(null)
     const navigate = useNavigate()
+
+    //console.log("State", location.state)
 
     const getIngredients = (drink) => {
         const ingredients = []
@@ -62,7 +71,10 @@ const DrinkDetails = () => {
 
     useEffect(() => {
         const fetchDrinkData = async () => {
-            if (!id) {
+
+            const drinkId = id || (state?.drink?.idDrink);
+
+            if (!drinkId) {
                 setError("Invalid drink ID.")
                 setLoading(false)
                 return
@@ -70,6 +82,7 @@ const DrinkDetails = () => {
 
             try {
                 setLoading(true)
+
                 const data = await getDrinkDetails(id)
 
                 if (data?.drinks?.[0]) {
@@ -87,6 +100,7 @@ const DrinkDetails = () => {
 
                     for (const item of ingredientsList) {
                         const macroData = await getUSDAInfo(item.ingredient)
+
                         if (macroData) {
                             macrosData[item.ingredient] = macroData
                             totalCals += macroData.calories || 0
@@ -97,6 +111,7 @@ const DrinkDetails = () => {
                     }
 
                     setMacros(macrosData)
+
                     setTotalNutrition({
                         calories: Math.round(totalCals),
                         protein: Math.round(totalProtein),
@@ -112,9 +127,8 @@ const DrinkDetails = () => {
                 setLoading(false)
             }
         }
-
         fetchDrinkData()
-    }, [id])
+    }, [id,state])
 
     if (loading) {
         return (
@@ -164,7 +178,7 @@ const DrinkDetails = () => {
                         </p>
                         <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
                             <ChevronLeft className="w-4 h-4 mr-2" />
-                            Back to Drinks
+                            Back to Menu
                         </Button>
                     </CardContent>
                 </Card>
@@ -172,12 +186,31 @@ const DrinkDetails = () => {
         )
     }
 
+    if (!state) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+                <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                    <CardContent className="p-6">
+                        <h1 className="text-2xl font-bold text-center mb-4">No State Data</h1>
+                        <p className="text-center text-gray-400 mb-6">
+                            Please navigate back and try again.
+                        </p>
+                        <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Back to Drinks
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
                 <Button variant="outline" onClick={() => navigate(-1)} className="mb-4">
                     <ChevronLeft className="w-4 h-4 mr-2" />
-                    Back to Drinks
+                    Back to Menu
                 </Button>
 
                 <div className="grid md:grid-cols-2 gap-6">

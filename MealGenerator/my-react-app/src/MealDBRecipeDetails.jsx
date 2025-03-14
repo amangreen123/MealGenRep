@@ -80,6 +80,7 @@ const MealDBRecipeDetails = () => {
                         totalCarbs = 0
 
                     for (const item of ingredients) {
+
                         const macroData = await getUSDAInfo(item.ingredient)
 
                         if (macroData) {
