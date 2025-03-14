@@ -29,6 +29,7 @@ import {
 } from "react-icons/gi"
 
 import MealForgerLogo from "./Images/MealForger_Logo.png"
+import {BiDrink} from "react-icons/bi";
 
 
 
@@ -86,17 +87,26 @@ const UserInput = () => {
     const [errorMessage, setErrorMessage] = useState("")
     const { recipes, error, getRecipes } = useFetchMeals()
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
+    const {CocktailDBDrinks, getCocktailDBDrinks} = useTheCocktailDB()
+
     const [allRecipes, setAllRecipes] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const recipesPerPage = 6
     const navigate = useNavigate()
 
 
-
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
-        setAllRecipes([...recipes, ...mealDBRecipesArray])
-    }, [recipes, MealDBRecipes])
+        const cocktailDBRecipesArray = Array.isArray(CocktailDBDrinks)
+        ? CocktailDBDrinks.map((drink) => ({
+                ...drink,
+                isDrink: true,
+                strMealThumb: drink.strMealThumb
+            }))
+            : []
+
+        setAllRecipes([...recipes, ...mealDBRecipesArray, ...cocktailDBRecipesArray])
+    }, [recipes, MealDBRecipes, CocktailDBDrinks, setAllRecipes])
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -186,7 +196,7 @@ const UserInput = () => {
         if (ingredients.length > 0) {
             setIsSearching(true)
             try {
-                await Promise.all([getRecipes(ingredients, selectedDiet), getMealDBRecipes(ingredients)])
+                await Promise.all([getRecipes(ingredients, selectedDiet), getMealDBRecipes(ingredients),getCocktailDBDrinks(ingredients)])
                 setCurrentPage(1)
             } catch (error) {
                 console.error("Error during search:", error)
@@ -206,7 +216,8 @@ const UserInput = () => {
             // Fetch recipes from both sources
             await Promise.all([
                 getRecipes([ingredient], selectedDiet),
-                getMealDBRecipes([ingredient])
+                getMealDBRecipes([ingredient]),
+                getCocktailDBDrinks(ingredients)
             ]);
 
             // Reset to first page when new search is performed
@@ -220,7 +231,9 @@ const UserInput = () => {
     }
 
     const clickHandler = (recipe) => {
-        if (recipe.idMeal) {
+        if (recipe.isDrink) {
+            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients } })
+        } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients } })
         } else {
             navigate(`/recipe/${recipe.id}`, { state: { recipe, userIngredients: ingredients } })
@@ -406,26 +419,27 @@ const RecipeCard = ({ recipe, onClick }) => (
             <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
                 <CardContent className="p-4">
                     <img
-                        src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
-                        alt={recipe.title || recipe.strMeal}
+                        src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                        alt={recipe.title || recipe.strMeal || recipe.strDrink}
                         className="w-full h-32 object-cover rounded-md mb-2"
                     />
                     <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
-                        {recipe.title || recipe.strMeal}
+                        {recipe.title || recipe.strMeal || recipe.strDrink}
                     </h4>
+                    {recipe.isDrink && <BiDrink className="text-blue-400 ml-2"/>}
                 </CardContent>
             </Card>
         </DialogTrigger>
 
         <DialogContent className="bg-gray-800 text-white">
         <DialogTitle className="font-medium text-gray-300 text-lg">
-                {recipe.title || recipe.strMeal}
+                {recipe.title || recipe.strMeal || recipe.strDrink}
             </DialogTitle>
             <DialogDescription asChild>
                 <div className="text-white font-bold">
                     <img
-                        src={recipe.image || recipe.strMealThumb || "/placeholder.svg"}
-                        alt={recipe.title || recipe.strMeal}
+                        src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                        alt={recipe.title || recipe.strMeal || recipe.strDrink}
                         className="w-full h-48 object-cover rounded-md mb-4"
                     />
                     <p className="mb-4">

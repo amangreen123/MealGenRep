@@ -1,23 +1,23 @@
+"use client"
+
 import { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
-import { ChevronLeft, Clock, Users, Scale, ShoppingCart } from "lucide-react"
+import { useNavigate, useParams } from "react-router-dom"
+import { ChevronLeft, Clock, Globe2, Scale } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import getDrinkDetails from "@/getDrinkDetails.jsx";
+import getDrinkDetails from "@/getDrinkDetails.jsx"
+import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 
-const DrinkIngredientDetails = ({ ingredient, usdaNutrients }) => {
-
-    const drinkData = usdaNutrients[ingredient.name]
+const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
+    const drinkData = usdaNutrients[ingredient]
     return (
         <div className="bg-gray-700/30 p-3 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{ingredient.name}</span>
-                <Badge variant="outline">
-                    {ingredient.amount} {ingredient.unit}
-                </Badge>
+                <span className="font-medium">{ingredient}</span>
+                <Badge variant="outline">{measure}</Badge>
             </div>
             {drinkData ? (
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
@@ -31,55 +31,264 @@ const DrinkIngredientDetails = ({ ingredient, usdaNutrients }) => {
             )}
         </div>
     )
-
-}
-
-const NutritionTabs = ({ recipe, recipeDetails }) => {
-    const { macros, usdaNutrients } = recipeDetails
-    const allIngredients = [...(recipe.usedIngredients || []), ...(recipe.missedIngredients || [])]
-
-    return (
-        <Tabs defaultValue="summary">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{Math.round(macros.calories)}</div>
-                        <div className="text-sm text-gray-400">Calories</div>
-                    </div>
-                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{Math.round(macros.protein)}g</div>
-                        <div className="text-sm text-gray-400">Protein</div>
-                    </div>
-                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{Math.round(macros.fat)}g</div>
-                        <div className="text-sm text-gray-400">Fat</div>
-                    </div>
-                    <div className="bg-gray-700/30 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold">{Math.round(macros.carbs)}g</div>
-                        <div className="text-sm text-gray-400">Carbs</div>
-                    </div>
-                </div>
-            </TabsContent>
-
-            <TabsContent value="ingredients" className="mt-4">
-                <ScrollArea className="h-[400px]">
-                    <div className="space-y-4">
-                        {allIngredients.map((ingredient, index) => (
-                            <IngredientDetail key={index} ingredient={ingredient} usdaNutrients={usdaNutrients} />
-                        ))}
-                    </div>
-                </ScrollArea>
-            </TabsContent>
-        </Tabs>
-    )
 }
 
 const DrinkDetails = () => {
+    const { id } = useParams()
+    const [loading, setLoading] = useState(true)
+    const [drinkDetails, setDrinkDetails] = useState(null)
+    const [ingredients, setIngredients] = useState([])
+    const [macros, setMacros] = useState({})
+    const [totalNutrition, setTotalNutrition] = useState({
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0,
+    })
+    const [error, setError] = useState(null)
+    const navigate = useNavigate()
 
-    
+    const getIngredients = (drink) => {
+        const ingredients = []
+        for (let i = 1; i <= 15; i++) {
+            const ingredient = drink[`strIngredient${i}`]
+            const measure = drink[`strMeasure${i}`]
+            if (ingredient && ingredient.trim() !== "") {
+                ingredients.push({ ingredient, measure: measure || "To taste" })
+            }
+        }
+        return ingredients
+    }
+
+    useEffect(() => {
+        const fetchDrinkData = async () => {
+            if (!id) {
+                setError("Invalid drink ID.")
+                setLoading(false)
+                return
+            }
+
+            try {
+                setLoading(true)
+                const data = await getDrinkDetails(id)
+
+                if (data?.drinks?.[0]) {
+                    const drinkData = data.drinks[0]
+                    setDrinkDetails(drinkData)
+
+                    const ingredientsList = getIngredients(drinkData)
+                    setIngredients(ingredientsList)
+
+                    const macrosData = {}
+                    let totalCals = 0,
+                        totalProtein = 0,
+                        totalFat = 0,
+                        totalCarbs = 0
+
+                    for (const item of ingredientsList) {
+                        const macroData = await getUSDAInfo(item.ingredient)
+                        if (macroData) {
+                            macrosData[item.ingredient] = macroData
+                            totalCals += macroData.calories || 0
+                            totalProtein += macroData.protein || 0
+                            totalFat += macroData.fat || 0
+                            totalCarbs += macroData.carbs || 0
+                        }
+                    }
+
+                    setMacros(macrosData)
+                    setTotalNutrition({
+                        calories: Math.round(totalCals),
+                        protein: Math.round(totalProtein),
+                        fat: Math.round(totalFat),
+                        carbs: Math.round(totalCarbs),
+                    })
+                } else {
+                    setError("Drink details not found.")
+                }
+            } catch (error) {
+                setError(error.message || "An error occurred while fetching drink details")
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchDrinkData()
+    }, [id])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+                <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                    <CardContent className="p-6 text-center">
+                        <div className="animate-pulse space-y-4">
+                            <div className="h-8 bg-gray-700/50 rounded w-3/4 mx-auto" />
+                            <div className="h-64 bg-gray-700/50 rounded" />
+                            <div className="space-y-2">
+                                <div className="h-4 bg-gray-700/50 rounded w-1/2 mx-auto" />
+                                <div className="h-4 bg-gray-700/50 rounded w-3/4 mx-auto" />
+                            </div>
+                        </div>
+                        <p className="mt-4 text-gray-400">Loading drink details...</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+                <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                    <CardContent className="p-6">
+                        <h1 className="text-2xl font-bold text-center mb-4">Error</h1>
+                        <p className="text-center text-red-500 mb-6">{error}</p>
+                        <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Back to Drinks
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    if (!drinkDetails) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+                <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                    <CardContent className="p-6">
+                        <h1 className="text-2xl font-bold text-center mb-4">Drink not found</h1>
+                        <p className="text-center text-gray-400 mb-6">
+                            The drink you're looking for doesn't exist or has been removed.
+                        </p>
+                        <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Back to Drinks
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+                <Button variant="outline" onClick={() => navigate(-1)} className="mb-4">
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Back to Drinks
+                </Button>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Drink Info */}
+                    <div className="space-y-6">
+                        <h1 className="text-3xl font-bold">{drinkDetails.strDrink}</h1>
+                        <img
+                            src={drinkDetails.strDrinkThumb || "/placeholder.svg"}
+                            alt={drinkDetails.strDrink}
+                            className="w-full aspect-video object-cover rounded-lg shadow-lg"
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
+                                <Clock className="w-5 h-5 text-gray-400" />
+                                <div>
+                                    <div className="text-sm text-gray-400">Type</div>
+                                    <div className="font-medium">{drinkDetails.strAlcoholic || "Non-Alcoholic"}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg p-4">
+                                <Globe2 className="w-5 h-5 text-gray-400" />
+                                <div>
+                                    <div className="text-sm text-gray-400">Category</div>
+                                    <div className="font-medium">{drinkDetails.strCategory || "Uncategorized"}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Nutrition & Ingredients */}
+                    <div className="space-y-6">
+                        <Card className="bg-gray-800/50 border-gray-700">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Scale className="w-5 h-5" />
+                                    Nutrition Information
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Tabs defaultValue="summary">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="summary">Summary</TabsTrigger>
+                                        <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="summary" className="mt-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                                                <div className="text-2xl font-bold">{totalNutrition.calories}</div>
+                                                <div className="text-sm text-gray-400">Calories</div>
+                                            </div>
+                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                                                <div className="text-2xl font-bold">{totalNutrition.protein}g</div>
+                                                <div className="text-sm text-gray-400">Protein</div>
+                                            </div>
+                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                                                <div className="text-2xl font-bold">{totalNutrition.fat}g</div>
+                                                <div className="text-sm text-gray-400">Fat</div>
+                                            </div>
+                                            <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                                                <div className="text-2xl font-bold">{totalNutrition.carbs}g</div>
+                                                <div className="text-sm text-gray-400">Carbs</div>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+
+                                    <TabsContent value="ingredients" className="mt-4">
+                                        <ScrollArea className="h-[400px]">
+                                            <div className="space-y-4">
+                                                {ingredients.map((item, index) => (
+                                                    <DrinkIngredientDetails
+                                                        key={index}
+                                                        ingredient={item.ingredient}
+                                                        measure={item.measure}
+                                                        usdaNutrients={macros}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Instructions */}
+                <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-xl font-semibold">Instructions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[300px]">
+                            <div className="space-y-4">
+                                {drinkDetails.strInstructions
+                                    .split(". ")
+                                    .filter((step) => step.trim())
+                                    .map((step, index) => (
+                                        <div key={index} className="pl-2">
+                                            {index + 1}. {step.trim()}
+                                        </div>
+                                    ))}
+                            </div>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
 }
+
+export default DrinkDetails
+

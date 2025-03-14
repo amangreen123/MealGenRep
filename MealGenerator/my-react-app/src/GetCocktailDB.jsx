@@ -56,11 +56,11 @@ export const useTheCocktailDB = () => {
         } finally {
             setLoading(false)
         }
-
-        const getCachedDBDrinks = () => cache.current
-
-        return {CocktailDBDrinks,getCachedDBDrinks, error, loading }
     }
+
+    const getCachedDBDrinks = () => cache.current
+
+    return {getCocktailDBDrinks,CocktailDBDrinks, getCachedDBDrinks, error, loading }
 }
 
 export default useTheCocktailDB

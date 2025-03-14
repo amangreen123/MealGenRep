@@ -4,10 +4,10 @@ export const getDrinkDetails = async (id) => {
     try {
         const response = await axios.get(`www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${id}`)
         const results = response.data
-
-        console.log("Cocktail Data", results)
+        //console.log("Cocktail Data", results)
+        return results
     }catch (error){
-
+        //console.error("Error fetching cocktail details:", error)
         throw error
     }
 }
