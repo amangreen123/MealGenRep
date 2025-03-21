@@ -95,7 +95,6 @@ const UserInput = () => {
     const recipesPerPage = 6
     const navigate = useNavigate()
 
-    const [filterType, setFiliterType] = useState("all")
     const [recipeType, setRecipeType] = useState("all")
 
     useEffect(() => {
@@ -118,8 +117,11 @@ const UserInput = () => {
             filteredRecipes = [...recipes, ...mealDBRecipesArray]
         }
 
+
         setAllRecipes(filteredRecipes)
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
+
+
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -143,6 +145,7 @@ const UserInput = () => {
 
             // Process each ingredient
             for (const ingredient of ingredientsArray) {
+
                 // Check for duplicates against BOTH existing ingredients AND ones we're adding in this batch
                 if (tempIngredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
                     errorMessages.push(`"${ingredient}" has already been added`);
@@ -167,6 +170,7 @@ const UserInput = () => {
                     );
 
                     if (validIngredients.length > 0) {
+
                         // Update our temporary array
                         tempIngredients = [...tempIngredients, ...validIngredients];
                         hasAddedAny = true;

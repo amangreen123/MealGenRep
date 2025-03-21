@@ -43,13 +43,21 @@ const MealDBRecipeDetails = () => {
 
     //Compares the user ingredients with the recipe ingredients
     const compareIngredients = (recipeIngredients, userIngredients) => {
-        const userIngredientsLower = userIngredients.map((ingredient) => ingredient.toLowerCase());
-        const hasIngredients = recipeIngredients.filter((item) =>
-            userIngredientsLower.includes(item.ingredient.toLowerCase())
+        // Normalize user ingredients to lowercase and trim
+        const userIngredientsNormalized = userIngredients.map(ingredient =>
+            ingredient.toLowerCase().trim()
         );
-        const missingIngredients = recipeIngredients.filter(
-            (item) => !userIngredientsLower.includes(item.ingredient.toLowerCase())
+
+        // Filter ingredients the user has
+        const hasIngredients = recipeIngredients.filter(item =>
+            userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
         );
+
+        // Filter ingredients the user is missing - IMPORTANT: ingredients should only be in one list
+        const missingIngredients = recipeIngredients.filter(item =>
+            !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
+        );
+
         return { hasIngredients, missingIngredients };
     };
 
@@ -298,7 +306,6 @@ const MealDBRecipeDetails = () => {
                 </Card>
 
 
-
                 {/* Shopping List Section */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
@@ -309,16 +316,21 @@ const MealDBRecipeDetails = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2 mb-4">
-                            <p className="text-gray-400">Here's what you'll need to make this recipe:</p>
+                            <p className="text-gray-400">Here's what you'll need to buy:</p>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            {ingredients.map((item, index) => (
+                            {missingIngredients.map((item, index) => (
                                 <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
                                     <div className="font-medium mb-1">{item.ingredient}</div>
                                     <Badge variant="outline">{item.measure}</Badge>
                                 </div>
                             ))}
                         </div>
+                        {missingIngredients.length === 0 && (
+                            <div className="text-center py-4 text-gray-400">
+                                You have all ingredients for this recipe!
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

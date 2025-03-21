@@ -40,8 +40,8 @@ const DrinkDetails = () => {
     const state = location.state
     const userIngredients = state?.userIngredients || [];
 
-    console.log("URL Params ID:", id);
-    console.log("State Data:", state);
+    // console.log("URL Params ID:", id);
+    // console.log("State Data:", state);
 
     const [loading, setLoading] = useState(true)
     const [drinkDetails, setDrinkDetails] = useState(null)
@@ -71,13 +71,21 @@ const DrinkDetails = () => {
     }
 
     const compareIngredients = (recipeIngredients, userIngredients) => {
-        const userIngredientsLower = userIngredients.map((ingredient) => ingredient.toLowerCase());
-        const hasIngredients = recipeIngredients.filter((item) =>
-            userIngredientsLower.includes(item.ingredient.toLowerCase())
+        // Normalize user ingredients to lowercase and trim
+        const userIngredientsNormalized = userIngredients.map(ingredient =>
+            ingredient.toLowerCase().trim()
         );
-        const missingIngredients = recipeIngredients.filter(
-            (item) => !userIngredientsLower.includes(item.ingredient.toLowerCase())
+
+        // Filter ingredients the user has
+        const hasIngredients = recipeIngredients.filter(item =>
+            userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
         );
+
+        // Filter ingredients the user is missing - IMPORTANT: ingredients should only be in one list
+        const missingIngredients = recipeIngredients.filter(item =>
+            !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
+        );
+
         return { hasIngredients, missingIngredients };
     };
 
@@ -109,9 +117,11 @@ const DrinkDetails = () => {
                     let totalCals = 0,
                         totalProtein = 0,
                         totalFat = 0,
-                        totalCarbs = 0
+                        totalCarbs = 0,
+                        totalAlcohol = 0
 
                     for (const item of ingredientsList) {
+
                         const macroData = await getUSDAInfo(item.ingredient)
 
                         if (macroData) {
@@ -120,16 +130,41 @@ const DrinkDetails = () => {
                             totalProtein += macroData.protein || 0
                             totalFat += macroData.fat || 0
                             totalCarbs += macroData.carbs || 0
+
+
+                            if(macroData.isAlcoholic){
+                                const expectedCals = ((macroData.protein || 0) * 4) +
+                                    ((macroData.carbs || 0) * 4) +
+                                    ((macroData.fat || 0) * 9)
+
+                                const actualCals = macroData.calories || 0
+
+                                if(actualCals > expectedCals + 10) {
+                                    const alcoholCals = actualCals - expectedCals
+                                    const alcoholGrams = alcoholCals / 7
+
+                                    totalAlcohol += alcoholGrams
+                                    macroData[item.ingredient].alcohol = alcoholGrams
+                                }
+                            }
+
+                            totalCals += macroData.calories || 0
                         }
                     }
+
+                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9) + (totalAlcohol * 7)
+
+
 
                     setMacros(macrosData)
 
                     setTotalNutrition({
                         calories: Math.round(totalCals),
+                        calculatedCalories: Math.round(calculatedCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),
+                        alcohol: Math.round(totalAlcohol)
                     })
                 } else {
                     setError("Drink details not found.")
@@ -292,6 +327,12 @@ const DrinkDetails = () => {
                                                 <div className="text-2xl font-bold">{totalNutrition.carbs}g</div>
                                                 <div className="text-sm text-gray-400">Carbs</div>
                                             </div>
+                                            {totalNutrition.alcohol > 0 && (
+                                                <div className="bg-gray-700/30 p-3 rounded-lg text-center">
+                                                    <div className="text-2xl font-bold">{totalNutrition.alcohol}g</div>
+                                                    <div className="text-sm text-gray-400">Alcohol</div>
+                                                </div>
+                                            )}
                                         </div>
                                     </TabsContent>
 
@@ -339,7 +380,6 @@ const DrinkDetails = () => {
                     </CardContent>
                 </Card>
 
-
                 {/* Shopping Cart */}
                 <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
@@ -350,16 +390,21 @@ const DrinkDetails = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2 mb-4">
-                            <p className="text-gray-400">Here's what you'll need to make this recipe:</p>
+                            <p className="text-gray-400">Here's what you'll need to buy:</p>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            {ingredients.map((item, index) => (
+                            {missingIngredients.map((item, index) => (
                                 <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
                                     <div className="font-medium mb-1">{item.ingredient}</div>
                                     <Badge variant="outline">{item.measure}</Badge>
                                 </div>
                             ))}
                         </div>
+                        {missingIngredients.length === 0 && (
+                            <div className="text-center py-4 text-gray-400">
+                                You have all ingredients for this recipe!
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
