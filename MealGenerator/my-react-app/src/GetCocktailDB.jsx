@@ -12,14 +12,18 @@ export const useTheCocktailDB = () => {
     const cache = useRef({})
 
     const getCocktailDBDrinks = async (ingredients) =>{
-        const mainIngredient = Array.isArray(ingredients) ? ingredients[0] : ingredients
+        const mainIngredient = Array.isArray(ingredients) ? ingredients[0]?.name || ingredients[0] : ingredients;
+
         const key = mainIngredient.toLowerCase().trim()
 
-        // Check cache first
+        // console.log("Key" + key)
+        // console.log("Main Ingredients" + mainIngredient)
+
+         // Check cache first
         if (cache.current[key]) {
             setCocktailDBDrinks(cache.current[key])
             setLoading(false)
-            console.log("Using cached CocktailDB drinks for:", key)
+            //console.log("Using cached CocktailDB drinks for:", key)
             return
         }
 

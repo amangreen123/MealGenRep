@@ -12,6 +12,7 @@ import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 
 const MealDBRecipeDetails = () => {
+
     const { id } = useParams()
     const [loading, setLoading] = useState(true)
     const [recipeDetails, setRecipeDetails] = useState(null)
@@ -22,6 +23,7 @@ const MealDBRecipeDetails = () => {
         fat: 0,
         carbs: 0,
     })
+
     const [error, setError] = useState(null)
     const navigate = useNavigate()
 
@@ -81,6 +83,7 @@ const MealDBRecipeDetails = () => {
                     setRecipeDetails(recipeData)
 
                     const ingredients = getIngredients(recipeData)
+
                     const macrosData = {}
                     let totalCals = 0,
                         totalProtein = 0,
@@ -100,9 +103,12 @@ const MealDBRecipeDetails = () => {
                         }
                     }
 
+                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9)
                     setMacros(macrosData)
+
                     setTotalNutrition({
                         calories: Math.round(totalCals),
+                        calculatedCalories: Math.round(calculatedCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),

@@ -212,8 +212,12 @@ const UserInput = () => {
         if (ingredients.length > 0) {
             setIsSearching(true)
             try {
-                await Promise.all([getRecipes(ingredients, selectedDiet), getMealDBRecipes(ingredients),getCocktailDBDrinks(ingredients)])
-                setCurrentPage(1)
+                await Promise.all([
+                    getRecipes([ingredients], selectedDiet),
+                    getMealDBRecipes(ingredients),
+                    getCocktailDBDrinks(ingredients)
+                ]);
+
             } catch (error) {
                 console.error("Error during search:", error)
             } finally {
@@ -228,12 +232,13 @@ const UserInput = () => {
         setIngredients([ingredient]);
         setErrorMessage("");
 
+
         try {
             // Fetch recipes from both sources
             await Promise.all([
                 getRecipes([ingredient], selectedDiet),
-                getMealDBRecipes([ingredient]),
-                getCocktailDBDrinks([ingredients])
+                getMealDBRecipes(ingredient),
+                getCocktailDBDrinks(ingredient)
             ]);
 
             // Reset to first page when new search is performed
@@ -250,9 +255,10 @@ const UserInput = () => {
 
     const clickHandler = (recipe) => {
         if (recipe.isDrink) {
-            console.log("Drink", recipe)
-            console.log("UserIngredients", ingredients)
-            console.log("Navigating with state:", { drink: recipe, userIngredients: ingredients });
+            // console.log("Drink", recipe)
+            // console.log("UserIngredients", ingredients)
+            // console.log("Navigating with state:", { drink: recipe, userIngredients: ingredients });
+
             navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients } });
         } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients } })
