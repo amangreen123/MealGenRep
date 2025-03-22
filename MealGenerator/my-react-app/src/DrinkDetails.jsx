@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import getDrinkDetails from "./getDrinkDetails.jsx"
 import { getUSDAInfo } from "./GetUSDAInfo.jsx"
+import RecipeNavigator from "@/RecipeNavigator.jsx";
 
 const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
     const drinkData = usdaNutrients[ingredient]
@@ -264,7 +265,7 @@ const DrinkDetails = () => {
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Back to Menu
                 </Button>
-
+                <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={drinkDetails.strDrink} />
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Drink Info */}
                     <div className="space-y-6">

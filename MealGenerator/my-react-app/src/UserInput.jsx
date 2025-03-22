@@ -2,7 +2,7 @@
 
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import {useLocation, useNavigate} from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx";
+import RecipeNavigator from "@/RecipeNavigator.jsx";
 
 import {PlusCircle, Loader2, X, ChevronLeft,ChevronRight } from "lucide-react"
 
@@ -30,7 +31,6 @@ import {
 
 import MealForgerLogo from "./Images/MealForger_Logo.png"
 import {BiDrink} from "react-icons/bi";
-
 
 
 const popularIngredients = [
@@ -96,6 +96,9 @@ const UserInput = () => {
     const navigate = useNavigate()
 
     const [recipeType, setRecipeType] = useState("all")
+
+
+
 
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
@@ -258,12 +261,11 @@ const UserInput = () => {
             // console.log("Drink", recipe)
             // console.log("UserIngredients", ingredients)
             // console.log("Navigating with state:", { drink: recipe, userIngredients: ingredients });
-
-            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients } });
+            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients , allRecipes} });
         } else if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients } })
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients , allRecipes } })
         } else {
-            navigate(`/recipe/${recipe.id}`, { state: { recipe, userIngredients: ingredients } })
+            navigate(`/recipe/${recipe.id}`, { state: { recipe, userIngredients: ingredients, allRecipes } })
         }
     }
 

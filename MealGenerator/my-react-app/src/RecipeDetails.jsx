@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import getInstructions from "./GetInstructions.jsx"
+import RecipeNavigator from "@/RecipeNavigator.jsx"
+
 
 const IngredientDetail = ({ ingredient, usdaNutrients }) => {
+
     const nutrientData = usdaNutrients[ingredient.name]
 
     return (
@@ -114,6 +118,8 @@ const RecipeDetails = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
+            <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+
             <div className="max-w-4xl mx-auto space-y-6">
                 <BackButton />
                 <div className="grid md:grid-cols-2 gap-6">
@@ -208,7 +214,6 @@ const RecipeDetails = () => {
                         </div>
                     </CardContent>
                 </Card>
-
 
 
                 {instructions && (

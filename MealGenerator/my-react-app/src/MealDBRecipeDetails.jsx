@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 
+import RecipeNavigator from "@/RecipeNavigator.jsx";
+
 const MealDBRecipeDetails = () => {
 
     const { id } = useParams()
@@ -192,6 +194,8 @@ const MealDBRecipeDetails = () => {
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Back to Recipes
                 </Button>
+
+                <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipeDetails.strMeal} />
 
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Recipe Info */}
