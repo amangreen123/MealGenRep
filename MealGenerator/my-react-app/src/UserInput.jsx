@@ -253,21 +253,39 @@ const UserInput = () => {
             setIsSearching(false);
         }
     }
-
-    //testing purpose http://localhost:5173/drink/15675
-
     const clickHandler = (recipe) => {
+        const currentPath = window.location.pathname; // Gets the current path
+
         if (recipe.isDrink) {
-            // console.log("Drink", recipe)
-            // console.log("UserIngredients", ingredients)
-            // console.log("Navigating with state:", { drink: recipe, userIngredients: ingredients });
-            navigate(`/drink/${recipe.idDrink}`, { state: { drink: recipe, userIngredients: ingredients , allRecipes} });
+            navigate(`/drink/${recipe.idDrink}`, {
+                state: {
+                    drink: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath // This will be used by the back button
+                }
+            });
         } else if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, { state: { meal: recipe, userIngredients: ingredients , allRecipes } })
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, {
+                state: {
+                    meal: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath
+                }
+            });
         } else {
-            navigate(`/recipe/${recipe.id}`, { state: { recipe, userIngredients: ingredients, allRecipes } })
+            navigate(`/recipe/${recipe.id}`, {
+                state: {
+                    recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath
+                }
+            });
         }
     }
+
 
     const indexOfLastRecipe = currentPage * recipesPerPage
     const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage

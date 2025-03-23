@@ -30,8 +30,12 @@ const MealDBRecipeDetails = () => {
     const navigate = useNavigate()
 
     const {state} = useLocation()
+    const previousPath = state?.previousPath || '/'
     const userIngredients = state?.userIngredients || [];
 
+    const handleBackClick = () => {
+        navigate(previousPath)
+    }
 
     const getIngredients = (meal) => {
         const ingredients = []
@@ -190,13 +194,13 @@ const MealDBRecipeDetails = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
-                <Button variant="outline" onClick={() => navigate(-1)} className="mb-4">
+                <Button variant="outline" onClick={handleBackClick} className="mb-4">
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Back to Recipes
                 </Button>
-
-                <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipeDetails.strMeal} />
-
+                {state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipeDetails} />
+                )}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Recipe Info */}
                     <div className="space-y-6">
@@ -365,6 +369,9 @@ const MealDBRecipeDetails = () => {
                         </ScrollArea>
                     </CardContent>
                 </Card>
+                {state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipeDetails} />
+                )}
             </div>
         </div>
     )

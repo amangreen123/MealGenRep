@@ -263,9 +263,11 @@ const DrinkDetails = () => {
             <div className="max-w-4xl mx-auto space-y-6">
                 <Button variant="outline" onClick={() => navigate(-1)} className="mb-4">
                     <ChevronLeft className="w-4 h-4 mr-2" />
-                    Back to Menu
+                    Back to Recipes
                 </Button>
-                <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={drinkDetails.strDrink} />
+                {location.state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={location.state?.allRecipes || []} currentRecipe={drinkDetails} />
+                )}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Drink Info */}
                     <div className="space-y-6">
@@ -431,6 +433,9 @@ const DrinkDetails = () => {
                         </ScrollArea>
                     </CardContent>
                 </Card>
+                {state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+                )}
             </div>
         </div>
     )

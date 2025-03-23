@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { ChevronLeft, Clock, Users, Scale, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,9 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import getInstructions from "./GetInstructions.jsx"
 import RecipeNavigator from "@/RecipeNavigator.jsx"
 
-
 const IngredientDetail = ({ ingredient, usdaNutrients }) => {
-
     const nutrientData = usdaNutrients[ingredient.name]
 
     return (
@@ -85,43 +83,57 @@ const NutritionTabs = ({ recipe, recipeDetails }) => {
 }
 
 const RecipeDetails = () => {
-    const { state } = useLocation()
-    const recipe = state?.recipe
+    const navigate = useNavigate();
+    const { state } = useLocation();
+    const previousPath = state?.previousPath || '/';
+    const recipe = state?.recipe;
 
-    const [loading, setLoading] = useState(true)
-    const [recipeDetails, setRecipeDetails] = useState(null)
-    const [error, setError] = useState(null)
+    const [loading, setLoading] = useState(true);
+    const [recipeDetails, setRecipeDetails] = useState(null);
+    const [error, setError] = useState(null);
+
+    const handleBackClick = () => {
+        navigate(previousPath);
+    };
 
     useEffect(() => {
         const fetchRecipeData = async () => {
-            if (!recipe) return
+            if (!recipe) return;
             try {
-                setLoading(true)
-                const data = await getInstructions(recipe.id)
-                setRecipeDetails(data)
+                setLoading(true);
+                const data = await getInstructions(recipe.id);
+                setRecipeDetails(data);
             } catch (error) {
-                setError(error.message || "An error occurred while fetching recipe details")
+                setError(error.message || "An error occurred while fetching recipe details");
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
-        }
+        };
 
-        fetchRecipeData()
-    }, [recipe])
+        fetchRecipeData();
+    }, [recipe]);
 
-    if (!recipe) return <RecipeNotFound />
-    if (loading) return <LoadingState />
-    if (error) return <ErrorState error={error} />
+    if (!recipe) return <RecipeNotFound navigate={navigate} />;
+    if (loading) return <LoadingState />;
+    if (error) return <ErrorState error={error} navigate={navigate} previousPath={previousPath} />;
 
-    const { instructions, macros } = recipeDetails || {}
+    const { instructions, macros } = recipeDetails || {};
 
+    // BackButton component defined inside RecipeDetails to access navigate and previousPath
+    const BackButton = ({ className = "" }) => (
+        <Button variant="outline" onClick={handleBackClick} className={className}>
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Recipes
+        </Button>
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
-            <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
-
             <div className="max-w-4xl mx-auto space-y-6">
                 <BackButton />
+                {state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+                )}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Left column */}
                     <div className="space-y-6">
@@ -164,7 +176,6 @@ const RecipeDetails = () => {
                         </Card>
                     </div>
                 </div>
-
 
                 {/* Ingredient You Have Section */}
                 <Card className="bg-gray-800/50 border-gray-700">
@@ -215,7 +226,6 @@ const RecipeDetails = () => {
                     </CardContent>
                 </Card>
 
-
                 {instructions && (
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
@@ -238,10 +248,13 @@ const RecipeDetails = () => {
                         </CardContent>
                     </Card>
                 )}
+                {state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+                )}
             </div>
         </div>
-    )
-}
+    );
+};
 
 const LoadingState = () => (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
@@ -259,40 +272,50 @@ const LoadingState = () => (
             </CardContent>
         </Card>
     </div>
-)
+);
 
-const RecipeNotFound = () => (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
-            <CardContent className="p-6">
-                <h1 className="text-2xl font-bold text-center mb-4">Recipe not found</h1>
-                <p className="text-center text-gray-400 mb-6">
-                    The recipe you're looking for doesn't exist or has been removed.
-                </p>
-                <BackButton className="w-full" />
-            </CardContent>
-        </Card>
-    </div>
-)
+const RecipeNotFound = ({ navigate }) => {
+    const handleBackClick = () => {
+        navigate('/');
+    };
 
-const ErrorState = ({ error }) => (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
-            <CardContent className="p-6">
-                <h1 className="text-2xl font-bold text-center mb-4">Error</h1>
-                <p className="text-center text-red-500 mb-6">{error}</p>
-                <BackButton className="w-full" />
-            </CardContent>
-        </Card>
-    </div>
-)
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+            <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                <CardContent className="p-6">
+                    <h1 className="text-2xl font-bold text-center mb-4">Recipe not found</h1>
+                    <p className="text-center text-gray-400 mb-6">
+                        The recipe you're looking for doesn't exist or has been removed.
+                    </p>
+                    <Button variant="outline" onClick={handleBackClick} className="w-full">
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        Back to Recipes
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
 
-const BackButton = ({ className = "" }) => (
-    <Button variant="outline" onClick={() => window.history.back()} className={className}>
-        <ChevronLeft className="w-4 h-4 mr-2" />
-        Back to Recipes
-    </Button>
-)
+const ErrorState = ({ error, navigate, previousPath }) => {
+    const handleBackClick = () => {
+        navigate(previousPath || '/');
+    };
 
-export default RecipeDetails
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6 flex items-center justify-center">
+            <Card className="bg-gray-800/50 border-gray-700 w-full max-w-md">
+                <CardContent className="p-6">
+                    <h1 className="text-2xl font-bold text-center mb-4">Error</h1>
+                    <p className="text-center text-red-500 mb-6">{error}</p>
+                    <Button variant="outline" onClick={handleBackClick} className="w-full">
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        Back to Recipes
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
 
+export default RecipeDetails;

@@ -2,6 +2,7 @@ import ReactGA from "react-ga4";
 import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Users from './UserInput.jsx';
 import RecipeDetails from "./RecipeDetails.jsx";
