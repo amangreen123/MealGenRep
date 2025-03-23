@@ -124,9 +124,10 @@ const UserInput = () => {
         ? CocktailDBDrinks.map((drink) => ({
                 ...drink,
                 isDrink: true,
-                strMealThumb: drink.strMealThumb
+                strMealThumb: drink.strMealThumb,
+                summary: drink.summary || ""
             }))
-            : []
+            : [];
 
         let filteredRecipes = []
 
@@ -138,10 +139,44 @@ const UserInput = () => {
             filteredRecipes = [...recipes, ...mealDBRecipesArray]
         }
 
+        generateSummaries(filteredRecipes);
 
         setAllRecipes(filteredRecipes)
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
 
+
+    const generateSummaries = async (recipes) => {
+        let cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
+
+        const updatedRecipes = await Promise.all(
+            recipes.map(async (recipe) => {
+                const dishName = recipe.strMeal || recipe.strDrink;
+
+                if (!recipe.summary) {
+                    if (cachedSummaries[dishName]) {
+                        // Use cached summary if available
+                        return { ...recipe, summary: cachedSummaries[dishName] };
+                    } else {
+                        try {
+                            // Fetch new summary and store it in cache
+                            const response = await getGaladrielResponse(`Generate a short summary for the dish: ${dishName}`, "summary");
+                            cachedSummaries[dishName] = response;
+                            return { ...recipe, summary: response };
+                        } catch (error) {
+                            console.error("Error generating summary:", error);
+                            return { ...recipe, summary: "No summary available." };
+                        }
+                    }
+                }
+                return recipe;
+            })
+        );
+
+        // Save updated summaries to localStorage
+        localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+
+        setAllRecipes(updatedRecipes);
+    };
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
