@@ -1,70 +1,77 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import axios from "axios"
+import { useState, useRef } from "react";
+import axios from "axios";
 
-const BASE_URL = "https://www.thecocktaildb.com/api/json/v1/1"
+const BASE_URL = "https://www.thecocktaildb.com/api/json/v1/1";
 
 export const useTheCocktailDB = () => {
-    const [CocktailDBDrinks, setCocktailDBDrinks] = useState([])
-    const [error, setError] = useState(null)
-    const [loading, setLoading] = useState(false)
-    const cache = useRef({})
+    const [CocktailDBDrinks, setCocktailDBDrinks] = useState([]);
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const cache = useRef({});
 
-    const getCocktailDBDrinks = async (ingredients) =>{
+    const getCocktailDBDrinks = async (ingredients) => {
         const mainIngredient = Array.isArray(ingredients) ? ingredients[0]?.name || ingredients[0] : ingredients;
+        const key = mainIngredient.toLowerCase().trim();
 
-        const key = mainIngredient.toLowerCase().trim()
-
-        // console.log("Key" + key)
-        // console.log("Main Ingredients" + mainIngredient)
-
-         // Check cache first
+        // Check cache first
         if (cache.current[key]) {
-            setCocktailDBDrinks(cache.current[key])
-            setLoading(false)
-            //console.log("Using cached CocktailDB drinks for:", key)
-            return
+            setCocktailDBDrinks(cache.current[key]);
+            setLoading(false);
+            return;
         }
 
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         try {
-            // Construct the URL properly with encoded ingredient
-            const url = `${BASE_URL}/filter.php?i=${encodeURIComponent(key)}`
-            console.log("Fetching from CocktailDB:", url)
+            //Fetch the list of drinks by ingredient
+            const filterUrl = `${BASE_URL}/filter.php?i=${encodeURIComponent(key)}`;
+            console.log("Fetching from CocktailDB (filter):", filterUrl);
 
-            const response = await axios.get(url)
+            const filterResponse = await axios.get(filterUrl);
 
-            // Handle API-specific null response
-            if (!response.data || !response.data.drinks) {
-                const newError = `No drinks found for ${key}`
-                console.log(newError)
-                setError(newError)
-                setCocktailDBDrinks([])
-                cache.current[key] = [] // Cache empty results to avoid repeated failed calls
-                return
+            // Handle null response
+            if (!filterResponse.data || !filterResponse.data.drinks) {
+                const newError = `No drinks found for ${key}`;
+                console.log(newError);
+                setError(newError);
+                setCocktailDBDrinks([]);
+                cache.current[key] = []; // Cache empty results
+                return;
             }
-            const results = response.data.drinks
-            cache.current[key] = results
-            setCocktailDBDrinks(results)
-            console.log("CocktailDB drinks found:", results.length)
 
-        } catch {
-            const errorMessage = error.message || "Failed to fetch drinks from CocktailDB"
-            console.error("CocktailDB API Error:", errorMessage)
-            setError(errorMessage)
-            setCocktailDBDrinks([])
-            cache.current[key] = [] // Cache failed results
+             //Fetch full details for each drink
+            const drinksWithDetails = await Promise.all(
+                filterResponse.data.drinks.map(async (drink) => {
+                    const lookupUrl = `${BASE_URL}/lookup.php?i=${drink.idDrink}`;
+                    console.log("Fetching from CocktailDB (lookup):", lookupUrl);
+
+                    const lookupResponse = await axios.get(lookupUrl);
+                    return lookupResponse.data.drinks[0]; // Return the full drink details
+                })
+            );
+
+            // Cache the results
+            cache.current[key] = drinksWithDetails;
+            setCocktailDBDrinks(drinksWithDetails);
+            console.log("CocktailDB drinks with details found:", drinksWithDetails.length);
+
+        } catch (error) {
+            const errorMessage = error.message || "Failed to fetch drinks from CocktailDB";
+            console.error("CocktailDB API Error:", errorMessage);
+            setError(errorMessage);
+            setCocktailDBDrinks([]);
+            cache.current[key] = []; // Cache failed results
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
-    const getCachedDBDrinks = () => cache.current
+    const getCachedDBDrinks = () => cache.current;
 
-    return {getCocktailDBDrinks,CocktailDBDrinks, getCachedDBDrinks, error, loading }
-}
+    return { getCocktailDBDrinks, CocktailDBDrinks, getCachedDBDrinks, error, loading };
+};
 
-export default useTheCocktailDB
+export default useTheCocktailDB;

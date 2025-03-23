@@ -30,11 +30,12 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
             `;
         } else if (mode === "summary") {
             systemPrompt = `You are an expert food AI that provides short, engaging descriptions of recipes. Your task is:
-            1. Generate a short summary (2-3 sentences) for the given dish or drink.
-            2. Mention key ingredients or the general cooking method.
-            3. Make it engaging and appealing to readers.
-            4. Keep it concise and under 50 words.
-            `;
+1. Generate a short summary (2-3 sentences) for the given dish or drink.
+2. Mention key ingredients or the general cooking method.
+3. Make it engaging and appealing to readers.
+4. Keep it concise and under 50 words.
+5. If the dish is already well-known, provide a brief description that highlights its unique features.
+`;
         }
 
         const completion = await openai.chat.completions.create({

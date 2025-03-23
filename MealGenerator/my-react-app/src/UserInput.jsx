@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { debounce } from "lodash";
+
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -138,6 +140,8 @@ const UserInput = () => {
         setApiLimitReached(false)
     }, [])
 
+
+
     useEffect(() => {
         // Check if Spoonacular API error is due to API limit
         if (error && (
@@ -178,6 +182,17 @@ const UserInput = () => {
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
 
 
+    useEffect(() => {
+        const debouncedGenerateSummaries = debounce(() => {
+            const visibleRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+            generateSummaries(visibleRecipes);
+        }, 300); // 300ms debounce delay
+
+        debouncedGenerateSummaries();
+
+        return () => debouncedGenerateSummaries.cancel(); // Cleanup
+    }, [currentPage, allRecipes]);
+
     const generateSummaries = async (recipes) => {
         let cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
 
@@ -194,6 +209,7 @@ const UserInput = () => {
                             // Fetch new summary and store it in cache
                             const response = await getGaladrielResponse(`Generate a short summary for the dish: ${dishName}`, "summary");
                             cachedSummaries[dishName] = response;
+                            localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
                             return { ...recipe, summary: response };
                         } catch (error) {
                             console.error("Error generating summary:", error);
@@ -204,9 +220,6 @@ const UserInput = () => {
                 return recipe;
             })
         );
-
-        // Save updated summaries to localStorage
-        localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
 
         setAllRecipes(updatedRecipes);
     };
@@ -624,46 +637,80 @@ const stripHtml = (html) => {
     return html.replace(/<\/?[^>]+(>|$)/g, ""); // Removes all HTML tags
 };
 
-const RecipeCard = ({ recipe, onClick }) => (
-    <Dialog>
-        <DialogTrigger asChild>
-            <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
-                <CardContent className="p-4">
-                    <img
-                        src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
-                        alt={recipe.title || recipe.strMeal || recipe.strDrink}
-                        className="w-full h-32 object-cover rounded-md mb-2"
-                    />
-                    <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
-                        {recipe.title || recipe.strMeal || recipe.strDrink}
-                    </h4>
-                    {recipe.isDrink && <BiDrink className="text-blue-400 ml-2"/>}
-                </CardContent>
-            </Card>
-        </DialogTrigger>
+const RecipeCard = ({ recipe, onClick }) => {
+    const [summary, setSummary] = useState(recipe.summary || "");
 
-        <DialogContent className="bg-gray-800 text-white">
-        <DialogTitle className="font-medium text-gray-300 text-lg">
-                {recipe.title || recipe.strMeal || recipe.strDrink}
-            </DialogTitle>
-            <DialogDescription asChild>
-                <div className="text-white font-bold">
-                    <img
-                        src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
-                        alt={recipe.title || recipe.strMeal || recipe.strDrink}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                    />
-                    <p className="mb-4">
-                        {stripHtml(recipe.summary) || "No summary available."}
-                    </p>
-                    <Button onClick={onClick} className="w-full font-bold">
-                        View Full Recipe
-                    </Button>
-                </div>
-            </DialogDescription>
-        </DialogContent>
-    </Dialog>
-);
+    const fetchSummary = async () => {
+        if (!summary) {
+            // Check localStorage for cached summary
+            const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
+            const dishName = recipe.strMeal || recipe.strDrink;
+
+            if (cachedSummaries[dishName]) {
+                setSummary(cachedSummaries[dishName]);
+            } else {
+                try {
+                    const response = await getGaladrielResponse(
+                        `Generate a short summary for the dish: ${dishName}`,
+                        "summary"
+                    );
+                    setSummary(response);
+
+                    // Cache the summary in localStorage
+                    cachedSummaries[dishName] = response;
+                    localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+                } catch (error) {
+                    console.error("Error generating summary:", error);
+                    setSummary("No summary available.");
+                }
+            }
+        }
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild onClick={fetchSummary}>
+                <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
+                    <CardContent className="p-4">
+                        <img
+                            src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                            alt={recipe.title || recipe.strMeal || recipe.strDrink}
+                            className="w-full h-32 object-cover rounded-md mb-2"
+                        />
+                        <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
+                            {recipe.title || recipe.strMeal || recipe.strDrink}
+                        </h4>
+                        {/* Only show the drink icon if it's an alcoholic drink */}
+                        {recipe.isDrink && recipe.strAlcoholic === "Alcoholic" && (
+                            <BiDrink className="text-blue-400 ml-2" />
+                        )}
+                    </CardContent>
+                </Card>
+            </DialogTrigger>
+
+            <DialogContent className="bg-gray-800 text-white">
+                <DialogTitle className="font-medium text-gray-300 text-lg">
+                    {recipe.title || recipe.strMeal || recipe.strDrink}
+                </DialogTitle>
+                <DialogDescription asChild>
+                    <div className="text-white font-bold">
+                        <img
+                            src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                            alt={recipe.title || recipe.strMeal || recipe.strDrink}
+                            className="w-full h-48 object-cover rounded-md mb-4"
+                        />
+                        <p className="mb-4">
+                            {stripHtml(summary) || "No summary available."}
+                        </p>
+                        <Button onClick={onClick} className="w-full font-bold">
+                            View Full Recipe
+                        </Button>
+                    </div>
+                </DialogDescription>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 
 

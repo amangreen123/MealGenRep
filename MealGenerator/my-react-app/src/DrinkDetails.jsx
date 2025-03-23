@@ -434,7 +434,7 @@ const DrinkDetails = () => {
                     </CardContent>
                 </Card>
                 {state?.allRecipes?.length > 1 && (
-                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={drinkDetails} />
                 )}
             </div>
         </div>
