@@ -32,7 +32,40 @@ import {
 import MealForgerLogo from "./Images/MealForger_Logo.png"
 import {BiDrink} from "react-icons/bi";
 
-
+const categoryIngredients = {
+    "Dessert": {
+        mealDB: ["Chocolate", "Honey", "Vanilla"],
+        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"]
+    },
+    "Bread": {
+        mealDB: ["Baguette", "Ciabatta", "Pita"],
+        spoonacular: ["Whole Wheat", "Rye", "Sourdough"]
+    },
+    "Vegetables": {
+        mealDB: ["Carrot", "Broccoli", "Zucchini"],
+        spoonacular: ["Spinach", "Kale", "Bell Pepper"]
+    },
+    "Beef": {
+        mealDB: ["Ground Beef", "Sirloin", "Brisket"],
+        spoonacular: ["Short Ribs", "T-Bone", "Flank Steak"]
+    },
+    "Fish": {
+        mealDB: ["Salmon", "Tuna", "Cod"],
+        spoonacular: ["Haddock", "Mackerel", "Tilapia"]
+    },
+    "Cheese": {
+        mealDB: ["Cheddar", "Mozzarella", "Feta"],
+        spoonacular: ["Parmesan", "Gorgonzola", "Goat Cheese"]
+    },
+    "Fruit": {
+        mealDB: ["Apple", "Banana", "Strawberry"],
+        spoonacular: ["Mango", "Peach", "Pineapple"]
+    },
+    "Chicken": {
+        mealDB: ["Chicken Breast", "Chicken Thigh", "Chicken Wings"],
+        spoonacular: ["Whole Chicken", "Rotisserie Chicken", "Chicken Drumstick"]
+    }
+};
 const popularIngredients = [
     {
         name: "Dessert",
@@ -295,39 +328,72 @@ const UserInput = () => {
     const handleQuickSearch = async (ingredient) => {
         setIsSearching(true);
         setApiLimitReached(false);
-
-        // Clear any previous ingredients and errors
-        setIngredients([ingredient]);
         setErrorMessage("");
 
+        let searchQuery = ingredient;
+
+        if (categoryIngredients[ingredient]) {
+            const chosenFood = Math.random() < 0.5;
+            if (chosenFood && categoryIngredients[ingredient].mealDB.length > 0) {
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[ingredient].mealDB.length);
+                searchQuery = categoryIngredients[ingredient].mealDB[randomIndex];
+            } else if (categoryIngredients[ingredient].spoonacular.length > 0) {
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[ingredient].spoonacular.length);
+                searchQuery = categoryIngredients[ingredient].spoonacular[randomIndex];
+            }
+        }
+
+        setIngredients([searchQuery]);
 
         try {
-            // Fetch recipes from both sources
             const results = await Promise.allSettled([
-                getRecipes(ingredient, selectedDiet),
-                getMealDBRecipes(ingredient),
-                getCocktailDBDrinks(ingredient)
+                getRecipes(searchQuery, selectedDiet), // Spoonacular
+                getMealDBRecipes(searchQuery), // TheMealDB
+                getCocktailDBDrinks(searchQuery) // TheCocktailDB
             ]);
 
-            if(results[0].status === 'rejected'){
-                const spoonacularError =  String(results[0].reason);
+            let mealDBRecipes = [];
+            let spoonacularRecipes = [];
+            let cocktailDBRecipes = [];
+            let spoonacularError = false;
 
-                if (spoonacularError.includes("402") ||
-                    spoonacularError.includes("429") ||
-                    spoonacularError.includes("quota") ||
-                    spoonacularError.includes("API limit")) {
-                    setApiLimitReached(true);
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled" && Array.isArray(result.value)) {
+                    if (index === 0) {
+                        spoonacularRecipes = result.value;
+                    } else if (index === 1) {
+                        mealDBRecipes = result.value;
+                    } else {
+                        cocktailDBRecipes = result.value;
+                    }
+                } else if (result.status === "rejected" && index === 0) {
+                    // Spoonacular API failed due to an API limit
+                    spoonacularError = String(result.reason).includes("402") || String(result.reason).includes("429");
                 }
+            });
+
+            if (spoonacularError) {
+                setApiLimitReached(true);
             }
-            // Reset to first page when new search is performed
+
+            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes, ...cocktailDBRecipes];
+
+            console.log("Recipes Found:", combinedRecipes.length, combinedRecipes);
+
+            //Update recipes BEFORE checking for errors
+            setAllRecipes(combinedRecipes);
             setCurrentPage(1);
         } catch (error) {
             console.error("Error during quick search:", error);
-            setErrorMessage(`Failed to search for ${ingredient} recipes`);
+            setErrorMessage("An unexpected error occurred.");
         } finally {
             setIsSearching(false);
         }
-    }
+    };
+
+
+
+
 
 
     const clickHandler = (recipe) => {
@@ -416,24 +482,21 @@ const UserInput = () => {
                                     <Button
                                         key={item.name}
                                         variant="outline"
-                                        onClick={() => handleQuickSearch(item.name)}
+                                        onClick={() => handleQuickSearch(item.name)} // Uses updated function
                                         className="group flex flex-col items-center justify-center p-4 h-32 w-full transition-all duration-200 hover:bg-gray-700/50"
                                         disabled={isSearching}
                                     >
-                                        {/* Icon */}
                                         <item.icon
                                             className={`category-icon w-20 h-16 mb-3 transition-colors ${item.color}`}/>
                                         <span
-                                            className="text-lg font-medium text-center group-hover:text-white">{item.name}
-                                        </span>
-
+                                            className="text-lg font-medium text-center group-hover:text-white">{item.name}</span>
                                     </Button>
                                 ))}
                             </div>
 
                             {/* Divider with text */}
                             <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
+                                <div className="absolute inset-0 flex items-center">
                                     <span className="w-full border-t border-gray-700"/>
                                 </div>
                                 <div className="relative flex justify-center text-base uppercase">
@@ -467,7 +530,7 @@ const UserInput = () => {
                                     </Select>
                                     <Select value={recipeType} onValueChange={setRecipeType}>
                                         <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
-                                            <SelectValue placeholder="Recipe Type" />
+                                            <SelectValue placeholder="Recipe Type"/>
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Recipes</SelectItem>
@@ -525,8 +588,10 @@ const UserInput = () => {
                     </Card>
 
                     {/* Results Section */}
-                    {error && !apiLimitReached && (
-                        <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again later.</p>
+                    {error && !apiLimitReached && allRecipes.length === 0 && (
+                        <p className="text-red-500 text-center">
+                            Error: Unable to fetch recipes. Please try again later.
+                        </p>
                     )}
 
                     {allRecipes.length > 0 && (
