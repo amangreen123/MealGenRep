@@ -210,7 +210,7 @@ const DrinkDetails = () => {
                         <p className="text-center text-red-500 mb-6">{error}</p>
                         <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
                             <ChevronLeft className="w-4 h-4 mr-2" />
-                            Back to Drinks
+                            Back to Menu
                         </Button>
                     </CardContent>
                 </Card>
@@ -248,7 +248,7 @@ const DrinkDetails = () => {
                         </p>
                         <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
                             <ChevronLeft className="w-4 h-4 mr-2" />
-                            Back to Drinks
+                            Back to Menu
                         </Button>
                     </CardContent>
                 </Card>

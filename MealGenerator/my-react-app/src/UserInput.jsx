@@ -1,20 +1,20 @@
 "use client"
 
-
 import { useState, useEffect } from "react"
-import {useLocation, useNavigate} from "react-router-dom"
+import { useNavigate} from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx";
-import RecipeNavigator from "@/RecipeNavigator.jsx";
 
-import {PlusCircle, Loader2, X, ChevronLeft,ChevronRight } from "lucide-react"
+import {PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from "lucide-react"
 
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
@@ -87,6 +87,9 @@ const UserInput = () => {
     const [errorMessage, setErrorMessage] = useState("")
     const { recipes, error, getRecipes } = useFetchMeals()
 
+    const [apiLimitReached, setApiLimitReached] = useState(false)
+
+
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
     const {CocktailDBDrinks, getCocktailDBDrinks} = useTheCocktailDB()
 
@@ -97,7 +100,22 @@ const UserInput = () => {
 
     const [recipeType, setRecipeType] = useState("all")
 
+    useEffect(() => {
+        // Reset API limit warning when component mounts
+        setApiLimitReached(false)
+    }, [])
 
+    useEffect(() => {
+        // Check if Spoonacular API error is due to API limit
+        if (error && (
+            error.includes("API limit") ||
+            error.includes("quota") ||
+            error.includes("402") ||
+            error.includes("429")
+        )) {
+            setApiLimitReached(true)
+        }
+    }, [error])
 
 
     useEffect(() => {
@@ -123,7 +141,6 @@ const UserInput = () => {
 
         setAllRecipes(filteredRecipes)
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
-
 
 
     const handleInputChange = ({ target: { value } }) => {
@@ -205,32 +222,45 @@ const UserInput = () => {
         }
     }
 
-
-
     const handleRemoveIngredient = (ingredientToRemove) => {
         setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
     }
 
     const handleSearch = async () => {
         if (ingredients.length > 0) {
-            setIsSearching(true)
+            setIsSearching(true);
+            setApiLimitReached(false); // Reset before making requests
+
             try {
-                await Promise.all([
+                const results = await Promise.allSettled([
                     getRecipes([ingredients], selectedDiet),
                     getMealDBRecipes(ingredients),
                     getCocktailDBDrinks(ingredients)
                 ]);
 
+                results.forEach((result, index) => {
+                    if (result.status === 'rejected') {
+                        const errorMsg = String(result.reason);
+                        console.log(`Error in API ${index}:`, errorMsg);
+
+                        if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("API limit")) {
+                            setApiLimitReached(true);
+                        }
+                    }
+                });
             } catch (error) {
-                console.error("Error during search:", error)
+                console.error("Error during search:", error);
             } finally {
-                setIsSearching(false)
+                setIsSearching(false);
             }
         }
-    }
+    };
+
 
     const handleQuickSearch = async (ingredient) => {
         setIsSearching(true);
+        setApiLimitReached(false);
+
         // Clear any previous ingredients and errors
         setIngredients([ingredient]);
         setErrorMessage("");
@@ -238,12 +268,22 @@ const UserInput = () => {
 
         try {
             // Fetch recipes from both sources
-            await Promise.all([
-                getRecipes([ingredient], selectedDiet),
+            const results = await Promise.allSettled([
+                getRecipes(ingredient, selectedDiet),
                 getMealDBRecipes(ingredient),
                 getCocktailDBDrinks(ingredient)
             ]);
 
+            if(results[0].status === 'rejected'){
+                const spoonacularError =  String(results[0].reason);
+
+                if (spoonacularError.includes("402") ||
+                    spoonacularError.includes("429") ||
+                    spoonacularError.includes("quota") ||
+                    spoonacularError.includes("API limit")) {
+                    setApiLimitReached(true);
+                }
+            }
             // Reset to first page when new search is performed
             setCurrentPage(1);
         } catch (error) {
@@ -253,6 +293,8 @@ const UserInput = () => {
             setIsSearching(false);
         }
     }
+
+
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname; // Gets the current path
 
@@ -317,6 +359,16 @@ const UserInput = () => {
                     </div>
                 </div>
                 <div className="space-y-6">
+                    {/* API Limit Warning Alert */}
+                    {apiLimitReached && (
+                        <Alert className="bg-amber-900/50 border-amber-700 text-amber-100">
+                            <InfoIcon className="h-4 w-4 text-amber-400" />
+                            <AlertTitle>Spoonacular API Limit Reached</AlertTitle>
+                            <AlertDescription>
+                                Daily API limit for Spoonacular has been reached. You can still view recipes from TheMealDB and TheCocktailDB.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     {/* Combined Search Section */}
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
@@ -438,8 +490,10 @@ const UserInput = () => {
                     </Card>
 
                     {/* Results Section */}
-                    {error && <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again
-                        later.</p>}
+                    {error && !apiLimitReached && (
+                        <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again later.</p>
+                    )}
+
                     {allRecipes.length > 0 && (
                         <div className="space-y-4">
                             <h3 className="text-xl font-semibold text-center">Found Recipes ({allRecipes.length})</h3>
