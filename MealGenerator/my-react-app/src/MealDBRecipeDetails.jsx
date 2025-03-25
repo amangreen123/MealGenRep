@@ -49,6 +49,25 @@ const MealDBRecipeDetails = () => {
         return ingredients
     }
 
+    const convertToGrams = (measure) => {
+        const unitConversions = {
+            "lb": 453.592, // 1 lb = 453.592g
+            "tsp": 4.2, // 1 tsp = ~4.2g (varies per ingredient)
+            "tbs": 14.3, // 1 tbsp = ~14.3g
+            "cup": 240, // 1 cup = ~240g (varies by ingredient)
+            "pinch": 0.36, // 1 pinch = ~0.36g
+        };
+
+        // Extract number and unit from string (e.g., "1/2 lb" → 0.5, "lb")
+        const match = measure.match(/([\d\/.]+)\s*(\w+)/);
+        if (!match) return parseFloat(measure) || 100; // Default to 100g if unknown
+
+        let [_, num, unit] = match;
+        num = eval(num); // Convert fraction to number (e.g., "1/2" → 0.5)
+
+        return unitConversions[unit] ? num * unitConversions[unit] : num; // Convert if known unit
+    };
+
     //Compares the user ingredients with the recipe ingredients
     const compareIngredients = (recipeIngredients, userIngredients) => {
         // Normalize user ingredients to lowercase and trim
@@ -103,9 +122,9 @@ const MealDBRecipeDetails = () => {
                         if (macroData) {
                             macrosData[item.ingredient] = macroData
                             
-                            const quantity = parseFloat(item.measure) || 100;
-                            
-                            const servingRatio = quantity / macroData.servingSize;
+                            const quantityInGrams = convertToGrams(item.measure)
+                            const servingSize = macroData.servingSize > 0 ? macroData.servingSize : 100
+                            const servingRatio = quantityInGrams / servingSize;
                             //totalCals += macroData.calories || 0
                             
                             totalProtein += (macroData.protein || 0) * servingRatio;

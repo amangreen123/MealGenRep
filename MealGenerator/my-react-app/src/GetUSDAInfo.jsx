@@ -30,15 +30,19 @@ export const getUSDAInfo = async (ingredient) => {
 
         const food = searchResponse.data.foods[0]
 
+        console.log(`✅ USDA Data for ${ingredient}:`, food);
+
         // Extract relevant nutritional information
+        const extractNutrient = (nutrientNumber) => food.foodNutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value || 0;
+        
         const nutrients = {
-            calories: food.foodNutrients.find((n) => n.nutrientName === "Energy")?.value || 0,
-            protein: food.foodNutrients.find((n) => n.nutrientName === "Protein")?.value || 0,
-            fat: food.foodNutrients.find((n) => n.nutrientName === "Total lipid (fat)")?.value || 0,
-            carbs: food.foodNutrients.find((n) => n.nutrientName === "Carbohydrate, by difference")?.value || 0,
-            servingSize: food.servingSize || 100,
-            servingUnit: food.servingSizeUnit || "g",
-        }
+            calories: extractNutrient("208"), // Energy (kcal)
+            protein: extractNutrient("203"), // Protein
+            fat: extractNutrient("204"), // Total lipid (fat)
+            carbs: extractNutrient("205"), // Carbohydrate, by difference
+            servingSize: 100, // Assume per 100g for consistency
+            servingUnit: "g",
+        };
 
         // Cache the result
         cache.set(ingredient, nutrients)
