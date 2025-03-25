@@ -1,11 +1,4 @@
 import OpenAI from "openai";
-
-const openai = new OpenAI({
-    apiKey: import.meta.env.VITE_AI_MODEL_ID,
-    dangerouslyAllowBrowser: true,
-    baseURL: "https://api.galadriel.com/v1/verified",
-});
-
 /**
  * Generates AI responses for ingredient validation or recipe summaries.
  * @param {string} message - The input message (either ingredients or a recipe name).
@@ -13,43 +6,82 @@ const openai = new OpenAI({
  * @returns {Promise<string>} - The AI-generated response.
  */
 
-export const getGaladrielResponse = async (message, mode = "validate") => {
-    try {
-        let systemPrompt = "";
+const openai = new OpenAI({
+    apiKey: import.meta.env.VITE_AI_MODEL_ID,
+    dangerouslyAllowBrowser: true,
+    baseURL: "https://api.galadriel.com/v1/verified",
+});
 
-        if (mode === "validate") {
-            systemPrompt = `You are an advanced ingredient validator for recipe searches. Your primary functions are:
-            1. Strictly filter out any profanity, vulgar language, or inappropriate words.
-            2. Remove any non-food items or substances not used in cooking.
-            3. Correct misspellings of valid ingredients.
-            4. Only allow common, edible ingredients used in cooking.
-            5. If an input is ambiguous but could be a valid ingredient, interpret it as the ingredient.
-            6. If an ingredient is a type of food (e.g. "fruit" or "vegetable"), interpret it as a specific food (e.g. "apple" or "carrot").
-            7. For each input item, return the validated ingredient name if it is recognized. If the item is not a valid food ingredient, return an error message in the format: 'Error: [input item] is not a valid ingredient.'
-            8. Include juices and alcoholic beverages as valid ingredients; do not filter them out.
-            `;
-        } else if (mode === "summary") {
-            systemPrompt = `You are an expert food AI that provides short, engaging descriptions of recipes. Your task is:
-1. Generate a short summary (2-3 sentences) for the given dish or drink.
-2. Mention key ingredients or the general cooking method.
-3. Make it engaging and appealing to readers.
-4. Keep it concise and under 50 words.
-5. If the dish is already well-known, provide a brief description that highlights its unique features.
-`;
-        }
+// Pre-defined prompts (optimized for token efficiency)
+const PROMPTS = {
+    validate: `Validate ingredients:
+1. Allow edible items only (e.g., "apple" ✅)
+2. Correct typos (e.g., "chese" → "cheese")
+3. Reject non-food with "Error: [item] invalid"`,
+
+    summary: `Generate a 2-sentence recipe summary with:
+- Key ingredients
+- Cooking method
+Max 30 words. Example: "Creamy pasta with garlic and parmesan. Ready in 15 minutes."`
+};
+
+// Cache setup with 24-hour expiry
+const getCache = (key) => {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const { response, timestamp } = JSON.parse(cached);
+    return (Date.now() - timestamp < 86400000) ? response : null;
+};
+
+export const getGaladrielResponse = async (message, mode = "validate") => {
+    // Client-side pre-validation
+    if (mode === "validate") {
+        if (message.length > 50) return "Error: Input too long";
+        if (/(\b\d+\b|profanity|slurs)/i.test(message)) return "Error: Invalid input";
+    }
+
+    // Check cache
+    const cacheKey = `ai-${mode}-${message.toLowerCase().trim()}`;
+    const cachedResponse = getCache(cacheKey);
+    if (cachedResponse) return cachedResponse;
+
+    try {
+        // Dynamic model selection
+        const model = mode === "validate" ? "gpt-3.5-turbo" : "gpt-4o";
+
+        // API call with timeout fallback
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model,
             messages: [
-                { role: "system", content: systemPrompt },
+                { role: "system", content: PROMPTS[mode] },
                 { role: "user", content: message }
             ],
+            temperature: 0.7,
+            signal: controller.signal
         });
 
-        return completion.choices[0]?.message?.content.trim();
+        clearTimeout(timeout);
+
+        // Process and cache response
+        const response = completion.choices[0]?.message?.content.trim()
+            || (mode === "validate" ? message : "Description unavailable");
+
+        localStorage.setItem(cacheKey, JSON.stringify({
+            response,
+            timestamp: Date.now()
+        }));
+
+        return response;
 
     } catch (error) {
-        console.error("Error fetching AI response:", error);
-        return "No summary available.";
+        console.error("AI Error:", error);
+        // Fallback strategies
+        return mode === "validate"
+            ? message // Assume valid if API fails
+            : "Description unavailable (API error)";
     }
 };
+

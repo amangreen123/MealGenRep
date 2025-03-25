@@ -37,7 +37,7 @@ const useFetchMeals = () => {
                     ranking: 2,
                 },
             })
-
+            
             const results = response.data.results.map((recipe) => ({
                 id: recipe.id,
                 title: recipe.title,
@@ -66,7 +66,9 @@ const useFetchMeals = () => {
 
             cache.current[key] = results
             setRecipes(results)
-            console.log("Fetched recipes:", results.length)
+            
+            console.log("Spooncular recipes:", results.length)
+            console.log("Spooncular Results", results )
 
         } catch (error) {
             if (error.response?.status === 402) {

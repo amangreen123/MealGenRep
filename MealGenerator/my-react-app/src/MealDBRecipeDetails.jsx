@@ -134,6 +134,7 @@ const MealDBRecipeDetails = () => {
                     }
 
                     const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9)
+                    
                     setMacros(macrosData)
 
                     setTotalNutrition({

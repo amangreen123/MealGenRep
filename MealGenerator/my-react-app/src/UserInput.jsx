@@ -139,9 +139,7 @@ const UserInput = () => {
         // Reset API limit warning when component mounts
         setApiLimitReached(false)
     }, [])
-
-
-
+    
     useEffect(() => {
         // Check if Spoonacular API error is due to API limit
         if (error && (
@@ -193,18 +191,20 @@ const UserInput = () => {
         return () => debouncedGenerateSummaries.cancel(); // Cleanup
     }, [currentPage, allRecipes]);
 
+    
     const generateSummaries = async (recipes) => {
         let cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
-
         const updatedRecipes = await Promise.all(
             recipes.map(async (recipe) => {
                 const dishName = recipe.strMeal || recipe.strDrink;
-
+                
                 if (!recipe.summary) {
                     if (cachedSummaries[dishName]) {
                         // Use cached summary if available
                         return { ...recipe, summary: cachedSummaries[dishName] };
+                   
                     } else {
+                        
                         try {
                             // Fetch new summary and store it in cache
                             const response = await getGaladrielResponse(`Generate a short summary for the dish: ${dishName}`, "summary");
@@ -314,7 +314,7 @@ const UserInput = () => {
 
             try {
                 const results = await Promise.allSettled([
-                    getRecipes([ingredients], selectedDiet),
+                    getRecipes(ingredients, selectedDiet),
                     getMealDBRecipes(ingredients),
                     getCocktailDBDrinks(ingredients)
                 ]);
@@ -403,11 +403,7 @@ const UserInput = () => {
             setIsSearching(false);
         }
     };
-
-
-
-
-
+    
 
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname; // Gets the current path
@@ -648,6 +644,7 @@ const RecipeCard = ({ recipe, onClick }) => {
 
             if (cachedSummaries[dishName]) {
                 setSummary(cachedSummaries[dishName]);
+                
             } else {
                 try {
                     const response = await getGaladrielResponse(
