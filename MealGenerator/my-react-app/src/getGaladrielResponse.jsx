@@ -85,3 +85,12 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
     }
 };
 
+//Batch Version
+export const batchGaladrielResponse = async (messages, mode = "validate") => {
+    const batchMessage = `${mode === "validate"
+        ? "Validate these ingredients:\n"
+        : "Summarize these dishes:\n"}${messages.join("\n")}`;
+
+    return getGaladrielResponse(batchMessage, mode);
+};
+

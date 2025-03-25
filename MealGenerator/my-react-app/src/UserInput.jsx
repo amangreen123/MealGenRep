@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { debounce } from "lodash";
-
+import {AI_CONFIG} from "@/ai.js";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -18,7 +18,7 @@ import useTheCocktailDB from "./GetCocktailDB.jsx";
 
 import {PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from "lucide-react"
 
-import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
+import { getGaladrielResponse,batchGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
 import {
     GiSlicedBread,
@@ -193,115 +193,101 @@ const UserInput = () => {
 
     
     const generateSummaries = async (recipes) => {
-        let cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
-        const updatedRecipes = await Promise.all(
-            recipes.map(async (recipe) => {
-                const dishName = recipe.strMeal || recipe.strDrink;
+        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
+        const uncachedRecipes = recipes.filter(recipe => !recipe.summary);
+        
+        if(uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
+            try{
+                const dishNames = uncachedRecipes.map(r => r.strMeal || r.strDrink);
+                const batchResult = await batchGaladrielResponse(dishNames, "summary");
+                const summaries = batchResult.split('/n');
                 
-                if (!recipe.summary) {
-                    if (cachedSummaries[dishName]) {
-                        // Use cached summary if available
-                        return { ...recipe, summary: cachedSummaries[dishName] };
-                   
-                    } else {
+                //Updates Recipes with Summary
+                const updatedRecipes = recipes.map(recipe => {
+                    const dishName = recipe.strMeal || recipe.strDrink;
+                    
+                    if(!recipe.summary) {
+                        const summaryIndex = uncachedRecipes.findIndex(r =>(r.strMeal || r.strDrink) === dishName);
                         
-                        try {
-                            // Fetch new summary and store it in cache
-                            const response = await getGaladrielResponse(`Generate a short summary for the dish: ${dishName}`, "summary");
-                            cachedSummaries[dishName] = response;
-                            localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
-                            return { ...recipe, summary: response };
-                        } catch (error) {
-                            console.error("Error generating summary:", error);
-                            return { ...recipe, summary: "No summary available." };
+                        if (summaryIndex >= 0) {
+                            cachedSummaries[dishName] = summaries[summaryIndex];
+                            return {...recipe, summary: summaries[summaryIndex]}
                         }
                     }
-                }
-                return recipe;
-            })
-        );
+                    return recipe;
+                });
 
-        setAllRecipes(updatedRecipes);
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+                setAllRecipes(updatedRecipes)
+            } catch (error) {
+                console.error("Batch summary failed:", error);
+                await generateSummariesIndividually(recipes); // Fallbaclk
+            }
+        }
+        else {
+            await generateSummariesIndividually(recipes);
+        }
     };
+    
+    const generateSummariesIndividually = async (recipes) => {
+        const updatedRecipes = [...recipes];
+        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
+        
+        for(let i = 0; i < updatedRecipes.length; i++){
+            if(!updatedRecipes[i].summary){
+                const dishName = updatedRecipes[i].strMeal || updatedRecipes[i].strDrink;
+                
+                if(!cachedSummaries[dishName]) {
+                    try {
+                        const summary = await getGaladrielResponse(
+                            `Describe ${dishName} in 2 sentences`,
+                            "summary"
+                        );
+                        cachedSummaries[dishName] = summary;
+                        updatedRecipes[i] = {...updatedRecipes[i], summary}
+
+                    } catch (error) {
+                        updatedRecipes[i] = {...updatedRecipes[i], summary: "Description unavailable"};
+                    }
+                }else {
+                    updatedRecipes[i] = { ...updatedRecipes[i], summary: cachedSummaries[dishName] };
+                }
+            }
+        }
+        localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+        setAllRecipes(updatedRecipes);
+    }
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
     }
 
     const handleAddIngredient = async () => {
-        if (inputString.trim() === "") {
+        if (inputString.trim() === ',') {
             setErrorMessage("Please enter valid ingredients.");
             return;
         }
-        setIsSearching(true);
-
-        // Create a temporary array to keep track of all ingredients being added in this batch
-        let tempIngredients = [...ingredients];
-        let hasAddedAny = false;
-        let errorMessages = [];
-
-        try {
-            // Split the input string into individual ingredients
-            const ingredientsArray = inputString.split(' ').map(item => item.trim()).filter(item => item);
-
-            // Process each ingredient
-            for (const ingredient of ingredientsArray) {
-
-                // Check for duplicates against BOTH existing ingredients AND ones we're adding in this batch
-                if (tempIngredients.some(existingIngr => existingIngr.toLowerCase() === ingredient.toLowerCase())) {
-                    errorMessages.push(`"${ingredient}" has already been added`);
-                    continue; // Skip to the next ingredient
-                }
-
-                const result = await getGaladrielResponse(ingredient);
-
-                if (result !== "No valid ingredients") {
-                    const suggestedIngredients = result.split(',').map((item) => item.trim());
-                    const newSuggested = suggestedIngredients.filter(newIngr => !newIngr.startsWith('Error:'));
-
-                    if (newSuggested.length <= 0) {
-                        errorMessages.push(`"${ingredient}" is not a valid ingredient`);
-                        continue;
-                    }
-
-                    // Filter out duplicates against our temporary array
-                    const validIngredients = suggestedIngredients.filter(
-                        (newIngr) => !tempIngredients.some((existingIngr) =>
-                            existingIngr.toLowerCase() === newIngr.toLowerCase()) && !newIngr.startsWith('Error:')
-                    );
-
-                    if (validIngredients.length > 0) {
-
-                        // Update our temporary array
-                        tempIngredients = [...tempIngredients, ...validIngredients];
-                        hasAddedAny = true;
-                    } else {
-                        errorMessages.push(`"${ingredient}" has already been added`);
-                    }
-                } else {
-                    errorMessages.push(`"${ingredient}" is not a valid ingredient`);
-                }
+        
+        ///If htere are mutiple ingreidnts
+        if(ingredientsArray.length >= AI_CONFIG.BATCH_THRESHOLD){
+            try {
+                const batchResult = await batchGaladrielResponse(ingredientsArray, "validate")
+                const validated = batchResult.split('/n').filter(i => !i.startsWith('Error:'));
+                setIngredients(prev => [...new Set([...prev, ...validated])]);
+                return;
+            
+            } catch {
+                console.log("Batch failed, falling back to single requests");
             }
-
-            // Only update the state once at the end
-            if (hasAddedAny) {
-                setIngredients(tempIngredients);
-            }
-
-            // Set a single, combined error message if there are any errors
-            if (errorMessages.length > 0) {
-                setErrorMessage(errorMessages.join('. '));
-            } else if (hasAddedAny) {
-                setErrorMessage(""); // Clear error message only if we added something successfully
-            }
-        } catch (error) {
-            console.error("Error during Verification:", error);
-            setErrorMessage("Error during ingredient verification. Please try again.");
-        } finally {
-            setIsSearching(false);
-            setInputString("");
         }
-    }
+        ///if there are single ingredients
+        for (const ingredient of ingredientsArray){
+            const result = await getGaladrielResponse(ingredient, "validate");
+            if(!result.startsWith('Error')){
+                setIngredients(prev => [...prev, result])
+            }
+        }
+    };
 
     const handleRemoveIngredient = (ingredientToRemove) => {
         setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
