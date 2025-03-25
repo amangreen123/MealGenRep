@@ -16,9 +16,9 @@ import useFetchMeals from "./getMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx";
 
-import {PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from "lucide-react"
+import {Check,PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from "lucide-react"
 
-import { getGaladrielResponse,batchGaladrielResponse } from "@/getGaladrielResponse.jsx"
+import { getGaladrielResponse,batchGaladrielResponse,clearValidationCache } from "@/getGaladrielResponse.jsx"
 
 import {
     GiSlicedBread,
@@ -276,6 +276,8 @@ const UserInput = () => {
                 .map(item => item.trim())
                 .filter(Boolean);
 
+            console.log("Ingredients to validate:", ingredientsArray); // Add this line
+
             // Track all issues
             const duplicates = [];
             const validationErrors = [];
@@ -288,18 +290,24 @@ const UserInput = () => {
             for (const ingredient of uniqueInputs) {
                 const lowerIngredient = ingredient.toLowerCase();
 
+                console.log(`Attempting to validate ingredient: "${ingredient}"`)
+                
                 // Check against existing ingredients
                 if (existingLower.includes(lowerIngredient)) {
                     duplicates.push(ingredient);
                     continue;
                 }
+                console.log("Input" + inputString)
+                console.log(`Validating ingredient: ${ingredient}`);
 
                 // Validate only if not a duplicate
                 const result = await getGaladrielResponse(ingredient, "validate");
-
+                console.log(result)
+                
                 if (result.startsWith('Error:')) {
                     validationErrors.push(ingredient);
                 } else {
+                    
                     // Check again for duplicates in the validated result
                     if (!existingLower.includes(result.toLowerCase())) {
                         newIngredients.push(result);
@@ -338,6 +346,18 @@ const UserInput = () => {
     const handleRemoveIngredient = (ingredientToRemove) => {
         setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
     }
+
+    const handleClearValidationCache = () => {
+        // If you've exported clearValidationCache from getGaladrielResponse
+        clearValidationCache();
+
+        // Optional: Clear the entire localStorage for AI-related items
+        Object.keys(localStorage)
+            .filter(key => key.includes('ai-'))
+            .forEach(key => localStorage.removeItem(key));
+
+        alert('Validation cache has been cleared. Please try adding ingredients again.');
+    }; 
 
     const handleSearch = async () => {
         if (ingredients.length > 0) {
@@ -485,7 +505,7 @@ const UserInput = () => {
             const timer = setTimeout(() => {
                 setShowInput(true)
                 setErrorMessage("")
-            }, 1000);
+            }, 5000);
             return () => clearTimeout(timer);
         }
     }, [errorMessage])
@@ -534,7 +554,6 @@ const UserInput = () => {
                                     </Button>
                                 ))}
                             </div>
-
                             {/* Divider with text */}
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
@@ -589,40 +608,35 @@ const UserInput = () => {
                                     </Button>
                                 </div>
                                 {/* Error Message or Ingredients List */}
+                                <div className="flex flex-wrap gap-2">
+                                    {ingredients.map((ingredient) => (
+                                        <div
+                                            key={ingredient}
+                                            className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center"
+                                        >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            {ingredient}
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="ml-1 h-4 w-4 p-0 hover:bg-green-800"
+                                                onClick={() => handleRemoveIngredient(ingredient)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Error display */}
                                 {errorMessage && (
-                                    <div className="bg-red-900/50 border border-red-700 rounded-md p-3">
-                                        <div className="flex items-start gap-2 text-red-100">
-                                            <X className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-300" />
-                                            <div>
-                                                {errorMessage.split('. ').map((msg, i) => (
-                                                    <p key={i} className="text-sm [&:not(:first-child)]:mt-1">
-                                                        {msg}
-                                                    </p>
-                                                ))}
-                                            </div>
+                                    <div className="bg-amber-900/50 border-amber-700 p-3 rounded-md">
+                                        <div className="flex items-start gap-2 text-amber-100">
+                                            <InfoIcon className="h-5 w-5 flex-shrink-0" />
+                                            <div>{errorMessage}</div>
                                         </div>
                                     </div>
                                 )}
-                                <div className="flex flex-wrap gap-2">
-                                    {errorMessage ? (
-                                        <p className="text-red-500">{errorMessage}</p>
-                                    ) : (
-                                        ingredients.map((ingredient, index) => (
-                                            <div key={index}
-                                                 className="bg-gray-600 px-3 py-1 rounded-full text-sm flex items-center">
-                                                {ingredient}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="ml-2 h-4 w-4 p-0"
-                                                    onClick={() => handleRemoveIngredient(ingredient)}
-                                                >
-                                                    <X className="h-3 w-3"/>
-                                                </Button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
 
                                 <Button
                                     onClick={handleSearch}
@@ -641,6 +655,9 @@ const UserInput = () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/*Clears Caches incase of old verification issue*/}
+                    {/*<Button onClick={handleClearValidationCache}></Button>*/}
 
                     {/* Results Section */}
                     {error && !apiLimitReached && allRecipes.length === 0 && (

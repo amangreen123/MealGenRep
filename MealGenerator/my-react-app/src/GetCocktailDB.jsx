@@ -39,7 +39,7 @@ export const useTheCocktailDB = () => {
             const allDrinks = filterResponse.data.drinks;
             const randomDrinks = allDrinks
                 .sort(() => 0.5 - Math.random()) // Shuffle array
-                .slice(0, 5); // Pick first 5
+                .slice(0, 10); // Pick first 5
 
             const drinkIds = randomDrinks.map(d => d.idDrink);
             const detailsResponses = await Promise.all(

@@ -18,7 +18,7 @@ const PROMPTS = {
 
 1. ACCEPT ALL:
    - Any edible item (plant, animal, mineral-based foods)
-   - All forms of alcohol (liquors, beers, wines)
+   - All forms of alcohol(liquors, beers, wines) - Remember Rum is is liquors
    - Any spelling variation that could reasonably represent food
    - Non-English food names (e.g. "shiitake", "quinoa")
    - Brand names when clearly food (e.g. "Tabasco", "Oreo")
@@ -65,20 +65,44 @@ const getCache = (key) => {
     return (Date.now() - timestamp < 86400000) ? response : null;
 };
 
+
+export const clearValidationCache = () => {
+    // Remove all items with 'ai-validate-' prefix
+    Object.keys(localStorage)
+        .filter(key => key.startsWith('ai-validate-'))
+        .forEach(key => localStorage.removeItem(key));
+
+    //console.log('Validation cache cleared');
+};
 export const getGaladrielResponse = async (message, mode = "validate") => {
     // Client-side pre-validation
+    //console.group(`🔍 Validation Request for: ${message}`);
+   // console.log(`Mode: ${mode}`);
+
+    // Client-side pre-validation
     if (mode === "validate") {
-        if (message.length > 50) return "Error: Input too long";
+        if (message.length > 50) {
+            ///console.log(`❌ Rejected: Input too long (${message.length} characters)`);
+            return "Error: Input too long";
+        }
 
-        if (/(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message)) return "Error: Invalid input";
+        // Enhanced logging for regex test
+        const dangerousInputTest = /(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message);
+        //console.log(`Dangerous Input Test Result: ${dangerousInputTest}`);
+        if (dangerousInputTest) {
+            console.log(`❌ Rejected: Contains potentially dangerous input`);
+            return "Error: Invalid input";
+        }
     }
-
     // Check cache
     const cacheKey = `ai-${mode}-${message.toLowerCase().trim()}`;
     const cachedResponse = getCache(cacheKey);
     if (cachedResponse) return cachedResponse;
 
     try {
+
+        
+        
         // Dynamic model selection
         const model = mode === "validate" ? "gpt-3.5-turbo" : "gpt-4o";
 
@@ -101,6 +125,9 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
         // Process and cache response
         const response = completion.choices[0]?.message?.content.trim()
             || (mode === "validate" ? message : "Description unavailable");
+
+        //console.log("Raw AI Response:", response);
+
 
         localStorage.setItem(cacheKey, JSON.stringify({
             response,
