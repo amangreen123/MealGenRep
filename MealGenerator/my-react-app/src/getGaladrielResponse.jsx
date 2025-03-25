@@ -14,15 +14,47 @@ const openai = new OpenAI({
 
 // Pre-defined prompts (optimized for token efficiency)
 const PROMPTS = {
-    validate: `Validate ingredients:
-1. Allow edible items only (e.g., "apple" ✅)
-2. Correct typos (e.g., "chese" → "cheese")
-3. Reject non-food with "Error: [item] invalid"`,
+    validate: `You are an ultra-permissive food ingredient validator. Your rules:
 
-    summary: `Generate a 2-sentence recipe summary with:
-- Key ingredients
-- Cooking method
-Max 30 words. Example: "Creamy pasta with garlic and parmesan. Ready in 15 minutes."`
+1. ACCEPT ALL:
+   - Any edible item (plant, animal, mineral-based foods)
+   - All forms of alcohol (liquors, beers, wines)
+   - Any spelling variation that could reasonably represent food
+   - Non-English food names (e.g. "shiitake", "quinoa")
+   - Brand names when clearly food (e.g. "Tabasco", "Oreo")
+
+2. CORRECT GENTLY:
+   - Only fix obvious single-character typos:
+     "pinaple" → "pineapple"
+     "tomatto" → "tomato"
+   - Preserve regional spelling differences:
+     "eggplant" vs "aubergine"
+     "cilantro" vs "coriander"
+
+3. REJECT ONLY:
+   - Clearly non-food items (e.g. "wood", "plastic")
+   - Dangerous substances (e.g. "poison", "bleach")
+   - Profanity/slurs (e.g. explicit bad words)
+
+4. OUTPUT FORMAT:
+   - Return validated ingredient exactly as phrased if valid
+   - For typos: return corrected version
+   - For rejects: "Error: [item] is not a food ingredient"
+
+Examples:
+"appl" → "apple"
+"rum" → "rum"
+"whiskey" → "whiskey"
+"rock" → "Error: rock is not a food ingredient"
+"pinaple" → "pineapple"`,
+
+    summary: `Generate 2-sentence recipe summaries highlighting:
+- Key flavor profiles
+- Cooking techniques
+- Cultural origins (when relevant)
+Keep under 30 words. Examples:
+"Classic Italian pasta with garlic and olive oil. Ready in 15 minutes."
+"Tropical cocktail blending rum, pineapple and coconut. Served chilled with a cherry garnish."`
 };
 
 // Cache setup with 24-hour expiry
@@ -37,7 +69,8 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
     // Client-side pre-validation
     if (mode === "validate") {
         if (message.length > 50) return "Error: Input too long";
-        if (/(\b\d+\b|profanity|slurs)/i.test(message)) return "Error: Invalid input";
+
+        if (/(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message)) return "Error: Invalid input";
     }
 
     // Check cache

@@ -263,29 +263,75 @@ const UserInput = () => {
     }
 
     const handleAddIngredient = async () => {
-        if (inputString.trim() === ',') {
+        if (inputString.trim() === "") {
             setErrorMessage("Please enter valid ingredients.");
             return;
         }
-        
-        ///If htere are mutiple ingreidnts
-        if(ingredientsArray.length >= AI_CONFIG.BATCH_THRESHOLD){
-            try {
-                const batchResult = await batchGaladrielResponse(ingredientsArray, "validate")
-                const validated = batchResult.split('/n').filter(i => !i.startsWith('Error:'));
-                setIngredients(prev => [...new Set([...prev, ...validated])]);
-                return;
-            
-            } catch {
-                console.log("Batch failed, falling back to single requests");
+
+        setIsSearching(true);
+        setErrorMessage("");
+
+        try {
+            const ingredientsArray = inputString.split(',')
+                .map(item => item.trim())
+                .filter(Boolean);
+
+            // Track all issues
+            const duplicates = [];
+            const validationErrors = [];
+            const newIngredients = [];
+
+            // First pass: Check for duplicates in input AND existing ingredients
+            const existingLower = ingredients.map(i => i.toLowerCase());
+            const uniqueInputs = [...new Set(ingredientsArray)]; // Remove duplicates in input itself
+
+            for (const ingredient of uniqueInputs) {
+                const lowerIngredient = ingredient.toLowerCase();
+
+                // Check against existing ingredients
+                if (existingLower.includes(lowerIngredient)) {
+                    duplicates.push(ingredient);
+                    continue;
+                }
+
+                // Validate only if not a duplicate
+                const result = await getGaladrielResponse(ingredient, "validate");
+
+                if (result.startsWith('Error:')) {
+                    validationErrors.push(ingredient);
+                } else {
+                    // Check again for duplicates in the validated result
+                    if (!existingLower.includes(result.toLowerCase())) {
+                        newIngredients.push(result);
+                    } else {
+                        duplicates.push(ingredient); // The validated form is a duplicate
+                    }
+                }
             }
-        }
-        ///if there are single ingredients
-        for (const ingredient of ingredientsArray){
-            const result = await getGaladrielResponse(ingredient, "validate");
-            if(!result.startsWith('Error')){
-                setIngredients(prev => [...prev, result])
+
+            // Update state
+            if (newIngredients.length > 0) {
+                setIngredients(prev => [...prev, ...newIngredients]);
             }
+
+            // Show errors if any
+            let errorParts = [];
+            if (duplicates.length > 0) {
+                errorParts.push(`Already added: ${duplicates.join(', ')}`);
+            }
+            if (validationErrors.length > 0) {
+                errorParts.push(`Invalid: ${validationErrors.join(', ')}`);
+            }
+
+            if (errorParts.length > 0) {
+                setErrorMessage(errorParts.join('. '));
+            }
+
+        } catch (error) {
+            setErrorMessage("Failed to validate ingredients. Please try again.");
+        } finally {
+            setIsSearching(false);
+            setInputString("");
         }
     };
 
@@ -505,11 +551,12 @@ const UserInput = () => {
                             <div className="space-y-4">
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="Enter Ingredients"
+                                        placeholder="Enter ingredients(comma-separated): "
                                         value={inputString}
                                         onChange={handleInputChange}
                                         className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
                                     />
+                                    
                                     <Select value={selectedDiet} onValueChange={setSelectedDiet}>
                                         <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
                                             <SelectValue placeholder="Select Diet (Optional)"/>
@@ -541,8 +588,21 @@ const UserInput = () => {
                                         Add
                                     </Button>
                                 </div>
-
                                 {/* Error Message or Ingredients List */}
+                                {errorMessage && (
+                                    <div className="bg-red-900/50 border border-red-700 rounded-md p-3">
+                                        <div className="flex items-start gap-2 text-red-100">
+                                            <X className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-300" />
+                                            <div>
+                                                {errorMessage.split('. ').map((msg, i) => (
+                                                    <p key={i} className="text-sm [&:not(:first-child)]:mt-1">
+                                                        {msg}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex flex-wrap gap-2">
                                     {errorMessage ? (
                                         <p className="text-red-500">{errorMessage}</p>
