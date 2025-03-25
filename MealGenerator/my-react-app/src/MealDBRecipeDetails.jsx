@@ -102,10 +102,15 @@ const MealDBRecipeDetails = () => {
 
                         if (macroData) {
                             macrosData[item.ingredient] = macroData
-                            totalCals += macroData.calories || 0
-                            totalProtein += macroData.protein || 0
-                            totalFat += macroData.fat || 0
-                            totalCarbs += macroData.carbs || 0
+                            
+                            const quantity = parseFloat(item.measure) || 100;
+                            
+                            const servingRatio = quantity / macroData.servingSize;
+                            //totalCals += macroData.calories || 0
+                            
+                            totalProtein += (macroData.protein || 0) * servingRatio;
+                            totalFat += (macroData.fat || 0) * servingRatio;
+                            totalCarbs += (macroData.carbs || 0) * servingRatio;
                         }
                     }
 
@@ -113,8 +118,8 @@ const MealDBRecipeDetails = () => {
                     setMacros(macrosData)
 
                     setTotalNutrition({
-                        calories: Math.round(totalCals),
-                        calculatedCalories: Math.round(calculatedCals),
+                        calories: Math.round(calculatedCals),
+                        //calculatedCalories: Math.round(calculatedCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),
@@ -275,15 +280,22 @@ const MealDBRecipeDetails = () => {
                                                             <span className="font-medium">{item.ingredient}</span>
                                                             <Badge variant="outline">{item.measure}</Badge>
                                                         </div>
-                                                        {macros[item.ingredient] ? (
-                                                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
-                                                                <span>Calories: {macros[item.ingredient].calories} kcal</span>
-                                                                <span>Protein: {macros[item.ingredient].protein}g</span>
-                                                                <span>Fat: {macros[item.ingredient].fat}g</span>
-                                                                <span>Carbs: {macros[item.ingredient].carbs}g</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-sm text-gray-400">Loading nutritional info...</div>
+                                                        {macros[item.ingredient] ? (() => {
+                                                            const macroData = macros[item.ingredient];
+                                                            const quantity = parseFloat(item.measure) || 100;
+                                                            const servingRatio = quantity / macroData.servingSize
+                                                            return (
+                                                                <div
+                                                                    className="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                                                                    <span>Calories: {Math.round(macroData.calories * servingRatio)} kcal</span>
+                                                                    <span>Protein: {Math.round(macroData.protein * servingRatio)}g</span>
+                                                                    <span>Fat: {Math.round(macroData.fat * servingRatio)}g</span>
+                                                                    <span>Carbs: {Math.round(macroData.carbs * servingRatio)}g</span>
+                                                                </div>
+                                                            );
+                                                        }) () : (
+                                                            <div className="text-sm text-gray-400">Loading nutritional
+                                                                info...</div>
                                                         )}
                                                     </div>
                                                 ))}
