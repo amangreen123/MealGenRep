@@ -87,9 +87,7 @@ const MealDBRecipeDetails = () => {
 
         return { hasIngredients, missingIngredients };
     };
-
-
-
+    
 
     useEffect(() => {
         const fetchRecipeData = async () => {

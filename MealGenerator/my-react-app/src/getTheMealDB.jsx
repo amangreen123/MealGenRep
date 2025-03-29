@@ -2,9 +2,8 @@
 
 import { useState, useRef } from "react"
 import axios from "axios"
-
-const BASE_URL = "https://www.themealdb.com/api/json/v1/1"
-
+const apiKey = import.meta.env.VITE_MEALDB_KEY
+const BASE_URL = `https://www.themealdb.com/api/json/v2/${apiKey}/`;
 export const useTheMealDB = () => {
     const [MealDBRecipes, setMealDBRecipes] = useState([])
     const [error, setError] = useState(null)
@@ -28,7 +27,8 @@ export const useTheMealDB = () => {
 
         try {
             // Construct the URL properly with encoded ingredient
-            const url = `${BASE_URL}/filter.php?i=${encodeURIComponent(key)}`
+            const url = `${BASE_URL}filter.php?i=${encodeURIComponent(key)}`;
+            
             console.log("Fetching from MealDB:", url)
 
             const response = await axios.get(url)
@@ -43,8 +43,10 @@ export const useTheMealDB = () => {
             }
 
             const results = response.data.meals
+            
             cache.current[key] = results
             setMealDBRecipes(results)
+            console.log("MealDB recipes", results)
             console.log("MealDB recipes found:", results.length)
 
         } catch (error) {

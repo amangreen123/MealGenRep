@@ -130,7 +130,7 @@ const UserInput = () => {
 
     const [allRecipes, setAllRecipes] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
-    const recipesPerPage = 6
+    const recipesPerPage = 10
     const navigate = useNavigate()
 
     const [recipeType, setRecipeType] = useState("all")
@@ -178,6 +178,8 @@ const UserInput = () => {
 
         setAllRecipes(filteredRecipes)
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType, setAllRecipes])
+    
+    
 
 
     useEffect(() => {
@@ -190,7 +192,6 @@ const UserInput = () => {
 
         return () => debouncedGenerateSummaries.cancel(); // Cleanup
     }, [currentPage, allRecipes]);
-
     
     const generateSummaries = async (recipes) => {
         const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
@@ -357,7 +358,7 @@ const UserInput = () => {
             .forEach(key => localStorage.removeItem(key));
 
         alert('Validation cache has been cleared. Please try adding ingredients again.');
-    }; 
+    };
 
     const handleSearch = async () => {
         if (ingredients.length > 0) {
@@ -365,18 +366,20 @@ const UserInput = () => {
             setApiLimitReached(false); // Reset before making requests
 
             try {
-                const results = await Promise.allSettled([
-                    getRecipes(ingredients, selectedDiet),
+                const apiCalls = [
+                    apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet), // Avoid calling Spoonacular
                     getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients)
-                ]);
+                    getCocktailDBDrinks(ingredients),
+                ];
+
+                const results = await Promise.allSettled(apiCalls);
 
                 results.forEach((result, index) => {
-                    if (result.status === 'rejected') {
+                    if (result.status === "rejected") {
                         const errorMsg = String(result.reason);
                         console.log(`Error in API ${index}:`, errorMsg);
 
-                        if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("API limit")) {
+                        if (errorMsg.includes("402") || errorMsg.includes("429")) {
                             setApiLimitReached(true);
                         }
                     }
@@ -411,29 +414,39 @@ const UserInput = () => {
         setIngredients([searchQuery]);
 
         try {
-            const results = await Promise.allSettled([
-                getRecipes(searchQuery, selectedDiet), // Spoonacular
-                getMealDBRecipes(searchQuery), // TheMealDB
-                getCocktailDBDrinks(searchQuery) // TheCocktailDB
-            ]);
+            let apiCalls;
+
+            if (apiLimitReached) {
+                // When Spoonacular is unavailable, only fetch from TheMealDB
+                apiCalls = [getMealDBRecipes(searchQuery)];
+            } else {
+                // When Spoonacular is available, fetch from both
+                apiCalls = [
+                    getRecipes(searchQuery, selectedDiet),
+                    getMealDBRecipes(searchQuery)
+                ];
+            }
+
+            const results = await Promise.allSettled(apiCalls);
 
             let mealDBRecipes = [];
             let spoonacularRecipes = [];
-            let cocktailDBRecipes = [];
             let spoonacularError = false;
 
             results.forEach((result, index) => {
                 if (result.status === "fulfilled" && Array.isArray(result.value)) {
-                    if (index === 0) {
+                    if (index === 0 && !apiLimitReached) {
                         spoonacularRecipes = result.value;
-                    } else if (index === 1) {
-                        mealDBRecipes = result.value;
                     } else {
-                        cocktailDBRecipes = result.value;
+                        mealDBRecipes = result.value;
                     }
-                } else if (result.status === "rejected" && index === 0) {
-                    // Spoonacular API failed due to an API limit
-                    spoonacularError = String(result.reason).includes("402") || String(result.reason).includes("429");
+                } else if (result.status === "rejected") {
+                    const errorMsg = String(result.reason);
+                    console.log(`Error in API ${index}:`, errorMsg);
+
+                    if (!apiLimitReached && errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
+                        spoonacularError = true;
+                    }
                 }
             });
 
@@ -441,13 +454,14 @@ const UserInput = () => {
                 setApiLimitReached(true);
             }
 
-            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes, ...cocktailDBRecipes];
+            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes];
 
-            console.log("Recipes Found:", combinedRecipes.length, combinedRecipes);
+            //console.log("Recipes Found:", combinedRecipes.length, combinedRecipes);
 
-            //Update recipes BEFORE checking for errors
+            //Updates the recipe before checking fors error
             setAllRecipes(combinedRecipes);
             setCurrentPage(1);
+            
         } catch (error) {
             console.error("Error during quick search:", error);
             setErrorMessage("An unexpected error occurred.");
@@ -489,8 +503,7 @@ const UserInput = () => {
             });
         }
     }
-
-
+    
     const indexOfLastRecipe = currentPage * recipesPerPage
     const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage
     const currentRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe)
@@ -671,8 +684,7 @@ const UserInput = () => {
                             <h3 className="text-xl font-semibold text-center">Found Recipes ({allRecipes.length})</h3>
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {currentRecipes.map((recipe) => (
-                                    <RecipeCard key={recipe.id || recipe.idMeal} recipe={recipe}
-                                                onClick={() => clickHandler(recipe)}/>
+                                    <RecipeCard key={recipe.id || recipe.idMeal || recipe.idDrink} recipe={recipe} onClick={() => clickHandler(recipe)} />
                                 ))}
                             </div>
                             <Pagination
@@ -775,6 +787,7 @@ const RecipeCard = ({ recipe, onClick }) => {
 
 
 const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
+    
     const pageNumbers = []
 
     for (let i = 1; i <= Math.ceil(totalRecipes / recipesPerPage); i++) {

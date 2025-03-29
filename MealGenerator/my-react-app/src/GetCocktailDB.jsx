@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react";
 import axios from "axios";
-
-const BASE_URL = "https://www.thecocktaildb.com/api/json/v1/1";
+const apiKey = import.meta.env.VITE_COCKTAILDB_KEY;
+const BASE_URL = `https://www.thecocktaildb.com/api/json/v2/${apiKey}`;
 
 export const useTheCocktailDB = () => {
     const [CocktailDBDrinks, setCocktailDBDrinks] = useState([]);
@@ -39,13 +39,15 @@ export const useTheCocktailDB = () => {
             const allDrinks = filterResponse.data.drinks;
             const randomDrinks = allDrinks
                 .sort(() => 0.5 - Math.random()) // Shuffle array
-                .slice(0, 10); // Pick first 5
+                .slice(0, 15); // Pick first 15
 
             const drinkIds = randomDrinks.map(d => d.idDrink);
+            
             const detailsResponses = await Promise.all(
                 drinkIds.map(id => axios.get(`${BASE_URL}/lookup.php?i=${id}`))
             );
 
+            console.log("CockTail" + filterResponse)
             const drinksWithDetails = detailsResponses.map(resp => resp.data.drinks[0]);
 
             cache.current[key] = drinksWithDetails;
