@@ -18,7 +18,7 @@ export const useTheMealDB = () => {
         if (cache.current[key]) {
             setMealDBRecipes(cache.current[key])
             setLoading(false)
-            console.log("Using cached MealDB recipes for:", key)
+            //console.log("Using cached MealDB recipes for:", key)
             return
         }
 
@@ -46,8 +46,8 @@ export const useTheMealDB = () => {
             
             cache.current[key] = results
             setMealDBRecipes(results)
-            console.log("MealDB recipes", results)
-            console.log("MealDB recipes found:", results.length)
+           // console.log("MealDB recipes", results)
+            //console.log("MealDB recipes found:", results.length)
 
         } catch (error) {
             const errorMessage =

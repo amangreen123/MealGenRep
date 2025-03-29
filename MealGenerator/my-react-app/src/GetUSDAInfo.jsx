@@ -2,57 +2,78 @@ import axios from "axios"
 
 const USDA_API_KEY = import.meta.env.VITE_USDA_KEY;
 const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1"
-
-// Cache object to store USDA responses
 const cache = new Map()
 
-export const getUSDAInfo = async (ingredient) => {
-    // Check cache first
-    if (cache.has(ingredient)) {
-        return cache.get(ingredient)
+export const getUSDAInfo = async (ingredient, userServingSize = null, userServingUnit = null) => {
+    const normalizedIngredient = ingredient.toLowerCase().trim();
+    const cacheKey = userServingSize ? `${normalizedIngredient}-${userServingSize}${userServingUnit || ''}` : normalizedIngredient;
+
+    if (cache.has(cacheKey)) {
+        return cache.get(cacheKey);
     }
 
     try {
-        // Search for the ingredient
         const searchResponse = await axios.get(`${USDA_API_URL}/foods/search`, {
             params: {
                 api_key: USDA_API_KEY,
-                query: ingredient,
+                query: normalizedIngredient,
                 dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)",
-                pageSize: 1, // Get only the most relevant result
+                pageSize: 5,
             },
-        })
+        });
 
         if (!searchResponse.data.foods || searchResponse.data.foods.length === 0) {
-            console.log(`No USDA data found for: ${ingredient}`)
-            return null
+            console.warn(`No USDA data found for: ${ingredient}`);
+            return null;
         }
 
-        const food = searchResponse.data.foods[0]
+        const food = searchResponse.data.foods[0];
+        const extractNutrient = (nutrientNumber) =>
+            food.foodNutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value || null;
 
-        //console.log(`✅ USDA Data for ${ingredient}:`, food);
+        // Get default serving info and convert to grams
+        const defaultServingSize = food.servingSize || 100;
+        const defaultServingUnit = (food.servingSizeUnit || "g").toLowerCase();
+        let defaultServingSizeInGrams = defaultServingUnit === 'g'
+            ? defaultServingSize
+            : convertToGrams(`${defaultServingSize} ${defaultServingUnit}`);
 
-        // Extract relevant nutritional information
-        const extractNutrient = (nutrientNumber) => food.foodNutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value || 0;
-        
+        // Handle user-provided serving info
+        let targetServingSizeInGrams = defaultServingSizeInGrams;
+        if (userServingSize !== null) {
+            targetServingSizeInGrams = convertToGrams(
+                userServingUnit ? `${userServingSize} ${userServingUnit}` : userServingSize.toString()
+            );
+        }
+
+        const scale = targetServingSizeInGrams / defaultServingSizeInGrams;
+
         const nutrients = {
-            calories: extractNutrient("208"), // Energy (kcal)
-            protein: extractNutrient("203"), // Protein
-            fat: extractNutrient("204"), // Total lipid (fat)
-            carbs: extractNutrient("205"), // Carbohydrate, by difference
-            servingSize: 100,
-            servingUnit: "g",
+            fdcId: food.fdcId,
+            description: food.description,
+            foodCategory: food.foodCategory,
+            calories: extractNutrient("208") * scale,
+            protein: extractNutrient("203") * scale,
+            fat: extractNutrient("204") * scale,
+            carbs: extractNutrient("205") * scale,
+            servingSize: targetServingSizeInGrams,
+            servingUnit: "g", // Always use grams after conversion
         };
 
-        // Cache the result
-        cache.set(ingredient, nutrients)
+        // Validate nutrients
+        Object.entries(nutrients).forEach(([key, value]) => {
+            if (value === null && key !== "servingSize" && key !== "servingUnit") {
+                console.warn(`Missing nutrient data for ${key} in ${ingredient}.`);
+            }
+        });
 
-        return nutrients
+        cache.set(cacheKey, nutrients);
+        return nutrients;
     } catch (error) {
-        console.error(`Error fetching USDA data for ${ingredient}:`, error)
-        return null
+        console.error(`Error fetching USDA data for ${ingredient}:`, error);
+        return null;
     }
-}
+};
 
 
 

@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
-
 import RecipeNavigator from "@/RecipeNavigator.jsx";
+import {convertToGrams} from "@/nutrition.js"
 
 const MealDBRecipeDetails = () => {
 
@@ -32,6 +33,8 @@ const MealDBRecipeDetails = () => {
     const {state} = useLocation()
     const previousPath = state?.previousPath || '/'
     const userIngredients = state?.userIngredients || [];
+    
+    
 
     const handleBackClick = () => {
         navigate(previousPath)
@@ -48,25 +51,7 @@ const MealDBRecipeDetails = () => {
         }
         return ingredients
     }
-
-    const convertToGrams = (measure) => {
-        const unitConversions = {
-            "lb": 453.592, // 1 lb = 453.592g
-            "tsp": 4.2, // 1 tsp = ~4.2g (varies per ingredient)
-            "tbs": 14.3, // 1 tbsp = ~14.3g
-            "cup": 240, // 1 cup = ~240g (varies by ingredient)
-            "pinch": 0.36, // 1 pinch = ~0.36g
-        };
-
-        // Extract number and unit from string (e.g., "1/2 lb" → 0.5, "lb")
-        const match = measure.match(/([\d\/.]+)\s*(\w+)/);
-        if (!match) return parseFloat(measure) || 100; // Default to 100g if unknown
-
-        let [_, num, unit] = match;
-        num = eval(num); // Convert fraction to number (e.g., "1/2" → 0.5)
-
-        return unitConversions[unit] ? num * unitConversions[unit] : num; // Convert if known unit
-    };
+    
 
     //Compares the user ingredients with the recipe ingredients
     const compareIngredients = (recipeIngredients, userIngredients) => {
@@ -87,71 +72,86 @@ const MealDBRecipeDetails = () => {
 
         return { hasIngredients, missingIngredients };
     };
-    
+
 
     useEffect(() => {
+        // Inside the fetchRecipeData function:
         const fetchRecipeData = async () => {
             if (!id) {
-                setError("Invalid recipe ID.")
-                setLoading(false)
-                return
+                setError("Invalid recipe ID.");
+                setLoading(false);
+                return;
             }
 
             try {
-                setLoading(true)
-                const data = await GetMealDBRecipeDetails(id)
+                setLoading(true);
+                const data = await GetMealDBRecipeDetails(id);
 
                 if (data?.meals?.[0]) {
-                    const recipeData = data.meals[0]
-                    setRecipeDetails(recipeData)
+                    const recipeData = data.meals[0];
+                    setRecipeDetails(recipeData);
+                    const ingredients = getIngredients(recipeData);
+                    const macrosData = {};
 
-                    const ingredients = getIngredients(recipeData)
-
-                    const macrosData = {}
-                    let totalCals = 0,
-                        totalProtein = 0,
-                        totalFat = 0,
-                        totalCarbs = 0
+                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
 
                     for (const item of ingredients) {
+                        try {
+                            const macroData = await getUSDAInfo(item.ingredient);
 
-                        const macroData = await getUSDAInfo(item.ingredient)
+                            if (macroData) {
+                                macrosData[item.ingredient] = macroData;
+                                const quantityInGrams = convertToGrams(item.measure);
+                                const standardServingInGrams = macroData.servingSize;
 
-                        if (macroData) {
-                            macrosData[item.ingredient] = macroData
-                            
-                            const quantityInGrams = convertToGrams(item.measure)
-                            const servingSize = macroData.servingSize > 0 ? macroData.servingSize : 100
-                            const servingRatio = quantityInGrams / servingSize;
-                            //totalCals += macroData.calories || 0
-                            
-                            totalProtein += (macroData.protein || 0) * servingRatio;
-                            totalFat += (macroData.fat || 0) * servingRatio;
-                            totalCarbs += (macroData.carbs || 0) * servingRatio;
+                                // Validate serving ratio
+                                let servingRatio = quantityInGrams / standardServingInGrams;
+                                if (servingRatio > 100 || servingRatio < 0.01) {
+                                    console.warn(`Unusual serving ratio for ${item.ingredient}: ${servingRatio}`);
+                                    servingRatio = 1; // Fallback to 1:1 ratio
+                                }
+
+                                // Accumulate macros
+                                totalProtein += (macroData.protein || 0) * servingRatio;
+                                totalFat += (macroData.fat || 0) * servingRatio;
+                                totalCarbs += (macroData.carbs || 0) * servingRatio;
+
+                                console.log(`Nutrition for ${item.ingredient}:`, {
+                                    measure: item.measure,
+                                    convertedGrams: quantityInGrams,
+                                    usdaServing: standardServingInGrams,
+                                    ratio: servingRatio.toFixed(2),
+                                    protein: (macroData.protein * servingRatio).toFixed(1),
+                                    fat: (macroData.fat * servingRatio).toFixed(1),
+                                    carbs: (macroData.carbs * servingRatio).toFixed(1)
+                                });
+                            } else {
+                                console.warn(`Missing USDA data for: ${item.ingredient}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error processing ${item.ingredient}:`, error);
                         }
                     }
 
-                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9)
-                    
-                    setMacros(macrosData)
+                    // Calculate calories from macros if missing
+                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
 
+                    setMacros(macrosData);
                     setTotalNutrition({
                         calories: Math.round(calculatedCals),
-                        //calculatedCalories: Math.round(calculatedCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),
-                    })
+                    });
                 } else {
-                    setError("Recipe details not found.")
+                    setError("Recipe details not found.");
                 }
             } catch (error) {
-                setError(error.message || "An error occurred while fetching recipe details")
+                setError(error.message || "Error fetching recipe details");
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
-
         fetchRecipeData()
     }, [id])
 
@@ -300,20 +300,21 @@ const MealDBRecipeDetails = () => {
                                                         </div>
                                                         {macros[item.ingredient] ? (() => {
                                                             const macroData = macros[item.ingredient];
-                                                            const quantity = parseFloat(item.measure) || 100;
-                                                            const servingRatio = quantity / macroData.servingSize
+                                                            // Use converted grams value instead of parseFloat(item.measure)
+                                                            const quantityInGrams = convertToGrams(item.measure);
+                                                            const servingSize = macroData.servingSize || 100;
+                                                            const servingRatio = quantityInGrams / servingSize;
+
                                                             return (
-                                                                <div
-                                                                    className="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                                                                <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
                                                                     <span>Calories: {Math.round(macroData.calories * servingRatio)} kcal</span>
-                                                                    <span>Protein: {Math.round(macroData.protein * servingRatio)}g</span>
-                                                                    <span>Fat: {Math.round(macroData.fat * servingRatio)}g</span>
-                                                                    <span>Carbs: {Math.round(macroData.carbs * servingRatio)}g</span>
+                                                                    <span>Protein: {(macroData.protein * servingRatio).toFixed(1)}g</span>
+                                                                    <span>Fat: {(macroData.fat * servingRatio).toFixed(1)}g</span>
+                                                                    <span>Carbs: {(macroData.carbs * servingRatio).toFixed(1)}g</span>
                                                                 </div>
                                                             );
-                                                        }) () : (
-                                                            <div className="text-sm text-gray-400">Loading nutritional
-                                                                info...</div>
+                                                        })() : (
+                                                            <div className="text-sm text-gray-400">Loading nutritional info...</div>
                                                         )}
                                                     </div>
                                                 ))}

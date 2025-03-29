@@ -47,7 +47,7 @@ export const useTheCocktailDB = () => {
                 drinkIds.map(id => axios.get(`${BASE_URL}/lookup.php?i=${id}`))
             );
 
-            console.log("CockTail" + filterResponse)
+            //console.log("CockTail" + filterResponse)
             const drinksWithDetails = detailsResponses.map(resp => resp.data.drinks[0]);
 
             cache.current[key] = drinksWithDetails;

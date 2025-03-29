@@ -16,7 +16,7 @@ const useFetchMeals = () => {
         if (cache.current[key]) {
             setRecipes(cache.current[key])
             setLoading(false)
-            console.log("Using cached recipes")
+           //console.log("Using cached recipes")
             return
         }
 
@@ -67,8 +67,8 @@ const useFetchMeals = () => {
             cache.current[key] = results
             setRecipes(results)
             
-            console.log("Spooncular recipes:", results.length)
-            console.log("Spooncular Results", results )
+            //console.log("Spooncular recipes:", results.length)
+           // console.log("Spooncular Results", results )
 
         } catch (error) {
             if (error.response?.status === 402) {
