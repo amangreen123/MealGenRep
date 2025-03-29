@@ -206,45 +206,7 @@ const UserInput = () => {
 
         if (uncachedRecipes === 0) return;
 
-        if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
-            try {
-                const dishNames = uncachedRecipes.map(r => r.strMeal || r.strDrink || r.title);
-                const batchResult = await batchGaladrielResponse(dishNames, "summary");
-                const summaries = batchResult.split('/n');
-
-                const summaryMap = {};
-                uncachedRecipes.forEach((recipe, index) => {
-
-                    if (index > summaries.length) {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
-                        summaryMap[dishName] = summaries[index];
-                        cachedSummaries[dishName] = summaries[index];
-                    }
-                });
-
-                setAllRecipes(prevRecipes => {
-                    return prevRecipes.map(recipe => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
-                        if (summaryMap[dishName]) {
-                            return {...recipe, summary: summaryMap[dishName]};
-                        }
-
-                        return recipe;
-                    });
-                });
-
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
-
-            } catch {
-                console.error("Batch summary failed:", error);
-                await generateSummariesIndividually(recipesToProcess); // Fallback
-            }
-        } else {
-            await generateSummariesIndividually(recipesToProcess);
-        }
-
         const generateSummariesIndividually = async (recipes) => {
-            const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
             const updates = {}
 
             for (const recipe of recipes) {
@@ -280,6 +242,45 @@ const UserInput = () => {
                 localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
             }
         };
+
+        if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
+            try {
+                const dishNames = uncachedRecipes.map(r => r.strMeal || r.strDrink || r.title);
+                const batchResult = await batchGaladrielResponse(dishNames, "summary");
+                const summaries = batchResult.split('/n');
+
+                const summaryMap = {};
+                uncachedRecipes.forEach((recipe, index) => {
+
+                    if (index < summaries.length) {
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                        summaryMap[dishName] = summaries[index];
+                        cachedSummaries[dishName] = summaries[index];
+                    }
+                });
+
+                setAllRecipes(prevRecipes => {
+                    return prevRecipes.map(recipe => {
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                        if (summaryMap[dishName]) {
+                            return {...recipe, summary: summaryMap[dishName]};
+                        }
+
+                        return recipe;
+                    });
+                });
+
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+
+            } catch {
+                console.error("Batch summary failed:", error);
+                await generateSummariesIndividually(uncachedRecipes); // Fallback
+            }
+        } else {
+            await generateSummariesIndividually(uncachedRecipes);
+        }
+
+       
 
         const handleInputChange = ({target: {value}}) => {
             setInputString(value)
