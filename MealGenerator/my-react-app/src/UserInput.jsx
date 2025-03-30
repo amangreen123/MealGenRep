@@ -30,7 +30,7 @@ import {
     GiCupcake
 } from "react-icons/gi"
 
-import MealForgerLogo from "./Images/MealForger_Logo.png"
+import MealForgerLogo from "./Images/Meal_Forger.png"
 import {BiDrink} from "react-icons/bi";
 
 const categoryIngredients = {
