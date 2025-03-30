@@ -1,8 +1,3 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -17,11 +12,10 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseRouting();
 app.UseHttpsRedirection();
+app.UseRouting();  // Move UseRouting after UseHttpsRedirection
 app.UseAuthorization();
 
 app.MapControllers();
-
 
 app.Run();
