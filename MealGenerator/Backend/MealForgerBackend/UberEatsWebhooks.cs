@@ -10,28 +10,36 @@ namespace MealForger.Controllers
         [HttpPost("ubereats")]
         public async Task<IActionResult> UberEatsWebhook([FromBody] UberEatsEvent request)
         {
-            var storeId = request.User;
+            // Extract the user information from the request.
+            var userId = request.Data?.UserId;
+            var email = request.Data?.Email;
 
-            if (storeId != null)
+            if (!string.IsNullOrEmpty(userId))
             {
-                await ProcessOrder(storeId, request);
+                // Process the request here (e.g., logging, saving data, etc.)
+                await ProcessOrder(userId, email, request.EventType);
             }
 
             return Ok(new { message = "Webhook processed successfully!" });
         }
         
-        private Task ProcessOrder(string storeId, UberEatsEvent request)
+        private Task ProcessOrder(string userId, string email, string eventType)
         {
-            // Implement order processing logic here
+            // Implement order processing logic here (e.g., save to database or other logic)
             return Task.CompletedTask;
         }
 
+        // This class will be used to deserialize the incoming JSON body.
         public class UberEatsEvent
         {
-            public string User { get; set; }
             public string EventType { get; set; }
-            
-            public string OrderId { get; set; }
+            public EventData Data { get; set; }
+        }
+
+        public class EventData
+        {
+            public string UserId { get; set; }
+            public string Email { get; set; }
         }
     }
 }
