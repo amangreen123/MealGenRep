@@ -11,7 +11,7 @@ import {AI_CONFIG} from "@/ai.js";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
-import useFetchMeals from "./getMeals.jsx"
+import useFetchMeals from "./GetMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx";
 
