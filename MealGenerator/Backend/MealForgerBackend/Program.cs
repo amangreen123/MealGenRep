@@ -11,13 +11,17 @@ builder.Services.AddControllers();
 // Build the app
 var app = builder.Build();
 
-// Use routing and authorization middleware.
-app.UseRouting(); // Ensures the app can route HTTP requests
-app.UseHttpsRedirection();
-app.UseAuthorization(); // Ensure authorization middleware is included if you're using any protected routes
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
-// Add the endpoints for controllers to be mapped correctly
+app.UseRouting();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+
 app.MapControllers();
 
-// Run the app
+
 app.Run();
