@@ -121,56 +121,7 @@ const stripHtml = (html) => {
 
 const debugCache = () => {
     const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
-    //console.log("Current cached summaries:", cachedSummaries);
     return Object.keys(cachedSummaries).length;
-};
-
-const RecipeCard = ({recipe, onClick}) => {
-    const [summary, setSummary] = useState(recipe.summary || "");
-
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Card
-                    className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
-                    <CardContent className="p-4">
-                        <img
-                            src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
-                            alt={recipe.title || recipe.strMeal || recipe.strDrink}
-                            className="w-full h-32 object-cover rounded-md mb-2"
-                        />
-                        <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
-                            {recipe.title || recipe.strMeal || recipe.strDrink}
-                        </h4>
-                        {recipe.isDrink && recipe.strAlcoholic === "Alcoholic" && (
-                            <BiDrink className="text-blue-400 ml-2"/>
-                        )}
-                    </CardContent>
-                </Card>
-            </DialogTrigger>
-
-            <DialogContent className="bg-gray-800 text-white">
-                <DialogTitle className="font-medium text-gray-300 text-lg">
-                    {recipe.title || recipe.strMeal || recipe.strDrink}
-                </DialogTitle>
-                <DialogDescription asChild>
-                    <div className="text-white font-bold">
-                        <img
-                            src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
-                            alt={recipe.title || recipe.strMeal || recipe.strDrink}
-                            className="w-full h-48 object-cover rounded-md mb-4"
-                        />
-                        <p className="mb-4">
-                            {stripHtml(summary) || "No summary available."}
-                        </p>
-                        <Button onClick={onClick} className="w-full font-bold">
-                            View Full Recipe
-                        </Button>
-                    </div>
-                </DialogDescription>
-            </DialogContent>
-        </Dialog>
-    );
 };
 
 const Pagination = ({recipesPerPage, totalRecipes, paginate, currentPage}) => {
@@ -220,6 +171,7 @@ const Pagination = ({recipesPerPage, totalRecipes, paginate, currentPage}) => {
 };
 
 const UserInput = () => {
+
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
@@ -235,6 +187,8 @@ const UserInput = () => {
     const navigate = useNavigate()
     const [recipeType, setRecipeType] = useState("all")
     const [showInput, setShowInput] = useState(true)
+    const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState(null)
 
     useEffect(() => {
         setApiLimitReached(false)
@@ -278,7 +232,6 @@ const UserInput = () => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-
     const {currentRecipes, indexOfFirstRecipe, indexOfLastRecipe} = useMemo(() => {
         const indexOfLastRecipe = currentPage * recipesPerPage;
         const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
@@ -311,9 +264,7 @@ const UserInput = () => {
                         updates[dishName] = cachedSummaries[dishName];
                     } else {
                         try {
-                           // console.log(`Generating summary for: ${dishName}`);
                             const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary");
-                          //  console.log(`Summary received: ${summary}`);
                             updates[dishName] = summary;
                             cachedSummaries[dishName] = summary;
                         } catch (error) {
@@ -377,7 +328,6 @@ const UserInput = () => {
         if (allRecipes.length > 0) {
             const recipesNeedingSummaries = allRecipes.filter(recipe => !recipe.summary);
             if (recipesNeedingSummaries.length > 0) {
-               // console.log(`${recipesNeedingSummaries.length} recipes need summaries`);
                 generateSummaries(recipesNeedingSummaries);
             }
         }
@@ -478,42 +428,45 @@ const UserInput = () => {
                 ];
 
                 const results = await Promise.allSettled(apiCalls);
-                //console.log(`Cache has ${debugCache()} entries`);
-
 
                 results.forEach((result, index) => {
                     if (result.status === "rejected") {
                         const errorMsg = String(result.reason);
-                       // console.log(`Error in API ${index}:`, errorMsg);
-
                         if (errorMsg.includes("402") || errorMsg.includes("429")) {
                             setApiLimitReached(true);
                         }
                     }
                 });
             } catch (error) {
-              //  console.error("Error during search:", error);
+                console.error("Error during search:", error);
             } finally {
                 setIsSearching(false);
             }
         }
     };
 
-    const handleQuickSearch = async (ingredient) => {
+    const handleQuickSearch = (category) => {
+        setSelectedCategory(category)
+        setCategoryDialogOpen(true)
+    }
+
+    const handleCategorySearch = async (specificIngredient) => {
+        setCategoryDialogOpen(false);
         setIsSearching(true);
+
         setApiLimitReached(false);
         setErrorMessage("");
 
-        let searchQuery = ingredient;
+        let searchQuery = specificIngredient || selectedCategory;
 
-        if (categoryIngredients[ingredient]) {
+        if (!specificIngredient && categoryIngredients[selectedCategory]) {
             const chosenFood = Math.random() < 0.5;
-            if (chosenFood && categoryIngredients[ingredient].mealDB.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[ingredient].mealDB.length);
-                searchQuery = categoryIngredients[ingredient].mealDB[randomIndex];
-            } else if (categoryIngredients[ingredient].spoonacular.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[ingredient].spoonacular.length);
-                searchQuery = categoryIngredients[ingredient].spoonacular[randomIndex];
+            if (chosenFood && categoryIngredients[selectedCategory].mealDB.length > 0) {
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length);
+                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex];
+            } else if (categoryIngredients[selectedCategory].spoonacular.length > 0) {
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length);
+                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex];
             }
         }
 
@@ -546,9 +499,7 @@ const UserInput = () => {
                     }
                 } else if (result.status === "rejected") {
                     const errorMsg = String(result.reason);
-                    //console.log(`Error in API ${index}:`, errorMsg);
-
-                    if (!apiLimitReached && errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
+                    if (!apiLimitReached && (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota"))) {
                         spoonacularError = true;
                     }
                 }
@@ -569,8 +520,69 @@ const UserInput = () => {
             setIsSearching(false);
         }
     };
-    
-    
+
+    const RecipeCard = ({ recipe, onClick }) => (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
+                    <CardContent className="p-4">
+                        <img
+                            src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                            alt={recipe.title || recipe.strMeal || recipe.strDrink}
+                            className="w-full h-32 object-cover rounded-md mb-2"
+                        />
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
+                                {recipe.title || recipe.strMeal || recipe.strDrink}
+                            </h4>
+                            {recipe.isDrink && (
+                                <div className="flex items-center">
+                                    <BiDrink className="text-blue-400 h-5 w-5" />
+                                    {recipe.strAlcoholic === "Non alcoholic" || recipe.strAlcoholic === "Non Alcoholic" ? (
+                                        <span className="text-xs text-green-400 ml-1">Non-Alc</span>
+                                    ) : null}
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </DialogTrigger>
+
+            <DialogContent className="bg-gray-800 text-white">
+                <DialogTitle className="font-medium text-gray-300 text-lg flex items-center">
+                    {recipe.title || recipe.strMeal || recipe.strDrink}
+                    {recipe.isDrink && (
+                        <div className="flex items-center ml-2">
+                            <BiDrink className="text-blue-400 h-5 w-5" />
+                            {recipe.strAlcoholic === "Non alcoholic" || recipe.strAlcoholic === "Non Alcoholic" ? (
+                                <span className="text-xs text-green-400 ml-1">Non-Alcoholic</span>
+                            ) : null}
+                        </div>
+                    )}
+                </DialogTitle>
+                <DialogDescription asChild>
+                    <div className="text-white font-bold">
+                        <div className="space-y-4">
+                            <div className="relative w-full pb-[56.25%] overflow-hidden rounded-md">
+                                <img
+                                    src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
+                                    alt={recipe.title || recipe.strMeal || recipe.strDrink}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                />
+                            </div>
+                            <p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p>
+                            <Button onClick={onClick} className="w-full font-bold">
+                                View Full Recipe
+                            </Button>
+                        </div>
+                    </div>
+                </DialogDescription>
+            </DialogContent>
+        </Dialog>
+        
+        
+        
+    )
 
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname;
@@ -636,111 +648,140 @@ const UserInput = () => {
                             </AlertDescription>
                         </Alert>
                     )}
+
+                    {/* Reorganized Input Section */}
                     <Card className="bg-gray-800/50 border-gray-700">
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center">Find Recipes</CardTitle>
+                            <CardTitle className="text-2xl text-center">Find Recipes By Category</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                {popularIngredients.map((item) => (
-                                    <Button
-                                        key={item.name}
-                                        variant="outline"
-                                        onClick={() => handleQuickSearch(item.name)}
-                                        className="group flex flex-col items-center justify-center p-4 h-32 w-full transition-all duration-200 hover:bg-gray-700/50"
-                                        disabled={isSearching}
-                                    >
-                                        <item.icon
-                                            className={`category-icon w-20 h-16 mb-3 transition-colors ${item.color}`}/>
-                                        <span
-                                            className="text-lg font-medium text-center group-hover:text-white">{item.name}</span>
-                                    </Button>
-                                ))}
+                            {/* Quick Search Section */}
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    {popularIngredients.map((item) => (
+                                        <Button
+                                            key={item.name}
+                                            variant="outline"
+                                            onClick={() => handleQuickSearch(item.name)}
+                                            className="group flex flex-col items-center justify-center p-3 h-28 w-full transition-all duration-200 hover:bg-gray-700/50"
+                                            disabled={isSearching}
+                                        >
+                                            <item.icon
+                                                className={`category-icon w-16 h-14 mb-2 transition-colors ${item.color}`}/>
+                                            <span className="text-sm font-medium text-center group-hover:text-white">
+                                                {item.name}
+                                            </span>
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
+
+                            {/* Divider */}
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
                                     <span className="w-full border-t border-gray-700"/>
                                 </div>
-                                <div className="relative flex justify-center text-base uppercase">
-                                    <span className="px-4 py-2 text-gray-200 font-bold bg-gray-800">
+                                <div className="relative flex justify-center text-sm uppercase">
+                                    <span className="px-3 py-1 text-gray-400 bg-gray-800 rounded-md">
                                         or search by ingredients
                                     </span>
                                 </div>
                             </div>
 
+                            {/* Ingredient Input Section */}
                             <div className="space-y-4">
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Enter ingredients(comma-separated): "
-                                        value={inputString}
-                                        onChange={handleInputChange}
-                                        className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
-                                    />
-
-                                    <Select value={selectedDiet} onValueChange={setSelectedDiet}>
-                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
-                                            <SelectValue placeholder="Select Diet (Optional)"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={null}>No Specific Diet</SelectItem>
-                                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                                            <SelectItem value="vegan">Vegan</SelectItem>
-                                            <SelectItem value="gluten-free">Gluten Free</SelectItem>
-                                            <SelectItem value="ketogenic">Ketogenic</SelectItem>
-                                            <SelectItem value="paleo">Paleo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={recipeType} onValueChange={setRecipeType}>
-                                        <SelectTrigger className="w-full bg-gray-900 border-gray-700 text-white">
-                                            <SelectValue placeholder="Recipe Type"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Recipes</SelectItem>
-                                            <SelectItem value="meals">Meals Only</SelectItem>
-                                            <SelectItem value="drinks">Drinks Only</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button
-                                        onClick={handleAddIngredient}
-                                        className="gradient-button text-white font-bold py-2 px-4 rounded"
-                                    >
-                                        <PlusCircle className="w-4 h-4 mr-2"/>
-                                        Add
-                                    </Button>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {ingredients.map((ingredient) => (
-                                        <div
-                                            key={ingredient}
-                                            className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center"
+                                <div className="space-y-3">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <Input
+                                            placeholder="Enter ingredients (comma-separated)"
+                                            value={inputString}
+                                            onChange={handleInputChange}
+                                            className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 flex-grow"
+                                        />
+                                        <Button
+                                            onClick={handleAddIngredient}
+                                            className="gradient-button text-white font-bold py-2 px-4 rounded sm:w-auto"
                                         >
-                                            <Check className="h-4 w-4 mr-1"/>
-                                            {ingredient}
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="ml-1 h-4 w-4 p-0 hover:bg-green-800"
-                                                onClick={() => handleRemoveIngredient(ingredient)}
-                                            >
-                                                <X className="h-3 w-3"/>
-                                            </Button>
+                                            <PlusCircle className="w-4 h-4 mr-2"/>
+                                            Add Ingredients
+                                        </Button>
+                                    </div>
+
+                                    {/* Selected Ingredients */}
+                                    {ingredients.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-gray-400">Selected ingredients:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {ingredients.map((ingredient) => (
+                                                    <div
+                                                        key={ingredient}
+                                                        className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center"
+                                                    >
+                                                        <Check className="h-4 w-4 mr-1"/>
+                                                        {ingredient}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="ml-1 h-4 w-4 p-0 hover:bg-green-800"
+                                                            onClick={() => handleRemoveIngredient(ingredient)}
+                                                        >
+                                                            <X className="h-3 w-3"/>
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
 
-                                {errorMessage && (
-                                    <div className="bg-amber-900/50 border-amber-700 p-3 rounded-md">
-                                        <div className="flex items-start gap-2 text-amber-100">
-                                            <InfoIcon className="h-5 w-5 flex-shrink-0"/>
-                                            <div>{errorMessage}</div>
-                                        </div>
+                                {/* Filters Section */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-sm text-gray-400">Dietary Restrictions</label>
+                                        <Select value={selectedDiet} onValueChange={setSelectedDiet}>
+                                            <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                                                <SelectValue placeholder="No specific diet"/>
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-gray-800 border-gray-700">
+                                                <SelectItem value={null}>No Specific Diet</SelectItem>
+                                                <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                                                <SelectItem value="vegan">Vegan</SelectItem>
+                                                <SelectItem value="gluten-free">Gluten Free</SelectItem>
+                                                <SelectItem value="ketogenic">Ketogenic</SelectItem>
+                                                <SelectItem value="paleo">Paleo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-sm text-gray-400">Recipe Type</label>
+                                        <Select value={recipeType} onValueChange={setRecipeType}>
+                                            <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                                                <SelectValue placeholder="All Recipes"/>
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-gray-800 border-gray-700">
+                                                <SelectItem value="all">All Recipes</SelectItem>
+                                                <SelectItem value="meals">Meals Only</SelectItem>
+                                                <SelectItem value="drinks">Drinks Only</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                {/* Error Message */}
+                                {errorMessage && (
+                                    <Alert variant="destructive" className="bg-amber-900/50 border-amber-700">
+                                        <InfoIcon className="h-4 w-4"/>
+                                        <AlertDescription>{errorMessage}</AlertDescription>
+                                    </Alert>
                                 )}
 
+                                {/* Search Button */}
                                 <Button
                                     onClick={handleSearch}
-                                    className="gradient-button text-white font-bold py-2 px-4 rounded w-full"
+                                    className="w-full gradient-button text-white font-bold py-2 px-4 rounded"
                                     disabled={ingredients.length === 0 || isSearching}
+                                    size="lg"
                                 >
                                     {isSearching ? (
                                         <>
@@ -754,13 +795,60 @@ const UserInput = () => {
                             </div>
                         </CardContent>
                     </Card>
+                    {/* Category Selection Dialog */}
+                    <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                        <DialogContent className="bg-gray-800 text-white max-w-md">
+                            <DialogTitle className="text-center text-xl font-bold mb-2">
+                                {selectedCategory} Recipes
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-gray-300 mb-6">
+                                Would you like to search for a specific {selectedCategory.toLowerCase()} ingredient or let us choose for you?
+                            </DialogDescription>
 
+                            <div className="space-y-4">
+                                {/* Surprise Me Button */}
+                                <Button
+                                    variant="default"
+                                    onClick={() => handleCategorySearch(selectedCategory)}
+                                    className="w-full py-6 text-lg font-bold">
+                                    Surprise Me
+                                </Button>
+
+                                {/* Divider */}
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-gray-700" />
+                                    </div>
+                                    <div className="relative flex justify-center">
+                                    <span className="px-3 bg-gray-800 text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
+                                    </div>
+                                </div>
+
+                                {/* Ingredient Grid */}
+                                {selectedCategory && categoryIngredients[selectedCategory] && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[...categoryIngredients[selectedCategory].mealDB, ...categoryIngredients[selectedCategory].spoonacular].map((ingredient) => (
+                                            <Button
+                                                key={ingredient}
+                                                variant="outline"
+                                                onClick={() => handleCategorySearch(ingredient)}
+                                                className="py-4 font-medium hover:bg-gray-700/50"
+                                            >
+                                                {ingredient}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                    
+                    {/* Results Section */}
                     {error && !apiLimitReached && allRecipes.length === 0 && (
                         <p className="text-red-500 text-center">
                             Error: Unable to fetch recipes. Please try again later.
                         </p>
                     )}
-
                     {allRecipes.length > 0 && (
                         <div className="space-y-4">
                             <h3 className="text-xl font-semibold text-center">Found Recipes
