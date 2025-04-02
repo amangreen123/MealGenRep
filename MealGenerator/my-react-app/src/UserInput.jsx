@@ -27,7 +27,7 @@ import {
     GiCheeseWedge,
     GiFruitBowl,
     GiChickenLeg,
-    GiCupcake
+    GiCupcake, GiFishCooked, GiRoastChicken, GiSteak
 } from "react-icons/gi"
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
@@ -73,42 +73,49 @@ const popularIngredients = [
         name: "Dessert",
         icon: GiCupcake,
         color: "text-yellow-400 group-hover:text-yellow-500",
+        size: "w-50 h-50",
     },
     {
-        name: "Bread",
+        name: "Baked Goods",
         icon: GiSlicedBread,
         color: "text-amber-600 group-hover:text-amber-700",
+        size: "w-50 h-50",
     },
     {
         name: "Vegetables",
         icon: GiCarrot,
         color: "text-green-800 group-hover:text-green-600",
+        size: "w-50 h-50",
     },
     {
         name: "Beef",
-        icon: GiCow,
+        icon: GiSteak,
         color: "text-red-500 group-hover:text-red-600",
         size: "w-50 h-50",
     },
     {
         name: "Fish",
-        icon: GiFishingHook,
+        icon: GiFishCooked,
         color: "text-blue-400 group-hover:text-blue-500",
+        size: "w-50 h-50",
     },
     {
         name: "Cheese",
         icon: GiCheeseWedge,
         color: "text-yellow-300 group-hover:text-yellow-400",
+        size: "w-50 h-50",
     },
     {
         name: "Fruit",
         icon: GiFruitBowl,
         color: "text-pink-500 group-hover:text-pink-600",
+        size: "w-50 h-50",
     },
     {
         name: "Chicken",
-        icon: GiChickenLeg,
+        icon: GiRoastChicken,
         color: "text-orange-400 group-hover:text-orange-500",
+        size: "w-80 h-80",
     },
 ]
 
@@ -369,7 +376,7 @@ const UserInput = () => {
                 const result = await getGaladrielResponse(ingredient, "validate");
 
                 if (result.startsWith('Error:')) {
-                    validationErrors.push(ingredient);
+                    validationErrors.push(result);
                 } else {
                     if (!existingLower.includes(result.toLowerCase())) {
                         newIngredients.push(result);
@@ -655,6 +662,7 @@ const UserInput = () => {
                             <CardTitle className="text-2xl text-center">Find Recipes By Category</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            
                             {/* Quick Search Section */}
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -667,7 +675,7 @@ const UserInput = () => {
                                             disabled={isSearching}
                                         >
                                             <item.icon
-                                                className={`category-icon w-16 h-14 mb-2 transition-colors ${item.color}`}/>
+                                                className={`category-icon w-20 h-18 mb-2 transition-colors ${item.color}`}/>
                                             <span className="text-sm font-medium text-center group-hover:text-white">
                                                 {item.name}
                                             </span>
@@ -713,20 +721,10 @@ const UserInput = () => {
                                             <p className="text-sm text-gray-400">Selected ingredients:</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {ingredients.map((ingredient) => (
-                                                    <div
-                                                        key={ingredient}
-                                                        className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center"
-                                                    >
+                                                    <div key={ingredient} className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center">
                                                         <Check className="h-4 w-4 mr-1"/>
                                                         {ingredient}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="ml-1 h-4 w-4 p-0 hover:bg-green-800"
-                                                            onClick={() => handleRemoveIngredient(ingredient)}
-                                                        >
-                                                            <X className="h-3 w-3"/>
-                                                        </Button>
+                                                        <Button variant="ghost" size="sm" className="ml-1 h-4 w-4 p-0 hover:bg-green-800" onClick={() => handleRemoveIngredient(ingredient)}><X className="h-3 w-3"/></Button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -770,9 +768,9 @@ const UserInput = () => {
 
                                 {/* Error Message */}
                                 {errorMessage && (
-                                    <Alert variant="destructive" className="bg-amber-900/50 border-amber-700">
-                                        <InfoIcon className="h-4 w-4"/>
-                                        <AlertDescription>{errorMessage}</AlertDescription>
+                                    <Alert variant="destructive" className="bg-red-950 border-red-800 text-white">
+                                        <InfoIcon className="h-4 w-4 text-red-300" />
+                                        <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
                                     </Alert>
                                 )}
 
@@ -795,6 +793,7 @@ const UserInput = () => {
                             </div>
                         </CardContent>
                     </Card>
+                    
                     {/* Category Selection Dialog */}
                     <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                         <DialogContent className="bg-gray-800 text-white max-w-md">
@@ -802,7 +801,7 @@ const UserInput = () => {
                                 {selectedCategory} Recipes
                             </DialogTitle>
                             <DialogDescription className="text-center text-gray-300 mb-6">
-                                Would you like to search for a specific {selectedCategory.toLowerCase()} ingredient or let us choose for you?
+                                Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                             </DialogDescription>
 
                             <div className="space-y-4">
