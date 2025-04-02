@@ -27,6 +27,10 @@ const RecipeNavigator = ({allRecipes, currentRecipe}) => {
             return allRecipes.findIndex((r) => r.idMeal === currentRecipe.idMeal)
         }
 
+        if(currentRecipe.idDrink) {
+            return allRecipes.findIndex((r) => r.idDrink === currentRecipe.idDrink)
+        }
+
         return -1
     }
 

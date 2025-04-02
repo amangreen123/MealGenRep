@@ -76,7 +76,7 @@ const popularIngredients = [
         size: "w-50 h-50",
     },
     {
-        name: "Baked Goods",
+        name: "Bread",
         icon: GiSlicedBread,
         color: "text-amber-600 group-hover:text-amber-700",
         size: "w-50 h-50",

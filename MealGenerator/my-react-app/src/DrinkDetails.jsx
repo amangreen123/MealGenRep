@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import getDrinkDetails from "./getDrinkDetails.jsx"
 import { getUSDAInfo } from "./GetUSDAInfo.jsx"
-import RecipeNavigator from "@/RecipeNavigator.jsx";
+import RecipeNavigator from "./RecipeNavigator.jsx";
 
 const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
+   
     const drinkData = usdaNutrients[ingredient]
+    
     return (
         <div className="bg-gray-700/30 p-3 rounded-lg">
             <div className="flex items-center justify-between mb-2">
@@ -36,10 +38,16 @@ const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
 }
 
 const DrinkDetails = () => {
+    
     const { id } = useParams()
     const location = useLocation()
     const state = location.state
     const userIngredients = state?.userIngredients || [];
+    const previousPath = state?.previousPath || '/';
+    const recipe = state?.recipe;
+
+    //console.log("DrinkDetails - allRecipes:", recipe);
+    //console.log("DrinkDetails - currentRecipe:", currentDrink);
 
     // console.log("URL Params ID:", id);
     // console.log("State Data:", state);
@@ -89,7 +97,7 @@ const DrinkDetails = () => {
 
         return { hasIngredients, missingIngredients };
     };
-
+    
 
     useEffect(() => {
         const fetchDrinkData = async () => {
@@ -212,6 +220,9 @@ const DrinkDetails = () => {
                             <ChevronLeft className="w-4 h-4 mr-2" />
                             Back to Menu
                         </Button>
+                        {state?.allRecipes?.length > 1 && (
+                            <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -263,10 +274,13 @@ const DrinkDetails = () => {
             <div className="max-w-4xl mx-auto space-y-6">
                 <Button variant="outline" onClick={() => navigate(-1)} className="mb-4">
                     <ChevronLeft className="w-4 h-4 mr-2" />
-                    Back to Recipes
+                    Back to Menu
                 </Button>
                 {location.state?.allRecipes?.length > 1 && (
-                    <RecipeNavigator allRecipes={location.state?.allRecipes || []} currentRecipe={drinkDetails} />
+                    <RecipeNavigator
+                        allRecipes={location.state?.allRecipes || []}
+                        currentRecipe={drinkDetails}
+                    />
                 )}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Drink Info */}
@@ -433,8 +447,11 @@ const DrinkDetails = () => {
                         </ScrollArea>
                     </CardContent>
                 </Card>
-                {state?.allRecipes?.length > 1 && (
-                    <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={drinkDetails} />
+                {location.state?.allRecipes?.length > 1 && (
+                    <RecipeNavigator
+                        allRecipes={location.state?.allRecipes || []}
+                        currentRecipe={drinkDetails}
+                    />
                 )}
             </div>
         </div>
