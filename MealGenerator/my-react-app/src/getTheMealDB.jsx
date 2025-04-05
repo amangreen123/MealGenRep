@@ -29,7 +29,7 @@ export const useTheMealDB = () => {
             // Construct the URL properly with encoded ingredient
             const url = `${BASE_URL}filter.php?i=${encodeURIComponent(key)}`;
             
-            console.log("Fetching from MealDB:", url)
+            //console.log("Fetching from MealDB:", url)
 
             const response = await axios.get(url)
             // Handle API-specific null response

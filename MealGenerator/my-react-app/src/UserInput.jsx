@@ -19,6 +19,8 @@ import {Check,PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from 
 
 import { getGaladrielResponse,batchGaladrielResponse,clearValidationCache } from "@/getGaladrielResponse.jsx"
 
+import CookableSearch from "./CookableSearch.jsx";
+
 import {
     GiSlicedBread,
     GiCarrot,
@@ -452,6 +454,92 @@ const UserInput = () => {
         }
     };
 
+    const handleCookableSearch = async (searchOptions) => {
+        console.log("Cookable Only Flag?", searchOptions.cookableOnly);
+
+        if(ingredients.length === 0) return
+        
+        setIsSearching(true)
+        setApiLimitReached(false)
+        
+        try {
+            
+            const apiParams = {
+                includeIngredients: ingredients.join(","),
+                diet: selectedDiet || undefined,
+                addRecipeInformation: true,
+                fillIngredients: true,
+                instructionsRequired: true,
+                number: 20,
+            }
+            
+            if(searchOptions.cookableOnly){
+                apiParams.sort = "min-missing-ingredients"
+                apiParams.ranking = 2
+            } else {
+                apiParams.sort = "max-used-ingredients"
+                apiParams.ranking = 1
+            }
+
+            const apiCalls = [
+                apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
+                getMealDBRecipes(ingredients),
+                getCocktailDBDrinks(ingredients),
+            ]
+            
+            const results = await Promise.allSettled(apiCalls)
+            
+            results.forEach((results, index) => {
+                if(results.status === "rejected"){
+                    const errorMsg = String(result.reason)
+                    if(errorMsg.includes("402") || errorMsg.includes("429")){
+                        setApiLimitReached(true)
+                    }
+                }
+            })
+            
+            if(searchOptions.cookableOnly){
+                setAllRecipes((prevRecipes) => {
+                    return prevRecipes.filter((recipe) => {
+                        if(recipe.missedIngredientCount !== undefined){
+                            return recipe.missedIngredientCount === 0
+                        }
+                        
+                        if(recipe.strIngredient1){
+                            const recipeIngredients = []
+                            
+                            for(let i= 1; i <= 20; i++){
+                                const ingredient = recipe[`strIngredient${i}`]  
+                                if(ingredient && ingredient.trim() !== ""){
+                                    recipeIngredients.push(ingredient.toLowerCase())
+                                }
+                            }
+                            const userIngredients = ingredients.map((i) => i.trim().toLowerCase());
+
+                            const allMatch = recipeIngredients.every((ingredient) =>
+                                userIngredients.includes(ingredient.trim().toLowerCase())
+                            );
+
+                            if (!allMatch) {
+                                console.log("Skipping:", recipe.strDrink || recipe.strMeal || "Unknown recipe");
+                                console.log("Recipe needs:", recipeIngredients);
+                                console.log("User has:", userIngredients);
+                            }
+
+                            return allMatch;
+                        }
+                        
+                        return true
+                    })
+                })
+            }
+        } catch (error){
+            console.error("Error during search:", error)
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
         setCategoryDialogOpen(true)
@@ -773,24 +861,29 @@ const UserInput = () => {
                                         <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
                                     </Alert>
                                 )}
-
                                 {/* Search Button */}
-                                <Button
-                                    onClick={handleSearch}
-                                    className="w-full gradient-button text-white font-bold py-2 px-4 rounded"
-                                    disabled={ingredients.length === 0 || isSearching}
-                                    size="lg"
-                                >
-                                    {isSearching ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
-                                            Searching...
-                                        </>
-                                    ) : (
-                                        "Generate Recipes"
-                                    )}
-                                </Button>
+                                {/*<Button*/}
+                                {/*    onClick={handleSearch}*/}
+                                {/*    className="w-full gradient-button text-white font-bold py-2 px-4 rounded"*/}
+                                {/*    disabled={ingredients.length === 0 || isSearching}*/}
+                                {/*    size="lg"*/}
+                                {/*>*/}
+                                {/*    {isSearching ? (*/}
+                                {/*        <>*/}
+                                {/*            <Loader2 className="w-4 h-4 mr-2 animate-spin"/>*/}
+                                {/*            Searching...*/}
+                                {/*        </>*/}
+                                {/*    ) : (*/}
+                                {/*        "Generate Recipes"*/}
+                                {/*    )}*/}
+                                {/*</Button>*/}
                             </div>
+                            <CookableSearch
+                                onSearch={handleCookableSearch}
+                                ingredients={ingredients}
+                                selectedDiet={selectedDiet}
+                                isSearching={isSearching}
+                            />
                         </CardContent>
                     </Card>
                     
