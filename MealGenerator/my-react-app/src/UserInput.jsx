@@ -454,16 +454,15 @@ const UserInput = () => {
         }
     };
 
+    //Recipe to test 
+    //Olive Oil, Onion, Carrots, Fish Stock, Water, Potatoes, Bay Leaf, Cod, Salmon
     const handleCookableSearch = async (searchOptions) => {
-        console.log("Cookable Only Flag?", searchOptions.cookableOnly);
+        if (ingredients.length === 0) return;
 
-        if(ingredients.length === 0) return
-        
-        setIsSearching(true)
-        setApiLimitReached(false)
-        
+        setIsSearching(true);
+        setApiLimitReached(false);
+
         try {
-            
             const apiParams = {
                 includeIngredients: ingredients.join(","),
                 diet: selectedDiet || undefined,
@@ -471,74 +470,114 @@ const UserInput = () => {
                 fillIngredients: true,
                 instructionsRequired: true,
                 number: 20,
-            }
-            
-            if(searchOptions.cookableOnly){
-                apiParams.sort = "min-missing-ingredients"
-                apiParams.ranking = 2
+            };
+
+            if (searchOptions.cookableOnly) {
+                apiParams.sort = "min-missing-ingredients";
+                apiParams.ranking = 2;
             } else {
-                apiParams.sort = "max-used-ingredients"
-                apiParams.ranking = 1
+                apiParams.sort = "max-used-ingredients";
+                apiParams.ranking = 1;
             }
 
             const apiCalls = [
                 apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
                 getMealDBRecipes(ingredients),
                 getCocktailDBDrinks(ingredients),
-            ]
-            
-            const results = await Promise.allSettled(apiCalls)
-            
-            results.forEach((results, index) => {
-                if(results.status === "rejected"){
-                    const errorMsg = String(result.reason)
-                    if(errorMsg.includes("402") || errorMsg.includes("429")){
-                        setApiLimitReached(true)
+            ];
+
+            const results = await Promise.allSettled(apiCalls);
+
+            // Process results
+            results.forEach((result, index) => {
+                if (result.status === "rejected") {
+                    const errorMsg = String(result.reason);
+                    if (errorMsg.includes("402") || errorMsg.includes("429")) {
+                        setApiLimitReached(true);
                     }
                 }
-            })
-            
-            if(searchOptions.cookableOnly){
-                setAllRecipes((prevRecipes) => {
-                    return prevRecipes.filter((recipe) => {
-                        if(recipe.missedIngredientCount !== undefined){
-                            return recipe.missedIngredientCount === 0
-                        }
-                        
-                        if(recipe.strIngredient1){
-                            const recipeIngredients = []
-                            
-                            for(let i= 1; i <= 20; i++){
-                                const ingredient = recipe[`strIngredient${i}`]  
-                                if(ingredient && ingredient.trim() !== ""){
-                                    recipeIngredients.push(ingredient.toLowerCase())
-                                }
-                            }
-                            const userIngredients = ingredients.map((i) => i.trim().toLowerCase());
+            });
 
-                            const allMatch = recipeIngredients.every((ingredient) =>
-                                userIngredients.includes(ingredient.trim().toLowerCase())
-                            );
+            // Collect all recipes from all API sources
+            let allFetchedRecipes = [];
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled" && Array.isArray(result.value)) {
+                    allFetchedRecipes = [...allFetchedRecipes, ...result.value];
+                }
+            });
 
-                            if (!allMatch) {
-                                console.log("Skipping:", recipe.strDrink || recipe.strMeal || "Unknown recipe");
-                                console.log("Recipe needs:", recipeIngredients);
-                                console.log("User has:", userIngredients);
-                            }
+            // Filter for cookable recipes if needed
+            if (searchOptions.cookableOnly) {
+                const cookableRecipes = allFetchedRecipes.filter(recipe =>
+                    isRecipeCookable(recipe, ingredients)
+                );
 
-                            return allMatch;
-                        }
-                        
-                        return true
-                    })
-                })
+                if (cookableRecipes.length === 0) {
+                    setErrorMessage(
+                        "No recipes found that you can make with your current ingredients. Showing all related recipes instead."
+                    );
+                    setTimeout(() => setErrorMessage(""), 5000);
+                    setAllRecipes(allFetchedRecipes);
+                } else {
+                    setAllRecipes(cookableRecipes);
+                }
+            } else {
+                setAllRecipes(allFetchedRecipes);
             }
-        } catch (error){
-            console.error("Error during search:", error)
+
+        } catch (error) {
+            console.error("Error during search:", error);
+            setErrorMessage("An error occurred while searching for recipes. Please try again.");
+            setTimeout(() => setErrorMessage(""), 5000);
         } finally {
-            setIsSearching(false)
+            setIsSearching(false);
         }
-    }
+    };
+
+    const isRecipeCookable = (recipe, userIngredients) => {
+        const normalizedUserIngredients = userIngredients.map(ing =>
+            getBaseIngredient(ing).toLowerCase().trim()
+        );
+
+        // Get all non-empty recipe ingredients
+        const recipeIngredients = [];
+
+        // TheMealDB format
+        if (recipe.strIngredient1) {
+            for (let i = 1; i <= 20; i++) {
+                const ing = recipe[`strIngredient${i}`];
+                if (ing && ing.trim() !== "") {
+                    const normalized = getBaseIngredient(ing);
+                    if (normalized) recipeIngredients.push(normalized);
+                }
+            }
+        }
+        // Spoonacular format
+        else if (recipe.extendedIngredients) {
+            recipe.extendedIngredients.forEach(ing => {
+                if (ing.name) {
+                    const normalized = getBaseIngredient(ing.name);
+                    if (normalized) recipeIngredients.push(normalized);
+                }
+            });
+        }
+        // CocktailDB format
+        else if (recipe.idDrink) {
+            for (let i = 1; i <= 15; i++) {
+                const ing = recipe[`strIngredient${i}`];
+                if (ing && ing.trim() !== "") {
+                    const normalized = getBaseIngredient(ing);
+                    if (normalized) recipeIngredients.push(normalized);
+                }
+            }
+        }
+
+        // Check if all recipe ingredients exist in user's ingredients
+        return recipeIngredients.every(recipeIng =>
+            normalizedUserIngredients.some(userIng =>
+                userIng.includes(recipeIng) || recipeIng.includes(userIng)
+            ));
+    };
 
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
@@ -966,6 +1005,38 @@ const UserInput = () => {
             </div>
         </div>
     )
+
+    function getBaseIngredient(ingredient) {
+        if (!ingredient || typeof ingredient !== 'string') return '';
+
+        // Remove measurements and descriptors
+        let base = ingredient
+            .replace(/\d+\.?\d*\s*(tsp|tbsp|cup|cups|oz|g|kg|ml|l|lb|pound|pounds|packet|packets|clove|cloves|slice|slices)\b/gi, '')
+            .replace(/\([^)]*\)/g, '')
+            .replace(/\b(fresh|dried|ground|chopped|sliced|minced|grated|peeled|cubed|whole|organic|raw|cooked|boneless|skinless|lean|extra lean|low fat|fat free)\b/gi, '')
+            .trim()
+            .toLowerCase();
+
+        // Common substitutions
+        const substitutions = {
+            'tomatoes': 'tomato',
+            'potatoes': 'potato',
+            'onions': 'onion',
+            'carrots': 'carrot',
+            'peppers': 'pepper',
+            'red pepper': 'pepper',
+            'green pepper': 'pepper',
+            'chicken breasts': 'chicken',
+            'chicken breast': 'chicken',
+            'cheddar cheese': 'cheddar',
+            'heavy cream': 'cream',
+            'chicken stock': 'stock',
+            'fajita seasoning': 'seasoning',
+            // Add more as needed
+        };
+
+        return substitutions[base] || base;
+    }
 }
 
 export default UserInput
