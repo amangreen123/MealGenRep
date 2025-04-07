@@ -1,165 +1,158 @@
 "use client"
 
-import {useState, useEffect, useMemo} from "react"
-import { useNavigate} from "react-router-dom"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {AI_CONFIG} from "@/ai.js";
+import {useEffect, useMemo, useState} from "react"
+import {useNavigate} from "react-router-dom"
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
+import {Badge} from "@/components/ui/badge"
+import {AI_CONFIG} from "@/ai.js"
 
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger} from "@/components/ui/dialog"
 
 import useFetchMeals from "./GetMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
-import useTheCocktailDB from "./GetCocktailDB.jsx";
+import useTheCocktailDB from "./GetCocktailDB.jsx"
 
-import {Check,PlusCircle, Loader2, X, ChevronLeft, ChevronRight, InfoIcon} from "lucide-react"
+import {Check, ChevronLeft, ChevronRight, InfoIcon, PlusCircle, X} from "lucide-react"
 
-import { getGaladrielResponse,batchGaladrielResponse,clearValidationCache } from "@/getGaladrielResponse.jsx"
+import {batchGaladrielResponse, clearValidationCache, getGaladrielResponse} from "@/getGaladrielResponse.jsx"
 
-import CookableSearch from "./CookableSearch.jsx";
+import CookableSearch from "./CookableSearch.jsx"
 
 import {
-    GiSlicedBread,
     GiCarrot,
-    GiCow,
-    GiFishingHook,
     GiCheeseWedge,
+    GiCupcake,
+    GiFishCooked,
     GiFruitBowl,
-    GiChickenLeg,
-    GiCupcake, GiFishCooked, GiRoastChicken, GiSteak
+    GiRoastChicken,
+    GiSlicedBread,
+    GiSteak,
 } from "react-icons/gi"
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
-import {BiDrink} from "react-icons/bi";
+import {BiDrink} from "react-icons/bi"
 
 const categoryIngredients = {
-    "Dessert": {
+    Dessert: {
         mealDB: ["Chocolate", "Honey", "Vanilla"],
-        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"]
+        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"],
     },
-    "Bread": {
+    Bread: {
         mealDB: ["Baguette", "Ciabatta", "Pita"],
-        spoonacular: ["Whole Wheat", "Rye", "Sourdough"]
+        spoonacular: ["Whole Wheat", "Rye", "Sourdough"],
     },
-    "Vegetables": {
+    Vegetables: {
         mealDB: ["Carrot", "Broccoli", "Zucchini"],
-        spoonacular: ["Spinach", "Kale", "Bell Pepper"]
+        spoonacular: ["Spinach", "Kale", "Bell Pepper"],
     },
-    "Beef": {
+    Beef: {
         mealDB: ["Ground Beef", "Sirloin", "Brisket"],
-        spoonacular: ["Short Ribs", "T-Bone", "Flank Steak"]
+        spoonacular: ["Short Ribs", "T-Bone", "Flank Steak"],
     },
-    "Fish": {
+    Fish: {
         mealDB: ["Salmon", "Tuna", "Cod"],
-        spoonacular: ["Haddock", "Mackerel", "Tilapia"]
+        spoonacular: ["Haddock", "Mackerel", "Tilapia"],
     },
-    "Cheese": {
+    Cheese: {
         mealDB: ["Cheddar", "Mozzarella", "Feta"],
-        spoonacular: ["Parmesan", "Gorgonzola", "Goat Cheese"]
+        spoonacular: ["Parmesan", "Gorgonzola", "Goat Cheese"],
     },
-    "Fruit": {
+    Fruit: {
         mealDB: ["Apple", "Banana", "Strawberry"],
-        spoonacular: ["Mango", "Peach", "Pineapple"]
+        spoonacular: ["Mango", "Peach", "Pineapple"],
     },
-    "Chicken": {
+    Chicken: {
         mealDB: ["Chicken Breast", "Chicken Thigh", "Chicken Wings"],
-        spoonacular: ["Whole Chicken", "Rotisserie Chicken", "Chicken Drumstick"]
-    }
-};
+        spoonacular: ["Whole Chicken", "Rotisserie Chicken", "Chicken Drumstick"],
+    },
+}
 
 const popularIngredients = [
     {
         name: "Dessert",
         icon: GiCupcake,
         color: "text-yellow-400 group-hover:text-yellow-500",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Bread",
         icon: GiSlicedBread,
         color: "text-amber-600 group-hover:text-amber-700",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Vegetables",
         icon: GiCarrot,
         color: "text-green-800 group-hover:text-green-600",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Beef",
         icon: GiSteak,
         color: "text-red-500 group-hover:text-red-600",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Fish",
         icon: GiFishCooked,
         color: "text-blue-400 group-hover:text-blue-500",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Cheese",
         icon: GiCheeseWedge,
         color: "text-yellow-300 group-hover:text-yellow-400",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Fruit",
         icon: GiFruitBowl,
         color: "text-pink-500 group-hover:text-pink-600",
-        size: "w-50 h-50",
+        size: "w-16 h-16", // Increased icon size
     },
     {
         name: "Chicken",
         icon: GiRoastChicken,
         color: "text-orange-400 group-hover:text-orange-500",
-        size: "w-80 h-80",
+        size: "w-16 h-16", // Increased icon size
     },
 ]
 
 const stripHtml = (html) => {
     if (!html) {
-        return "";
+        return ""
     }
-    return html.replace(/<\/?[^>]+(>|$)/g, "");
-};
+    return html.replace(/<\/?[^>]+(>|$)/g, "")
+}
 
 const debugCache = () => {
-    const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
-    return Object.keys(cachedSummaries).length;
-};
+    const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
+    return Object.keys(cachedSummaries).length
+}
 
-const Pagination = ({recipesPerPage, totalRecipes, paginate, currentPage}) => {
-    const pageNumbers = [];
-    const totalPages = Math.ceil(totalRecipes / recipesPerPage);
+const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
+    const pageNumbers = []
+    const totalPages = Math.ceil(totalRecipes / recipesPerPage)
 
     for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
+        pageNumbers.push(i)
     }
 
     return (
         <nav className="flex justify-center mt-4">
             <ul className="flex space-x-2">
                 <li>
-                    <Button
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        variant="outline"
-                        size="icon"
-                    >
-                        <ChevronLeft className="h-4 w-4"/>
+                    <Button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} variant="outline" size="icon">
+                        <ChevronLeft className="h-4 w-4" />
                     </Button>
                 </li>
                 {pageNumbers.map((number) => (
                     <li key={number}>
-                        <Button
-                            onClick={() => paginate(number)}
-                            variant={currentPage === number ? "default" : "outline"}
-                        >
+                        <Button onClick={() => paginate(number)} variant={currentPage === number ? "default" : "outline"}>
                             {number}
                         </Button>
                     </li>
@@ -171,25 +164,24 @@ const Pagination = ({recipesPerPage, totalRecipes, paginate, currentPage}) => {
                         variant="outline"
                         size="icon"
                     >
-                        <ChevronRight className="h-4 w-4"/>
+                        <ChevronRight className="h-4 w-4" />
                     </Button>
                 </li>
             </ul>
         </nav>
-    );
-};
+    )
+}
 
 const UserInput = () => {
-
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
     const [selectedDiet, setSelectedDiet] = useState(null)
     const [errorMessage, setErrorMessage] = useState("")
-    const {recipes, error, getRecipes} = useFetchMeals()
+    const { recipes, error, getRecipes } = useFetchMeals()
     const [apiLimitReached, setApiLimitReached] = useState(false)
-    const {getMealDBRecipes, MealDBRecipes, loading} = useTheMealDB()
-    const {CocktailDBDrinks, getCocktailDBDrinks} = useTheCocktailDB()
+    const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
+    const { CocktailDBDrinks, getCocktailDBDrinks } = useTheCocktailDB()
     const [allRecipes, setAllRecipes] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const recipesPerPage = 5
@@ -198,18 +190,20 @@ const UserInput = () => {
     const [showInput, setShowInput] = useState(true)
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState(null)
+    const [cookableOnly, setCookableOnly] = useState(false)
+    const [strictMode, setStrictMode] = useState(false)
+    const [focusSearch, setFocusSearch] = useState(false)
+    const [focusIngredient, setFocusIngredient] = useState("")
 
     useEffect(() => {
         setApiLimitReached(false)
     }, [])
 
     useEffect(() => {
-        if (error && (
-            error.includes("API limit") ||
-            error.includes("quota") ||
-            error.includes("402") ||
-            error.includes("429")
-        )) {
+        if (
+            error &&
+            (error.includes("API limit") || error.includes("quota") || error.includes("402") || error.includes("429"))
+        ) {
             setApiLimitReached(true)
         }
     }, [error])
@@ -221,9 +215,9 @@ const UserInput = () => {
                 ...drink,
                 isDrink: true,
                 strMealThumb: drink.strMealThumb,
-                summary: drink.summary || ""
+                summary: drink.summary || "",
             }))
-            : [];
+            : []
 
         let filteredRecipes = []
 
@@ -235,232 +229,203 @@ const UserInput = () => {
             filteredRecipes = [...recipes, ...mealDBRecipesArray]
         }
 
-        generateSummaries(filteredRecipes);
+        generateSummaries(filteredRecipes)
         setAllRecipes(filteredRecipes)
     }, [recipes, MealDBRecipes, CocktailDBDrinks, recipeType])
 
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
-    const {currentRecipes, indexOfFirstRecipe, indexOfLastRecipe} = useMemo(() => {
-        const indexOfLastRecipe = currentPage * recipesPerPage;
-        const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
-        const currentRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+    const { currentRecipes, indexOfFirstRecipe, indexOfLastRecipe } = useMemo(() => {
+        const indexOfLastRecipe = currentPage * recipesPerPage
+        const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage
+        const currentRecipes = allRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe)
 
-        return {currentRecipes, indexOfFirstRecipe, indexOfLastRecipe};
-    }, [allRecipes, currentPage, recipesPerPage]);
+        return { currentRecipes, indexOfFirstRecipe, indexOfLastRecipe }
+    }, [allRecipes, currentPage, recipesPerPage])
 
     useEffect(() => {
         if (currentRecipes.length > 0) {
-            const recipeNeedingSummaries = currentRecipes.filter(recipe => !recipe.summary);
+            const recipeNeedingSummaries = currentRecipes.filter((recipe) => !recipe.summary)
             if (recipeNeedingSummaries.length > 0) {
-                generateSummaries(currentRecipes);
+                generateSummaries(currentRecipes)
             }
         }
-    }, [currentPage, allRecipes.length]);
+    }, [currentPage, allRecipes.length])
 
     const generateSummaries = async (recipes) => {
-        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
-        const uncachedRecipes = recipes.filter(recipe => !recipe.summary);
+        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
+        const uncachedRecipes = recipes.filter((recipe) => !recipe.summary)
 
-        if (uncachedRecipes.length === 0) return;
+        if (uncachedRecipes.length === 0) return
 
         const generateSummariesIndividually = async (recipes) => {
             const updates = {}
             for (const recipe of recipes) {
                 if (!recipe.summary) {
-                    const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                    const dishName = recipe.strMeal || recipe.strDrink || recipe.title
                     if (cachedSummaries[dishName]) {
-                        updates[dishName] = cachedSummaries[dishName];
+                        updates[dishName] = cachedSummaries[dishName]
                     } else {
                         try {
-                            const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary");
-                            updates[dishName] = summary;
-                            cachedSummaries[dishName] = summary;
+                            const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary")
+                            updates[dishName] = summary
+                            cachedSummaries[dishName] = summary
                         } catch (error) {
-                            console.error(`Error generating summary for ${dishName}:`, error);
-                            updates[dishName] = "Description unavailable";
+                            console.error(`Error generating summary for ${dishName}:`, error)
+                            updates[dishName] = "Description unavailable"
                         }
                     }
                 }
             }
 
             if (Object.keys(updates).length > 0) {
-                setAllRecipes(prevRecipes => {
-                    return prevRecipes.map(recipe => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                setAllRecipes((prevRecipes) => {
+                    return prevRecipes.map((recipe) => {
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
                         if (updates[dishName]) {
-                            return {...recipe, summary: updates[dishName]};
+                            return { ...recipe, summary: updates[dishName] }
                         }
-                        return recipe;
-                    });
-                });
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+                        return recipe
+                    })
+                })
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
             }
-        };
+        }
 
         if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
             try {
-                const dishNames = uncachedRecipes.map(r => r.strMeal || r.strDrink || r.title);
-                const batchResult = await batchGaladrielResponse(dishNames, "summary");
-                const summaries = batchResult.split('\n');
+                const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title)
+                const batchResult = await batchGaladrielResponse(dishNames, "summary")
+                const summaries = batchResult.split("\n")
 
-                const summaryMap = {};
+                const summaryMap = {}
                 uncachedRecipes.forEach((recipe, index) => {
                     if (index < summaries.length) {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
-                        summaryMap[dishName] = summaries[index];
-                        cachedSummaries[dishName] = summaries[index];
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+                        summaryMap[dishName] = summaries[index]
+                        cachedSummaries[dishName] = summaries[index]
                     }
-                });
+                })
 
-                setAllRecipes(prevRecipes => {
-                    return prevRecipes.map(recipe => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                setAllRecipes((prevRecipes) => {
+                    return prevRecipes.map((recipe) => {
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
                         if (summaryMap[dishName]) {
-                            return {...recipe, summary: summaryMap[dishName]};
+                            return { ...recipe, summary: summaryMap[dishName] }
                         }
-                        return recipe;
-                    });
-                });
+                        return recipe
+                    })
+                })
 
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
             } catch (error) {
-                console.error("Batch summary failed:", error);
-                await generateSummariesIndividually(uncachedRecipes);
+                console.error("Batch summary failed:", error)
+                await generateSummariesIndividually(uncachedRecipes)
             }
         } else {
-            await generateSummariesIndividually(uncachedRecipes);
+            await generateSummariesIndividually(uncachedRecipes)
         }
-    };
+    }
 
     useEffect(() => {
         if (allRecipes.length > 0) {
-            const recipesNeedingSummaries = allRecipes.filter(recipe => !recipe.summary);
+            const recipesNeedingSummaries = allRecipes.filter((recipe) => !recipe.summary)
             if (recipesNeedingSummaries.length > 0) {
-                generateSummaries(recipesNeedingSummaries);
+                generateSummaries(recipesNeedingSummaries)
             }
         }
-    }, [allRecipes.length]);
+    }, [allRecipes.length])
 
-    const handleInputChange = ({target: {value}}) => {
+    const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
     }
 
     const handleAddIngredient = async () => {
         if (inputString.trim() === "") {
-            setErrorMessage("Please enter valid ingredients.");
-            return;
+            setErrorMessage("Please enter valid ingredients.")
+            return
         }
 
-        setIsSearching(true);
-        setErrorMessage("");
+        setIsSearching(true)
+        setErrorMessage("")
 
         try {
-            const ingredientsArray = inputString.split(',')
-                .map(item => item.trim())
-                .filter(Boolean);
+            const ingredientsArray = inputString
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
 
-            const duplicates = [];
-            const validationErrors = [];
-            const newIngredients = [];
+            const duplicates = []
+            const validationErrors = []
+            const newIngredients = []
 
-            const existingLower = ingredients.map(i => i.toLowerCase());
-            const uniqueInputs = [...new Set(ingredientsArray)];
+            const existingLower = ingredients.map((i) => i.toLowerCase())
+            const uniqueInputs = [...new Set(ingredientsArray)]
 
             for (const ingredient of uniqueInputs) {
-                const lowerIngredient = ingredient.toLowerCase();
+                const lowerIngredient = ingredient.toLowerCase()
 
                 if (existingLower.includes(lowerIngredient)) {
-                    duplicates.push(ingredient);
-                    continue;
+                    duplicates.push(ingredient)
+                    continue
                 }
 
-                const result = await getGaladrielResponse(ingredient, "validate");
+                const result = await getGaladrielResponse(ingredient, "validate")
 
-                if (result.startsWith('Error:')) {
-                    validationErrors.push(result);
+                if (result.startsWith("Error:")) {
+                    validationErrors.push(result)
                 } else {
                     if (!existingLower.includes(result.toLowerCase())) {
-                        newIngredients.push(result);
+                        newIngredients.push(result)
                     } else {
-                        duplicates.push(ingredient);
+                        duplicates.push(ingredient)
                     }
                 }
             }
 
             if (newIngredients.length > 0) {
-                setIngredients(prev => [...prev, ...newIngredients]);
+                setIngredients((prev) => [...prev, ...newIngredients])
             }
 
-            let errorParts = [];
+            const errorParts = []
             if (duplicates.length > 0) {
-                errorParts.push(`Already added: ${duplicates.join(', ')}`);
+                errorParts.push(`Already added: ${duplicates.join(", ")}`)
             }
             if (validationErrors.length > 0) {
-                errorParts.push(`Invalid: ${validationErrors.join(', ')}`);
+                errorParts.push(`Invalid: ${validationErrors.join(", ")}`)
             }
 
             if (errorParts.length > 0) {
-                setErrorMessage(errorParts.join('. '));
+                setErrorMessage(errorParts.join(". "))
             }
-
         } catch (error) {
-            setErrorMessage("Failed to validate ingredients. Please try again.");
+            setErrorMessage("Failed to validate ingredients. Please try again.")
         } finally {
-            setIsSearching(false);
-            setInputString("");
+            setIsSearching(false)
+            setInputString("")
         }
-    };
+    }
 
     const handleRemoveIngredient = (ingredientToRemove) => {
         setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
     }
 
     const handleClearValidationCache = () => {
-        clearValidationCache();
+        clearValidationCache()
         Object.keys(localStorage)
-            .filter(key => key.includes('ai-'))
-            .forEach(key => localStorage.removeItem(key));
-        alert('Validation cache has been cleared. Please try adding ingredients again.');
-    };
+            .filter((key) => key.includes("ai-"))
+            .forEach((key) => localStorage.removeItem(key))
+        alert("Validation cache has been cleared. Please try adding ingredients again.")
+    }
 
+    // Modify the handleSearch function to incorporate cookable search options
     const handleSearch = async () => {
-        if (ingredients.length > 0) {
-            setIsSearching(true);
-            setApiLimitReached(false);
+        if (ingredients.length === 0) return
 
-            try {
-                const apiCalls = [
-                    apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet),
-                    getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients),
-                ];
-
-                const results = await Promise.allSettled(apiCalls);
-
-                results.forEach((result, index) => {
-                    if (result.status === "rejected") {
-                        const errorMsg = String(result.reason);
-                        if (errorMsg.includes("402") || errorMsg.includes("429")) {
-                            setApiLimitReached(true);
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Error during search:", error);
-            } finally {
-                setIsSearching(false);
-            }
-        }
-    };
-
-    //Recipe to test 
-    //Olive Oil, Onion, Carrots, Fish Stock, Water, Potatoes, Bay Leaf, Cod, Salmon
-    const handleCookableSearch = async ({ cookableOnly, strictMode }) => {
-        if (ingredients.length === 0) return;
-
-        setIsSearching(true);
-        setApiLimitReached(false);
+        setIsSearching(true)
+        setApiLimitReached(false)
+        setFocusSearch(false)
+        setFocusIngredient("")
 
         try {
             // Common API parameters
@@ -471,12 +436,102 @@ const UserInput = () => {
                 fillIngredients: true,
                 instructionsRequired: true,
                 number: 20,
-            };
+            }
 
             // Adjust parameters based on search mode
             if (cookableOnly) {
-                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients";
-                apiParams.ranking = strictMode ? 1 : 2;
+                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients"
+                apiParams.ranking = strictMode ? 1 : 2
+            }
+
+            // Make API calls
+            const apiCalls = [
+                apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
+                getMealDBRecipes(ingredients),
+                getCocktailDBDrinks(ingredients),
+            ]
+
+            const results = await Promise.allSettled(apiCalls)
+
+            let spoonacularRecipes = []
+            let mealDBRecipes = []
+            let cocktailRecipes = []
+
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled") {
+                    if (index === 0 && !apiLimitReached) {
+                        spoonacularRecipes = result.value || []
+                    } else if (index === 1) {
+                        mealDBRecipes = result.value || []
+                    } else if (index === 2) {
+                        cocktailRecipes = result.value || []
+                    }
+                } else if (result.status === "rejected") {
+                    const errorMsg = String(result.reason)
+                    if (!apiLimitReached && (errorMsg.includes("402") || errorMsg.includes("429"))) {
+                        setApiLimitReached(true)
+                    }
+                }
+            })
+
+            // Combine all results
+            let allRecipes = [...spoonacularRecipes, ...mealDBRecipes, ...cocktailRecipes]
+
+            // Apply strict filtering if needed
+            if (cookableOnly) {
+                const filteredRecipes = strictMode
+                    ? filterExactMatches(allRecipes, ingredients)
+                    : filterCookableRecipes(allRecipes, ingredients)
+
+                if (filteredRecipes.length === 0) {
+                    setErrorMessage(
+                        strictMode
+                            ? "No recipes with EXACT ingredient matches. Try relaxing the strict mode."
+                            : "No fully cookable recipes found. Showing all matches instead.",
+                    )
+                    allRecipes = allRecipes.slice(0, 10) // Show limited results
+                } else {
+                    allRecipes = filteredRecipes
+                }
+            }
+            setAllRecipes(allRecipes)
+            setCurrentPage(1)
+        } catch (error) {
+            console.error("Search error:", error)
+            setErrorMessage("Failed to search recipes. Please try again.")
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
+    //Recipe to test
+    //Olive Oil, Onion, Carrots, Fish Stock, Water, Potatoes, Bay Leaf, Cod, Salmon
+    const handleCookableSearch = async ({ cookableOnly, strictMode, focusSearch, focusIngredient }) => {
+        if (ingredients.length === 0) return
+
+        setIsSearching(true)
+        setApiLimitReached(false)
+
+        // Set focus search state
+        setFocusSearch(focusSearch)
+        const mainIngredient = focusSearch ? ingredients[0].toLowerCase() : ""
+        setFocusIngredient(mainIngredient)
+
+        try {
+            // Common API parameters
+            const apiParams = {
+                includeIngredients: ingredients.join(","),
+                diet: selectedDiet || undefined,
+                addRecipeInformation: true,
+                fillIngredients: true,
+                instructionsRequired: true,
+                number: 20,
+            }
+
+            // Adjust parameters based on search mode
+            if (cookableOnly) {
+                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients"
+                apiParams.ranking = strictMode ? 1 : 2
             }
 
             // Make API calls
@@ -484,234 +539,280 @@ const UserInput = () => {
                 apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
                 getMealDBRecipes(ingredients),
                 getCocktailDBDrinks(ingredients),
-            ]);
+            ])
 
             // Combine all results
-            let allRecipes = [
-                ...(spoonacularResults || []),
-                ...(mealDBResults || []),
-                ...(cocktailResults || [])
-            ];
+            let allRecipes = [...(spoonacularResults || []), ...(mealDBResults || []), ...(cocktailResults || [])]
 
             // Apply strict filtering if needed
             if (cookableOnly) {
                 const filteredRecipes = strictMode
                     ? filterExactMatches(allRecipes, ingredients)
-                    : filterCookableRecipes(allRecipes, ingredients);
+                    : filterCookableRecipes(allRecipes, ingredients)
 
                 if (filteredRecipes.length === 0) {
                     setErrorMessage(
                         strictMode
                             ? "No recipes with EXACT ingredient matches. Try relaxing the strict mode."
-                            : "No fully cookable recipes found. Showing all matches instead."
-                    );
-                    allRecipes = allRecipes.slice(0, 10); // Show limited results
+                            : "No fully cookable recipes found. Showing all matches instead.",
+                    )
+                    allRecipes = allRecipes.slice(0, 10) // Show limited results
                 } else {
-                    allRecipes = filteredRecipes;
+                    allRecipes = filteredRecipes
                 }
             }
 
-            setAllRecipes(allRecipes);
-            setCurrentPage(1);
+            // Apply focus filtering if needed
+            if (focusSearch && mainIngredient) {
+                console.log("Focus searching for:", mainIngredient)
 
+                allRecipes = allRecipes.filter((recipe) => {
+                    
+                    const title = (recipe.title || recipe.strMeal || recipe.strDrink || "").toLowerCase()
+                    
+                    if (title.includes(mainIngredient)) {
+                        return true
+                    }
+
+                    const recipeIngredients = getRecipeIngredients(recipe).map((ing) => ing.toLowerCase())
+
+                    const hasExactMatch = recipeIngredients.some(
+                        (ing) =>
+                            ing === mainIngredient || ing.startsWith(mainIngredient + " ") || ing.endsWith(" " + mainIngredient),
+                    )
+                    if (hasExactMatch) 
+                        return true
+                    
+                    return recipeIngredients.some((ing) =>
+                        ing.split(/\s+/).some((word) => word.startsWith(mainIngredient)),
+                    )
+                    
+                })
+
+                console.log("Filtered recipes after focus search:", allRecipes.length, allRecipes)
+
+                if (allRecipes.length === 0) {
+                    
+                    setErrorMessage(
+                        `No recipes found featuring "${mainIngredient}" as a main ingredient. ` +
+                        `Showing other recipes with your ingredients instead.`
+                    )
+
+                    //handle potential undefined values
+                    allRecipes = [
+                        ...(spoonacularResults || []),
+                        ...(mealDBResults || []),
+                        ...(cocktailResults || [])
+                    ].slice(0, 10)                
+                }
+            }
+
+            setAllRecipes(allRecipes)
+            setCurrentPage(1)
         } catch (error) {
-            console.error("Search error:", error);
-            setErrorMessage("Failed to search recipes. Please try again.");
+            console.error("Search error:", error)
+            setErrorMessage("Failed to search recipes. Please try again.")
         } finally {
-            setIsSearching(false);
+            setIsSearching(false)
         }
-    };
+    }
 
-// Strict exact matching filter
+    // Strict exact matching filter
     const filterExactMatches = (recipes, userIngredients) => {
-        const userIngSet = new Set(userIngredients.map(ing => ing.toLowerCase().trim()));
+        const userIngSet = new Set(userIngredients.map((ing) => ing.toLowerCase().trim()))
 
-        return recipes.filter(recipe => {
-            const recipeIngredients = getRecipeIngredients(recipe);
-            return recipeIngredients.every(ing => userIngSet.has(ing.toLowerCase().trim()));
-        });
-    };
+        return recipes.filter((recipe) => {
+            const recipeIngredients = getRecipeIngredients(recipe)
+            return recipeIngredients.every((ing) => userIngSet.has(ing.toLowerCase().trim()))
+        })
+    }
 
-    // Flexible cookable filter (your existing logic)
+    // Flexible cookable filter
     const filterCookableRecipes = (recipes, userIngredients) => {
-        return recipes.filter(recipe => isRecipeCookable(recipe, userIngredients));
-    };
+        return recipes.filter((recipe) => isRecipeCookable(recipe, userIngredients))
+    }
 
     // Helper to extract ingredients from any recipe format
     const getRecipeIngredients = (recipe) => {
         if (recipe.strIngredient1) {
             // TheMealDB format
-            return Array.from({ length: 20 }, (_, i) => recipe[`strIngredient${i+1}`] || '')
-                .filter(ing => ing.trim());
+            return Array.from({ length: 20 }, (_, i) => recipe[`strIngredient${i + 1}`] || "").filter((ing) => ing.trim())
         } else if (recipe.extendedIngredients) {
             // Spoonacular format
-            return recipe.extendedIngredients.map(ing => ing.name);
+            return recipe.extendedIngredients.map((ing) => ing.name)
         } else if (recipe.idDrink) {
             // CocktailDB format
-            return Array.from({ length: 15 }, (_, i) => recipe[`strIngredient${i+1}`] || '')
-                .filter(ing => ing.trim());
+            return Array.from({ length: 15 }, (_, i) => recipe[`strIngredient${i + 1}`] || "").filter((ing) => ing.trim())
         }
-        return [];
-    };
+        return []
+    }
+
+    const getBaseIngredient = (ingredient) => {
+        if (!ingredient) return ""
+
+        const lowerIngredient = ingredient.toLowerCase()
+        if (lowerIngredient.includes("chicken breast")) return "chicken"
+        if (lowerIngredient.includes("salmon fillet")) return "salmon"
+        if (lowerIngredient.includes("ground beef")) return "beef"
+        if (lowerIngredient.includes("cheddar cheese")) return "cheddar"
+        if (lowerIngredient.includes("apple")) return "apple"
+        if (lowerIngredient.includes("carrot")) return "carrot"
+
+        return ingredient
+    }
 
     const isRecipeCookable = (recipe, userIngredients) => {
         //const result = logIngredientMatching(recipe, userIngredients);
-       
-        const normalizedUserIngredients = userIngredients.map(ing =>
-            getBaseIngredient(ing).toLowerCase().trim()
-        );
 
-        const recipeIngredients = [];
+        const normalizedUserIngredients = userIngredients.map((ing) => getBaseIngredient(ing).toLowerCase().trim())
+
+        const recipeIngredients = []
 
         if (recipe.strIngredient1) {
             for (let i = 1; i <= 20; i++) {
-                const ing = recipe[`strIngredient${i}`];
+                const ing = recipe[`strIngredient${i}`]
                 if (ing && ing.trim() !== "") {
-                    const normalized = getBaseIngredient(ing);
-                    if (normalized) recipeIngredients.push(normalized);
+                    const normalized = getBaseIngredient(ing)
+                    if (normalized) recipeIngredients.push(normalized)
                 }
             }
-        }
-        else if (recipe.extendedIngredients) {
-            recipe.extendedIngredients.forEach(ing => {
+        } else if (recipe.extendedIngredients) {
+            recipe.extendedIngredients.forEach((ing) => {
                 if (ing.name) {
-                    const normalized = getBaseIngredient(ing.name);
-                    if (normalized) recipeIngredients.push(normalized);
+                    const normalized = getBaseIngredient(ing.name)
+                    if (normalized) recipeIngredients.push(normalized)
                 }
-            });
+            })
         }
 
-        return recipeIngredients.every(recipeIng =>
-            normalizedUserIngredients.some(userIng =>
-                userIng.includes(recipeIng) || recipeIng.includes(userIng)
-            )
-        );
-    };
+        return recipeIngredients.every((recipeIng) =>
+            normalizedUserIngredients.some((userIng) => userIng.includes(recipeIng) || recipeIng.includes(userIng)),
+        )
+    }
     const logIngredientMatching = (recipe, userIngredients) => {
-        console.group(`Checking recipe: ${recipe.strMeal || recipe.title}`);
+        console.group(`Checking recipe: ${recipe.strMeal || recipe.title}`)
 
-        console.log("Raw user ingredients:", userIngredients);
-        const normalizedUserIngredients = userIngredients.map(ing => {
-            const normalized = getBaseIngredient(ing);
-            console.log(`User ingredient: "${ing}" → "${normalized}"`);
-            return normalized.toLowerCase().trim();
-        });
+        console.log("Raw user ingredients:", userIngredients)
+        const normalizedUserIngredients = userIngredients.map((ing) => {
+            const normalized = getBaseIngredient(ing)
+            console.log(`User ingredient: "${ing}" → "${normalized}"`)
+            return normalized.toLowerCase().trim()
+        })
 
-        console.log("Recipe ingredients:");
-        const recipeIngredients = [];
+        console.log("Recipe ingredients:")
+        const recipeIngredients = []
 
         // TheMealDB format
         if (recipe.strIngredient1) {
             for (let i = 1; i <= 20; i++) {
-                const ing = recipe[`strIngredient${i}`];
+                const ing = recipe[`strIngredient${i}`]
                 if (ing && ing.trim() !== "") {
-                    const normalized = getBaseIngredient(ing);
-                    recipeIngredients.push(normalized);
-                    console.log(`Ingredient ${i}: "${ing}" → "${normalized}"`);
+                    const normalized = getBaseIngredient(ing)
+                    recipeIngredients.push(normalized)
+                    console.log(`Ingredient ${i}: "${ing}" → "${normalized}"`)
                 }
             }
         }
         // Spoonacular format
         else if (recipe.extendedIngredients) {
-            recipe.extendedIngredients.forEach(ing => {
+            recipe.extendedIngredients.forEach((ing) => {
                 if (ing.name) {
-                    const normalized = getBaseIngredient(ing.name);
-                    recipeIngredients.push(normalized);
-                    console.log(`Ingredient: "${ing.name}" → "${normalized}"`);
+                    const normalized = getBaseIngredient(ing.name)
+                    recipeIngredients.push(normalized)
+                    console.log(`Ingredient: "${ing.name}" → "${normalized}"`)
                 }
-            });
+            })
         }
 
-        console.log("Normalized user ingredients:", normalizedUserIngredients);
-        console.log("Normalized recipe ingredients:", recipeIngredients);
+        console.log("Normalized user ingredients:", normalizedUserIngredients)
+        console.log("Normalized recipe ingredients:", recipeIngredients)
 
-        const isCookable = recipeIngredients.every(recipeIng =>
-            normalizedUserIngredients.some(userIng =>
-                userIng.includes(recipeIng) || recipeIng.includes(userIng)
-            )
-        );
+        const isCookable = recipeIngredients.every((recipeIng) =>
+            normalizedUserIngredients.some((userIng) => userIng.includes(recipeIng) || recipeIng.includes(userIng)),
+        )
 
-        console.log(`Result: ${isCookable ? "✅ Cookable" : "❌ Missing ingredients"}`);
-        console.groupEnd();
+        console.log(`Result: ${isCookable ? "✅ Cookable" : "❌ Missing ingredients"}`)
+        console.groupEnd()
 
-        return isCookable;
-    };
+        return isCookable
+    }
 
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
         setCategoryDialogOpen(true)
+        // Remove any focus search setting from here
     }
 
+    // Modify the handleCategorySearch function to implement focus search
     const handleCategorySearch = async (specificIngredient) => {
-        setCategoryDialogOpen(false);
-        setIsSearching(true);
+        setCategoryDialogOpen(false)
+        setIsSearching(true)
+        setApiLimitReached(false)
+        setErrorMessage("")
 
-        setApiLimitReached(false);
-        setErrorMessage("");
-
-        let searchQuery = specificIngredient || selectedCategory;
+        let searchQuery = specificIngredient || selectedCategory
 
         if (!specificIngredient && categoryIngredients[selectedCategory]) {
-            const chosenFood = Math.random() < 0.5;
+            const chosenFood = Math.random() < 0.5
             if (chosenFood && categoryIngredients[selectedCategory].mealDB.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length);
-                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex];
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length)
+                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex]
             } else if (categoryIngredients[selectedCategory].spoonacular.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length);
-                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex];
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length)
+                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex]
             }
         }
 
-        setIngredients([searchQuery]);
+        // Remove focus search mode setting
+        setIngredients([searchQuery])
 
         try {
-            let apiCalls;
+            let apiCalls
 
             if (apiLimitReached) {
-                apiCalls = [getMealDBRecipes(searchQuery)];
+                apiCalls = [getMealDBRecipes(searchQuery)]
             } else {
-                apiCalls = [
-                    getRecipes(searchQuery, selectedDiet),
-                    getMealDBRecipes(searchQuery)
-                ];
+                apiCalls = [getRecipes(searchQuery, selectedDiet), getMealDBRecipes(searchQuery)]
             }
 
-            const results = await Promise.allSettled(apiCalls);
+            const results = await Promise.allSettled(apiCalls)
 
-            let mealDBRecipes = [];
-            let spoonacularRecipes = [];
-            let spoonacularError = false;
+            let mealDBRecipes = []
+            let spoonacularRecipes = []
+            let spoonacularError = false
 
             results.forEach((result, index) => {
                 if (result.status === "fulfilled" && Array.isArray(result.value)) {
                     if (index === 0 && !apiLimitReached) {
-                        spoonacularRecipes = result.value;
+                        spoonacularRecipes = result.value
                     } else {
-                        mealDBRecipes = result.value;
+                        mealDBRecipes = result.value
                     }
                 } else if (result.status === "rejected") {
-                    const errorMsg = String(result.reason);
-                    if (!apiLimitReached && (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota"))) {
-                        spoonacularError = true;
+                    const errorMsg = String(result.reason)
+                    if (
+                        !apiLimitReached &&
+                        (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota"))
+                    ) {
+                        spoonacularError = true
                     }
                 }
-            });
+            })
 
             if (spoonacularError) {
-                setApiLimitReached(true);
+                setApiLimitReached(true)
             }
 
-            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes];
-            setAllRecipes(combinedRecipes);
-            setCurrentPage(1);
-
+            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes]
+            setAllRecipes(combinedRecipes)
+            setCurrentPage(1)
         } catch (error) {
-            console.error("Error during quick search:", error);
-            setErrorMessage("An unexpected error occurred.");
+            console.error("Error during quick search:", error)
+            setErrorMessage("An unexpected error occurred.")
         } finally {
-            setIsSearching(false);
+            setIsSearching(false)
         }
-    };
+    }
 
     const RecipeCard = ({ recipe, onClick }) => (
         <Dialog>
@@ -771,13 +872,10 @@ const UserInput = () => {
                 </DialogDescription>
             </DialogContent>
         </Dialog>
-        
-        
-        
     )
 
     const clickHandler = (recipe) => {
-        const currentPath = window.location.pathname;
+        const currentPath = window.location.pathname
 
         if (recipe.isDrink) {
             navigate(`/drink/${recipe.idDrink}`, {
@@ -785,27 +883,27 @@ const UserInput = () => {
                     drink: recipe,
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
-                    previousPath: currentPath
-                }
-            });
+                    previousPath: currentPath,
+                },
+            })
         } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipe.idMeal}`, {
                 state: {
                     meal: recipe,
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
-                    previousPath: currentPath
-                }
-            });
+                    previousPath: currentPath,
+                },
+            })
         } else {
             navigate(`/recipe/${recipe.id}`, {
                 state: {
                     recipe,
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
-                    previousPath: currentPath
-                }
-            });
+                    previousPath: currentPath,
+                },
+            })
         }
     }
 
@@ -815,30 +913,33 @@ const UserInput = () => {
             const timer = setTimeout(() => {
                 setShowInput(true)
                 setErrorMessage("")
-            }, 5000);
-            return () => clearTimeout(timer);
+            }, 5000)
+            return () => clearTimeout(timer)
         }
     }, [errorMessage])
-    
-    
+
+    // Add a function to clear focus search
+    const clearFocusSearch = () => {
+        setFocusSearch(false)
+        setFocusIngredient("")
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
             <div className="max-w-5xl mx-auto space-y-8">
                 <div className="logo-container flex justify-center items-center">
                     <div className="w-64 h-auto">
-                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo"
-                             className="max-w-full max-h-full"/>
+                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="max-w-full max-h-full" />
                     </div>
                 </div>
                 <div className="space-y-6">
                     {apiLimitReached && (
                         <Alert className="bg-amber-900/50 border-amber-700 text-amber-100">
-                            <InfoIcon className="h-4 w-4 text-amber-400"/>
+                            <InfoIcon className="h-4 w-4 text-amber-400" />
                             <AlertTitle>Spoonacular API Limit Reached</AlertTitle>
                             <AlertDescription>
-                                Daily API limit for Spoonacular has been reached. You can still view recipes from
-                                TheMealDB and TheCocktailDB.
+                                Daily API limit for Spoonacular has been reached. You can still view recipes from TheMealDB and
+                                TheCocktailDB.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -849,7 +950,6 @@ const UserInput = () => {
                             <CardTitle className="text-2xl text-center">Find Recipes By Category</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            
                             {/* Quick Search Section */}
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -858,73 +958,26 @@ const UserInput = () => {
                                             key={item.name}
                                             variant="outline"
                                             onClick={() => handleQuickSearch(item.name)}
-                                            className="group flex flex-col items-center justify-center p-3 h-28 w-full transition-all duration-200 hover:bg-gray-700/50"
+                                            className="group flex flex-col items-center justify-center p-3 h-32 w-full transition-all duration-200 hover:bg-gray-700/50"
                                             disabled={isSearching}
                                         >
-                                            <item.icon
-                                                className={`category-icon w-20 h-18 mb-2 transition-colors ${item.color}`}/>
-                                            <span className="text-sm font-medium text-center group-hover:text-white">
-                                                {item.name}
-                                            </span>
+                                            <div className="relative">
+                                                <item.icon className={`category-icon ${item.size} transition-colors ${item.color}`} />
+                                            </div>
+                                            <span className="text-sm font-medium text-center group-hover:text-white mt-2">{item.name}</span>
                                         </Button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/*<Button*/}
-                            {/*    onClick={() => {*/}
-                            {/*        const testRecipe = {*/}
-                            {/*            idMeal: "52818",*/}
-                            {/*            strMeal: "Chicken Fajita Mac and Cheese",*/}
-                            {/*            strIngredient1: "macaroni",*/}
-                            {/*            strIngredient2: "chicken stock",*/}
-                            {/*            strIngredient3: "heavy cream",*/}
-                            {/*            strIngredient4: "fajita seasoning",*/}
-                            {/*            strIngredient5: "salt",*/}
-                            {/*            strIngredient6: "chicken breast",*/}
-                            {/*            strIngredient7: "olive oil",*/}
-                            {/*            strIngredient8: "onion",*/}
-                            {/*            strIngredient9: "red pepper",*/}
-                            {/*            strIngredient10: "garlic",*/}
-                            {/*            strIngredient11: "cheddar cheese",*/}
-                            {/*            strIngredient12: "parsley"*/}
-                            {/*        };*/}
-                            
-                            {/*        const testIngredients = [*/}
-                            {/*            "macaroni",*/}
-                            {/*            "chicken stock",*/}
-                            {/*            "heavy cream",*/}
-                            {/*            "fajita seasoning",*/}
-                            {/*            "salt",*/}
-                            {/*            "chicken breast",*/}
-                            {/*            "olive oil",*/}
-                            {/*            "onion",*/}
-                            {/*            "red pepper",*/}
-                            {/*            "garlic",*/}
-                            {/*            "cheddar cheese",*/}
-                            {/*            "parsley"*/}
-                            {/*        ];*/}
-                            
-                            {/*        logIngredientMatching(testRecipe, testIngredients);*/}
-                            {/*    }}*/}
-                            {/*    variant="outline"*/}
-                            {/*    className="mt-4"*/}
-                            {/*>*/}
-                            {/*    Test Ingredient Matching*/}
-                            {/*</Button>*/}
-                            
                             {/* Divider */}
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-gray-700"/>
+                                    <span className="w-full border-t border-gray-700" />
                                 </div>
-                                <div className="relative flex justify-center text-sm uppercase">
-                                    <span className="px-3 py-1 text-gray-400 bg-gray-800 rounded-md">
-                                        or search by ingredients
-                                    </span>
-                                </div>
+                                <div className="relative flex justify-center text-sm uppercase"><span className="px-3 py-1 text-white font-bold bg-gray-800 rounded-md">or search by ingredients</span></div>
                             </div>
-                            
+
                             {/* Ingredient Input Section */}
                             <div className="space-y-4">
                                 <div className="space-y-3">
@@ -939,7 +992,7 @@ const UserInput = () => {
                                             onClick={handleAddIngredient}
                                             className="gradient-button text-white font-bold py-2 px-4 rounded sm:w-auto"
                                         >
-                                            <PlusCircle className="w-4 h-4 mr-2"/>
+                                            <PlusCircle className="w-4 h-4 mr-2" />
                                             Add Ingredients
                                         </Button>
                                     </div>
@@ -950,10 +1003,20 @@ const UserInput = () => {
                                             <p className="text-sm text-gray-400">Selected ingredients:</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {ingredients.map((ingredient) => (
-                                                    <div key={ingredient} className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center">
-                                                        <Check className="h-4 w-4 mr-1"/>
+                                                    <div
+                                                        key={ingredient}
+                                                        className="bg-green-900/50 text-green-100 px-3 py-1 rounded-full text-sm flex items-center"
+                                                    >
+                                                        <Check className="h-4 w-4 mr-1" />
                                                         {ingredient}
-                                                        <Button variant="ghost" size="sm" className="ml-1 h-4 w-4 p-0 hover:bg-green-800" onClick={() => handleRemoveIngredient(ingredient)}><X className="h-3 w-3"/></Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="ml-1 h-4 w-4 p-0 hover:bg-green-800"
+                                                            onClick={() => handleRemoveIngredient(ingredient)}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -967,7 +1030,7 @@ const UserInput = () => {
                                         <label className="text-sm text-gray-400">Dietary Restrictions</label>
                                         <Select value={selectedDiet} onValueChange={setSelectedDiet}>
                                             <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
-                                                <SelectValue placeholder="No specific diet"/>
+                                                <SelectValue placeholder="No specific diet" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-gray-800 border-gray-700">
                                                 <SelectItem value={null}>No Specific Diet</SelectItem>
@@ -984,7 +1047,7 @@ const UserInput = () => {
                                         <label className="text-sm text-gray-400">Recipe Type</label>
                                         <Select value={recipeType} onValueChange={setRecipeType}>
                                             <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
-                                                <SelectValue placeholder="All Recipes"/>
+                                                <SelectValue placeholder="All Recipes" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-gray-800 border-gray-700">
                                                 <SelectItem value="all">All Recipes</SelectItem>
@@ -1002,38 +1065,22 @@ const UserInput = () => {
                                         <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
                                     </Alert>
                                 )}
-                                {/* Search Button */}
-                                {/*<Button*/}
-                                {/*    onClick={handleSearch}*/}
-                                {/*    className="w-full gradient-button text-white font-bold py-2 px-4 rounded"*/}
-                                {/*    disabled={ingredients.length === 0 || isSearching}*/}
-                                {/*    size="lg"*/}
-                                {/*>*/}
-                                {/*    {isSearching ? (*/}
-                                {/*        <>*/}
-                                {/*            <Loader2 className="w-4 h-4 mr-2 animate-spin"/>*/}
-                                {/*            Searching...*/}
-                                {/*        </>*/}
-                                {/*    ) : (*/}
-                                {/*        "Generate Recipes"*/}
-                                {/*    )}*/}
-                                {/*</Button>*/}
                             </div>
-                            <CookableSearch
-                                onSearch={handleCookableSearch}
-                                ingredients={ingredients}
-                                selectedDiet={selectedDiet}
-                                isSearching={isSearching}
-                            />
                         </CardContent>
                     </Card>
                     
+                    {/* CookableSearch Component */}
+                    <CookableSearch
+                        onSearch={handleCookableSearch}
+                        ingredients={ingredients}
+                        selectedDiet={selectedDiet}
+                        isSearching={isSearching}
+                    />
+
                     {/* Category Selection Dialog */}
                     <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                         <DialogContent className="bg-gray-800 text-white max-w-md">
-                            <DialogTitle className="text-center text-xl font-bold mb-2">
-                                {selectedCategory} Recipes
-                            </DialogTitle>
+                            <DialogTitle className="text-center text-xl font-bold mb-2">{selectedCategory} Recipes</DialogTitle>
                             <DialogDescription className="text-center text-gray-300 mb-6">
                                 Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                             </DialogDescription>
@@ -1043,7 +1090,8 @@ const UserInput = () => {
                                 <Button
                                     variant="default"
                                     onClick={() => handleCategorySearch(selectedCategory)}
-                                    className="w-full py-6 text-lg font-bold">
+                                    className="w-full py-6 text-lg font-bold"
+                                >
                                     Surprise Me
                                 </Button>
 
@@ -1053,14 +1101,17 @@ const UserInput = () => {
                                         <span className="w-full border-t border-gray-700" />
                                     </div>
                                     <div className="relative flex justify-center">
-                                    <span className="px-3 bg-gray-800 text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
+                                        <span className="px-3 bg-gray-800 text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
                                     </div>
                                 </div>
 
                                 {/* Ingredient Grid */}
                                 {selectedCategory && categoryIngredients[selectedCategory] && (
                                     <div className="grid grid-cols-2 gap-3">
-                                        {[...categoryIngredients[selectedCategory].mealDB, ...categoryIngredients[selectedCategory].spoonacular].map((ingredient) => (
+                                        {[
+                                            ...categoryIngredients[selectedCategory].mealDB,
+                                            ...categoryIngredients[selectedCategory].spoonacular,
+                                        ].map((ingredient) => (
                                             <Button
                                                 key={ingredient}
                                                 variant="outline"
@@ -1075,17 +1126,30 @@ const UserInput = () => {
                             </div>
                         </DialogContent>
                     </Dialog>
-                    
+
                     {/* Results Section */}
                     {error && !apiLimitReached && allRecipes.length === 0 && (
-                        <p className="text-red-500 text-center">
-                            Error: Unable to fetch recipes. Please try again later.
-                        </p>
+                        <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again later.</p>
                     )}
                     {allRecipes.length > 0 && (
                         <div className="space-y-4">
-                            <h3 className="text-xl font-semibold text-center">Found Recipes
-                                ({allRecipes.length})</h3>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-semibold">Found Recipes ({allRecipes.length})</h3>
+                                {focusSearch && (
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-amber-900/30 text-amber-200">Focused on: {focusIngredient}</Badge>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={clearFocusSearch}
+                                            className="h-8 px-2 text-gray-400 hover:text-white"
+                                        >
+                                            <X className="h-4 w-4 mr-1" />
+                                            Clear focus
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {currentRecipes.map((recipe) => (
                                     <RecipeCard
@@ -1107,41 +1171,7 @@ const UserInput = () => {
             </div>
         </div>
     )
-
-    function getBaseIngredient(ingredient) {
-        if (!ingredient || typeof ingredient !== 'string') return '';
-
-        // Remove measurements and descriptors
-        let base = ingredient
-            .replace(/\d+\.?\d*\s*(tsp|tbsp|cup|cups|oz|g|kg|ml|l|lb|pound|pounds|packet|packets|clove|cloves|slice|slices)\b/gi, '')
-            .replace(/\([^)]*\)/g, '')
-            .replace(/\b(fresh|dried|ground|chopped|sliced|minced|grated|peeled|cubed|whole|organic|raw|cooked|boneless|skinless|lean|extra lean|low fat|fat free)\b/gi, '')
-            .trim()
-            .toLowerCase();
-
-        // Common substitutions
-        const substitutions = {
-            'tomatoes': 'tomato',
-            'potatoes': 'potato',
-            'onions': 'onion',
-            'carrots': 'carrot',
-            'peppers': 'pepper',
-            'red pepper': 'pepper',
-            'green pepper': 'pepper',
-            'chicken breasts': 'chicken',
-            'chicken breast': 'chicken',
-            'cheddar cheese': 'cheddar',
-            'heavy cream': 'cream',
-            'chicken stock': 'stock',
-            'fajita seasoning': 'seasoning',
-            // Add more as needed
-        };
-
-        return substitutions[base] || base;
-    }
-
-   
-
 }
 
 export default UserInput
+

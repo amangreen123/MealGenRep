@@ -10,7 +10,7 @@ const useFetchMeals = () => {
     const cache = useRef({})
     const apiKey = import.meta.env.VITE_API_KEY
 
-    const getRecipes = async (ingredients, diet = "") => {
+    const getRecipes = async (ingredients, diet = "", apiParams) => {
         const key = `${ingredients.join(",").toLowerCase()}_${diet}`
 
         if (cache.current[key]) {
