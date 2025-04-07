@@ -1,27 +1,22 @@
-"use client"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ChefHat, Loader2, ScanEye } from "lucide-react"
 
-const CookableSearch = ({onSearch, ingredients = [], selectedDiet = null, isSearching = false, focusIngredient = null,}) => {
-    
+const CookableSearch = ({onSearch, ingredients = [], selectedDiet, isSearching = false, focusIngredient}) => {
     const [cookableOnly, setCookableOnly] = useState(false)
     const [strictMode, setStrictMode] = useState(false)
     const [focusSearch, setFocusSearch] = useState(false)
 
-    const handleSearch = () => {
-        const firstIngredient = ingredients.length > 0 ? ingredients[0].toLowerCase() : null
-        const handleSearch = () => {
-            onSearch({
-                cookableOnly,
-                strictMode,
-                focusSearch,
-                focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0].toLowerCase() : null            
-            });
-        }
+    const handleSearchClick = () => {
+        const searchOptions = {
+            cookableOnly,
+            strictMode,
+            focusSearch,
+            focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0].toLowerCase() : null
+        };
+        onSearch(searchOptions);
     }
 
     return (
@@ -76,7 +71,7 @@ const CookableSearch = ({onSearch, ingredients = [], selectedDiet = null, isSear
 
             {/* Search Button */}
             <Button
-                onClick={handleSearch}
+                onClick={handleSearchClick}
                 className="w-full gradient-button text-white font-bold py-2 px-4 rounded"
                 disabled={ingredients.length === 0 || isSearching}
                 size="lg"
@@ -101,4 +96,3 @@ const CookableSearch = ({onSearch, ingredients = [], selectedDiet = null, isSear
 }
 
 export default CookableSearch
-

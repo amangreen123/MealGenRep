@@ -1,4 +1,3 @@
-"use client"
 
 import {useEffect, useMemo, useState} from "react"
 import {useNavigate} from "react-router-dom"
@@ -449,23 +448,32 @@ const UserInput = () => {
 
             // Make API calls based on whether Spoonacular is limited
             if (apiLimitReached) {
-                // Skip Spoonacular
                 const [mealResults, cocktailResults] = await Promise.allSettled([
                     getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients)
+                    getCocktailDBDrinks(ingredients),
                 ]);
-
                 if (mealResults.status === "fulfilled") {
                     mealDBRecipes = mealResults.value || [];
                 }
-
                 if (cocktailResults.status === "fulfilled") {
                     cocktailRecipes = cocktailResults.value || [];
                 }
+                if (!mealDBRecipes.length && !cocktailRecipes.length) {
+                    setErrorMessage("No recipes found due to API limitations.");
+                }
+                
             } else {
                 // Try all APIs
                 const [spoonacularResults, mealResults, cocktailResults] = await Promise.allSettled([
-                    getRecipes(ingredients, selectedDiet, cookableOnly ? apiParams : undefined),
+                    getRecipes(
+                        ingredients,
+                        selectedDiet,
+                        cookableOnly ? apiParams : {
+                            includeIngredients: ingredients.join(","),
+                            diet: selectedDiet || undefined,
+                            number: 20
+                        }
+                    ),
                     getMealDBRecipes(ingredients),
                     getCocktailDBDrinks(ingredients)
                 ]);
