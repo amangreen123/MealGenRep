@@ -7,6 +7,7 @@ const useFetchMeals = () => {
     const [recipes, setRecipes] = useState([])
     const [error, setError] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [isSpoonacularLimited, setIsSpoonacularLimited] = useState(false)
     const cache = useRef({})
     const apiKey = import.meta.env.VITE_API_KEY
 
@@ -16,7 +17,6 @@ const useFetchMeals = () => {
         if (cache.current[key]) {
             setRecipes(cache.current[key])
             setLoading(false)
-           //console.log("Using cached recipes")
             return
         }
 
@@ -37,7 +37,7 @@ const useFetchMeals = () => {
                     ranking: 2,
                 },
             })
-            
+
             const results = response.data.results.map((recipe) => ({
                 id: recipe.id,
                 title: recipe.title,
@@ -66,13 +66,11 @@ const useFetchMeals = () => {
 
             cache.current[key] = results
             setRecipes(results)
-            
-            //console.log("Spooncular recipes:", results.length)
-           // console.log("Spooncular Results", results )
-
+            setIsSpoonacularLimited(false) // ✅ Reset the limit flag if successful
         } catch (error) {
             if (error.response?.status === 402) {
                 setError("Daily API quota has been reached. Please try again tomorrow.")
+                setIsSpoonacularLimited(true) //Mark Spoonacular as limited
             } else {
                 setError(error.message || "An error occurred while fetching recipes.")
             }
@@ -84,8 +82,14 @@ const useFetchMeals = () => {
 
     const getCachedRecipes = () => cache.current
 
-    return { recipes, error, loading, getRecipes, getCachedRecipes }
+    return {
+        recipes,
+        error,
+        loading,
+        isSpoonacularLimited, //Expose it to the component
+        getRecipes,
+        getCachedRecipes,
+    }
 }
 
 export default useFetchMeals
-

@@ -6,28 +6,22 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ChefHat, Loader2, ScanEye } from "lucide-react"
 
-const CookableSearch = ({
-                            onSearch,
-                            ingredients = [],
-                            selectedDiet = null,
-                            isSearching = false,
-                            focusIngredient = null,
-                        }) => {
+const CookableSearch = ({onSearch, ingredients = [], selectedDiet = null, isSearching = false, focusIngredient = null,}) => {
+    
     const [cookableOnly, setCookableOnly] = useState(false)
     const [strictMode, setStrictMode] = useState(false)
     const [focusSearch, setFocusSearch] = useState(false)
 
     const handleSearch = () => {
-
-        //Ensure we have the first Ingredient before trying to use it
         const firstIngredient = ingredients.length > 0 ? ingredients[0].toLowerCase() : null
-
-        onSearch({
-            cookableOnly,
-            strictMode,
-            focusSearch,
-            focusIngredient: focusSearch ? firstIngredient : null,
-        })
+        const handleSearch = () => {
+            onSearch({
+                cookableOnly,
+                strictMode,
+                focusSearch,
+                focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0].toLowerCase() : null            
+            });
+        }
     }
 
     return (
