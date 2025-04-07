@@ -456,13 +456,14 @@ const UserInput = () => {
 
     //Recipe to test 
     //Olive Oil, Onion, Carrots, Fish Stock, Water, Potatoes, Bay Leaf, Cod, Salmon
-    const handleCookableSearch = async (searchOptions) => {
+    const handleCookableSearch = async ({ cookableOnly, strictMode }) => {
         if (ingredients.length === 0) return;
 
         setIsSearching(true);
         setApiLimitReached(false);
 
         try {
+            // Common API parameters
             const apiParams = {
                 includeIngredients: ingredients.join(","),
                 diet: selectedDiet || undefined,
@@ -472,77 +473,96 @@ const UserInput = () => {
                 number: 20,
             };
 
-            if (searchOptions.cookableOnly) {
-                apiParams.sort = "min-missing-ingredients";
-                apiParams.ranking = 2;
-            } else {
-                apiParams.sort = "max-used-ingredients";
-                apiParams.ranking = 1;
+            // Adjust parameters based on search mode
+            if (cookableOnly) {
+                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients";
+                apiParams.ranking = strictMode ? 1 : 2;
             }
 
-            const apiCalls = [
+            // Make API calls
+            const [spoonacularResults, mealDBResults, cocktailResults] = await Promise.all([
                 apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
                 getMealDBRecipes(ingredients),
                 getCocktailDBDrinks(ingredients),
+            ]);
+
+            // Combine all results
+            let allRecipes = [
+                ...(spoonacularResults || []),
+                ...(mealDBResults || []),
+                ...(cocktailResults || [])
             ];
 
-            const results = await Promise.allSettled(apiCalls);
+            // Apply strict filtering if needed
+            if (cookableOnly) {
+                const filteredRecipes = strictMode
+                    ? filterExactMatches(allRecipes, ingredients)
+                    : filterCookableRecipes(allRecipes, ingredients);
 
-            // Process results
-            results.forEach((result, index) => {
-                if (result.status === "rejected") {
-                    const errorMsg = String(result.reason);
-                    if (errorMsg.includes("402") || errorMsg.includes("429")) {
-                        setApiLimitReached(true);
-                    }
-                }
-            });
-
-            // Collect all recipes from all API sources
-            let allFetchedRecipes = [];
-            results.forEach((result, index) => {
-                if (result.status === "fulfilled" && Array.isArray(result.value)) {
-                    allFetchedRecipes = [...allFetchedRecipes, ...result.value];
-                }
-            });
-
-            // Filter for cookable recipes if needed
-            if (searchOptions.cookableOnly) {
-                const cookableRecipes = allFetchedRecipes.filter(recipe =>
-                    isRecipeCookable(recipe, ingredients)
-                );
-
-                if (cookableRecipes.length === 0) {
+                if (filteredRecipes.length === 0) {
                     setErrorMessage(
-                        "No recipes found that you can make with your current ingredients. Showing all related recipes instead."
+                        strictMode
+                            ? "No recipes with EXACT ingredient matches. Try relaxing the strict mode."
+                            : "No fully cookable recipes found. Showing all matches instead."
                     );
-                    setTimeout(() => setErrorMessage(""), 5000);
-                    setAllRecipes(allFetchedRecipes);
+                    allRecipes = allRecipes.slice(0, 10); // Show limited results
                 } else {
-                    setAllRecipes(cookableRecipes);
+                    allRecipes = filteredRecipes;
                 }
-            } else {
-                setAllRecipes(allFetchedRecipes);
             }
 
+            setAllRecipes(allRecipes);
+            setCurrentPage(1);
+
         } catch (error) {
-            console.error("Error during search:", error);
-            setErrorMessage("An error occurred while searching for recipes. Please try again.");
-            setTimeout(() => setErrorMessage(""), 5000);
+            console.error("Search error:", error);
+            setErrorMessage("Failed to search recipes. Please try again.");
         } finally {
             setIsSearching(false);
         }
     };
 
+// Strict exact matching filter
+    const filterExactMatches = (recipes, userIngredients) => {
+        const userIngSet = new Set(userIngredients.map(ing => ing.toLowerCase().trim()));
+
+        return recipes.filter(recipe => {
+            const recipeIngredients = getRecipeIngredients(recipe);
+            return recipeIngredients.every(ing => userIngSet.has(ing.toLowerCase().trim()));
+        });
+    };
+
+    // Flexible cookable filter (your existing logic)
+    const filterCookableRecipes = (recipes, userIngredients) => {
+        return recipes.filter(recipe => isRecipeCookable(recipe, userIngredients));
+    };
+
+    // Helper to extract ingredients from any recipe format
+    const getRecipeIngredients = (recipe) => {
+        if (recipe.strIngredient1) {
+            // TheMealDB format
+            return Array.from({ length: 20 }, (_, i) => recipe[`strIngredient${i+1}`] || '')
+                .filter(ing => ing.trim());
+        } else if (recipe.extendedIngredients) {
+            // Spoonacular format
+            return recipe.extendedIngredients.map(ing => ing.name);
+        } else if (recipe.idDrink) {
+            // CocktailDB format
+            return Array.from({ length: 15 }, (_, i) => recipe[`strIngredient${i+1}`] || '')
+                .filter(ing => ing.trim());
+        }
+        return [];
+    };
+
     const isRecipeCookable = (recipe, userIngredients) => {
+        //const result = logIngredientMatching(recipe, userIngredients);
+       
         const normalizedUserIngredients = userIngredients.map(ing =>
             getBaseIngredient(ing).toLowerCase().trim()
         );
 
-        // Get all non-empty recipe ingredients
         const recipeIngredients = [];
 
-        // TheMealDB format
         if (recipe.strIngredient1) {
             for (let i = 1; i <= 20; i++) {
                 const ing = recipe[`strIngredient${i}`];
@@ -552,7 +572,6 @@ const UserInput = () => {
                 }
             }
         }
-        // Spoonacular format
         else if (recipe.extendedIngredients) {
             recipe.extendedIngredients.forEach(ing => {
                 if (ing.name) {
@@ -561,22 +580,61 @@ const UserInput = () => {
                 }
             });
         }
-        // CocktailDB format
-        else if (recipe.idDrink) {
-            for (let i = 1; i <= 15; i++) {
-                const ing = recipe[`strIngredient${i}`];
-                if (ing && ing.trim() !== "") {
-                    const normalized = getBaseIngredient(ing);
-                    if (normalized) recipeIngredients.push(normalized);
-                }
-            }
-        }
 
-        // Check if all recipe ingredients exist in user's ingredients
         return recipeIngredients.every(recipeIng =>
             normalizedUserIngredients.some(userIng =>
                 userIng.includes(recipeIng) || recipeIng.includes(userIng)
-            ));
+            )
+        );
+    };
+    const logIngredientMatching = (recipe, userIngredients) => {
+        console.group(`Checking recipe: ${recipe.strMeal || recipe.title}`);
+
+        console.log("Raw user ingredients:", userIngredients);
+        const normalizedUserIngredients = userIngredients.map(ing => {
+            const normalized = getBaseIngredient(ing);
+            console.log(`User ingredient: "${ing}" → "${normalized}"`);
+            return normalized.toLowerCase().trim();
+        });
+
+        console.log("Recipe ingredients:");
+        const recipeIngredients = [];
+
+        // TheMealDB format
+        if (recipe.strIngredient1) {
+            for (let i = 1; i <= 20; i++) {
+                const ing = recipe[`strIngredient${i}`];
+                if (ing && ing.trim() !== "") {
+                    const normalized = getBaseIngredient(ing);
+                    recipeIngredients.push(normalized);
+                    console.log(`Ingredient ${i}: "${ing}" → "${normalized}"`);
+                }
+            }
+        }
+        // Spoonacular format
+        else if (recipe.extendedIngredients) {
+            recipe.extendedIngredients.forEach(ing => {
+                if (ing.name) {
+                    const normalized = getBaseIngredient(ing.name);
+                    recipeIngredients.push(normalized);
+                    console.log(`Ingredient: "${ing.name}" → "${normalized}"`);
+                }
+            });
+        }
+
+        console.log("Normalized user ingredients:", normalizedUserIngredients);
+        console.log("Normalized recipe ingredients:", recipeIngredients);
+
+        const isCookable = recipeIngredients.every(recipeIng =>
+            normalizedUserIngredients.some(userIng =>
+                userIng.includes(recipeIng) || recipeIng.includes(userIng)
+            )
+        );
+
+        console.log(`Result: ${isCookable ? "✅ Cookable" : "❌ Missing ingredients"}`);
+        console.groupEnd();
+
+        return isCookable;
     };
 
     const handleQuickSearch = (category) => {
@@ -761,6 +819,8 @@ const UserInput = () => {
             return () => clearTimeout(timer);
         }
     }, [errorMessage])
+    
+    
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-6">
@@ -811,6 +871,48 @@ const UserInput = () => {
                                 </div>
                             </div>
 
+                            {/*<Button*/}
+                            {/*    onClick={() => {*/}
+                            {/*        const testRecipe = {*/}
+                            {/*            idMeal: "52818",*/}
+                            {/*            strMeal: "Chicken Fajita Mac and Cheese",*/}
+                            {/*            strIngredient1: "macaroni",*/}
+                            {/*            strIngredient2: "chicken stock",*/}
+                            {/*            strIngredient3: "heavy cream",*/}
+                            {/*            strIngredient4: "fajita seasoning",*/}
+                            {/*            strIngredient5: "salt",*/}
+                            {/*            strIngredient6: "chicken breast",*/}
+                            {/*            strIngredient7: "olive oil",*/}
+                            {/*            strIngredient8: "onion",*/}
+                            {/*            strIngredient9: "red pepper",*/}
+                            {/*            strIngredient10: "garlic",*/}
+                            {/*            strIngredient11: "cheddar cheese",*/}
+                            {/*            strIngredient12: "parsley"*/}
+                            {/*        };*/}
+                            
+                            {/*        const testIngredients = [*/}
+                            {/*            "macaroni",*/}
+                            {/*            "chicken stock",*/}
+                            {/*            "heavy cream",*/}
+                            {/*            "fajita seasoning",*/}
+                            {/*            "salt",*/}
+                            {/*            "chicken breast",*/}
+                            {/*            "olive oil",*/}
+                            {/*            "onion",*/}
+                            {/*            "red pepper",*/}
+                            {/*            "garlic",*/}
+                            {/*            "cheddar cheese",*/}
+                            {/*            "parsley"*/}
+                            {/*        ];*/}
+                            
+                            {/*        logIngredientMatching(testRecipe, testIngredients);*/}
+                            {/*    }}*/}
+                            {/*    variant="outline"*/}
+                            {/*    className="mt-4"*/}
+                            {/*>*/}
+                            {/*    Test Ingredient Matching*/}
+                            {/*</Button>*/}
+                            
                             {/* Divider */}
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
@@ -822,7 +924,7 @@ const UserInput = () => {
                                     </span>
                                 </div>
                             </div>
-
+                            
                             {/* Ingredient Input Section */}
                             <div className="space-y-4">
                                 <div className="space-y-3">
@@ -1037,6 +1139,9 @@ const UserInput = () => {
 
         return substitutions[base] || base;
     }
+
+   
+
 }
 
 export default UserInput
