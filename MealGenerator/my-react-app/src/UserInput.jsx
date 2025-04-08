@@ -244,96 +244,104 @@ const UserInput = () => {
 
     useEffect(() => {
         if (currentRecipes.length > 0) {
-            const recipeNeedingSummaries = currentRecipes.filter((recipe) => !recipe.summary)
+            const recipeNeedingSummaries = currentRecipes.filter((recipe) => {
+                const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                return dishName && !recipe.summary;
+            });
+
             if (recipeNeedingSummaries.length > 0) {
-                generateSummaries(currentRecipes)
+                generateSummaries(recipeNeedingSummaries);
             }
         }
-    }, [currentPage, allRecipes.length])
+    }, [currentPage, allRecipes.length]);
 
     const generateSummaries = async (recipes) => {
-        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
-        const uncachedRecipes = recipes.filter((recipe) => !recipe.summary)
+        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {};
+        const uncachedRecipes = recipes.filter((recipe) => !recipe.summary);
 
-        if (uncachedRecipes.length === 0) return
+        if (uncachedRecipes.length === 0) return;
 
-        const generateSummariesIndividually = async (recipes) => {
-            const updates = {}
-            for (const recipe of recipes) {
-                if (!recipe.summary) {
-                    const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                    if (cachedSummaries[dishName]) {
-                        updates[dishName] = cachedSummaries[dishName]
-                    } else {
-                        try {
-                            const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary")
-                            updates[dishName] = summary
-                            cachedSummaries[dishName] = summary
-                        } catch (error) {
-                            console.error(`Error generating summary for ${dishName}:`, error)
-                            updates[dishName] = "Description unavailable"
-                        }
+        const generateSummariesIndividually = async (recipesToProcess) => {
+            const updates = {};
+            for (const recipe of recipesToProcess) {
+                const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                if (!dishName) continue;
+
+                if (cachedSummaries[dishName]) {
+                    updates[dishName] = cachedSummaries[dishName];
+                } else {
+                    try {
+                        const summary = await getGaladrielResponse(
+                            `Describe ${dishName} in 2 sentences`,
+                            "summary"
+                        );
+                        updates[dishName] = summary;
+                        cachedSummaries[dishName] = summary;
+                    } catch (error) {
+                        console.error(`Error generating summary for ${dishName}:`, error);
+                        updates[dishName] = "Description unavailable";
                     }
                 }
             }
 
             if (Object.keys(updates).length > 0) {
+                // Update both localStorage and state
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
+
                 setAllRecipes((prevRecipes) => {
                     return prevRecipes.map((recipe) => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                        if (updates[dishName]) {
-                            return { ...recipe, summary: updates[dishName] }
-                        }
-                        return recipe
-                    })
-                })
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                        return updates[dishName] ? { ...recipe, summary: updates[dishName] } : recipe;
+                    });
+                });
             }
-        }
+        };
 
         if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
             try {
-                const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title)
-                const batchResult = await batchGaladrielResponse(dishNames, "summary")
-                const summaries = batchResult.split("\n")
+                const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title).filter(Boolean);
+                const batchResult = await batchGaladrielResponse(dishNames, "summary");
+                const summaries = batchResult.split("\n");
 
-                const summaryMap = {}
+                const summaryMap = {};
                 uncachedRecipes.forEach((recipe, index) => {
-                    if (index < summaries.length) {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                        summaryMap[dishName] = summaries[index]
-                        cachedSummaries[dishName] = summaries[index]
+                    const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                    if (dishName && index < summaries.length) {
+                        summaryMap[dishName] = summaries[index];
+                        cachedSummaries[dishName] = summaries[index];
                     }
-                })
+                });
+
+                // Update both localStorage and state
+                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries));
 
                 setAllRecipes((prevRecipes) => {
                     return prevRecipes.map((recipe) => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                        if (summaryMap[dishName]) {
-                            return { ...recipe, summary: summaryMap[dishName] }
-                        }
-                        return recipe
-                    })
-                })
-
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
+                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                        return summaryMap[dishName] ? { ...recipe, summary: summaryMap[dishName] } : recipe;
+                    });
+                });
             } catch (error) {
-                console.error("Batch summary failed:", error)
-                await generateSummariesIndividually(uncachedRecipes)
+                console.error("Batch summary failed:", error);
+                await generateSummariesIndividually(uncachedRecipes);
             }
         } else {
-            await generateSummariesIndividually(uncachedRecipes)
+            await generateSummariesIndividually(uncachedRecipes);
         }
-    }
+    };
 
     useEffect(() => {
         if (allRecipes.length > 0) {
-            const recipesNeedingSummaries = allRecipes.filter((recipe) => !recipe.summary)
+            const recipesNeedingSummaries = allRecipes.filter((recipe) => {
+                const dishName = recipe.strMeal || recipe.strDrink || recipe.title;
+                return dishName && !recipe.summary;
+            });
+
             if (recipesNeedingSummaries.length > 0) {
-                generateSummaries(recipesNeedingSummaries)
+                generateSummaries(recipesNeedingSummaries);
             }
         }
-    }, [allRecipes.length])
+    }, [allRecipes]);
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -426,74 +434,48 @@ const UserInput = () => {
         setFocusIngredient(focusIngredient || "");
 
         try {
-            // Common API parameters - only used for Spoonacular
-            const apiParams = {
-                includeIngredients: ingredients.join(","),
-                diet: selectedDiet || undefined,
-                addRecipeInformation: true,
-                fillIngredients: true,
-                instructionsRequired: true,
-                number: 20,
-            };
-
-            // Adjust parameters based on search mode - only for Spoonacular
-            if (cookableOnly) {
-                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients";
-                apiParams.ranking = strictMode ? 1 : 2;
-            }
-
             let spoonacularRecipes = [];
             let mealDBRecipes = [];
             let cocktailRecipes = [];
 
-            // Make API calls based on whether Spoonacular is limited
-            if (apiLimitReached) {
-                const [mealResults, cocktailResults] = await Promise.allSettled([
+            // Only try Spoonacular if not limited
+            if (!apiLimitReached) {
+                try {
+                    const apiParams = {
+                        includeIngredients: ingredients.join(","),
+                        diet: selectedDiet || undefined,
+                        addRecipeInformation: true,
+                        fillIngredients: true,
+                        instructionsRequired: true,
+                        number: 20,
+                    };
+
+                    if (cookableOnly) {
+                        apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients";
+                        apiParams.ranking = strictMode ? 1 : 2;
+                    }
+
+                    spoonacularRecipes = await getRecipes(ingredients, selectedDiet, apiParams);
+                } catch (error) {
+                    const errorMsg = String(error);
+                    if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
+                        setApiLimitReached(true);
+                        setIsSpoonacularLimited(true);
+                    } else {
+                        console.error("Spoonacular error:", error);
+                    }
+                }
+            }
+
+            try {
+                const [mealResults, cocktailResults] = await Promise.all([
                     getMealDBRecipes(ingredients),
                     getCocktailDBDrinks(ingredients),
                 ]);
-                if (mealResults.status === "fulfilled") {
-                    mealDBRecipes = mealResults.value || [];
-                }
-                if (cocktailResults.status === "fulfilled") {
-                    cocktailRecipes = cocktailResults.value || [];
-                }
-                if (!mealDBRecipes.length && !cocktailRecipes.length) {
-                    setErrorMessage("No recipes found due to API limitations.");
-                }
-                
-            } else {
-                // Try all APIs
-                const [spoonacularResults, mealResults, cocktailResults] = await Promise.allSettled([
-                    getRecipes(
-                        ingredients,
-                        selectedDiet,
-                        cookableOnly ? apiParams : {
-                            includeIngredients: ingredients.join(","),
-                            diet: selectedDiet || undefined,
-                            number: 20
-                        }
-                    ),
-                    getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients)
-                ]);
-
-                if (spoonacularResults.status === "fulfilled") {
-                    spoonacularRecipes = spoonacularResults.value || [];
-                } else if (spoonacularResults.status === "rejected") {
-                    const errorMsg = String(spoonacularResults.reason);
-                    if (errorMsg.includes("402") || errorMsg.includes("429")) {
-                        setApiLimitReached(true);
-                    }
-                }
-
-                if (mealResults.status === "fulfilled") {
-                    mealDBRecipes = mealResults.value || [];
-                }
-
-                if (cocktailResults.status === "fulfilled") {
-                    cocktailRecipes = cocktailResults.value || [];
-                }
+                mealDBRecipes = mealResults || [];
+                cocktailRecipes = cocktailResults || [];
+            } catch (error) {
+                console.error("Error fetching from MealDB/CocktailDB:", error);
             }
 
             // Combine all results
@@ -574,7 +556,6 @@ const UserInput = () => {
                     }
                 }
             }
-
             setAllRecipes(allRecipes);
             setCurrentPage(1);
         } catch (error) {
@@ -881,72 +862,58 @@ const UserInput = () => {
 
     // Modify the handleCategorySearch function to implement focus search
     const handleCategorySearch = async (specificIngredient) => {
-        setCategoryDialogOpen(false)
-        setIsSearching(true)
-        setApiLimitReached(false)
-        setErrorMessage("")
+        setCategoryDialogOpen(false);
+        setIsSearching(true);
+        setApiLimitReached(false);
+        setErrorMessage("");
 
-        let searchQuery = specificIngredient || selectedCategory
+        let searchQuery = specificIngredient || selectedCategory;
 
         if (!specificIngredient && categoryIngredients[selectedCategory]) {
-            const chosenFood = Math.random() < 0.5
+            const chosenFood = Math.random() < 0.5;
             if (chosenFood && categoryIngredients[selectedCategory].mealDB.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length)
-                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex]
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length);
+                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex];
             } else if (categoryIngredients[selectedCategory].spoonacular.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length)
-                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex]
+                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length);
+                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex];
             }
         }
 
-        // Remove focus search mode setting
-        setIngredients([searchQuery])
+        setIngredients([searchQuery]);
 
         try {
-            let apiCalls
+            let mealDBRecipes = [];
+            let spoonacularRecipes = [];
 
-            if (apiLimitReached) {
-                apiCalls = [getMealDBRecipes(searchQuery)]
-            } else {
-                apiCalls = [getRecipes(searchQuery, selectedDiet), getMealDBRecipes(searchQuery)]
-            }
-
-            const results = await Promise.allSettled(apiCalls)
-
-            let mealDBRecipes = []
-            let spoonacularRecipes = []
-            let spoonacularError = false
-
-            results.forEach((result, index) => {
-                if (result.status === "fulfilled" && Array.isArray(result.value)) {
-                    if (index === 0 && !apiLimitReached) {
-                        spoonacularRecipes = result.value
-                    } else {
-                        mealDBRecipes = result.value
-                    }
-                } else if (result.status === "rejected") {
-                    const errorMsg = String(result.reason)
-                    if (
-                        !apiLimitReached &&
-                        (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota"))
-                    ) {
-                        spoonacularError = true
+            // Only try Spoonacular if not limited
+            if (!apiLimitReached) {
+                try {
+                    spoonacularRecipes = await getRecipes([searchQuery], selectedDiet);
+                } catch (error) {
+                    const errorMsg = String(error);
+                    if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
+                        setApiLimitReached(true);
+                        setIsSpoonacularLimited(true);
                     }
                 }
-            })
-
-            if (spoonacularError) {
-                setApiLimitReached(true)
             }
 
-            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes]
-            setAllRecipes(combinedRecipes)
-            setCurrentPage(1)
+            // Always try MealDB
+            try {
+                mealDBRecipes = await getMealDBRecipes([searchQuery]);
+            } catch (error) {
+                console.error("MealDB error:", error);
+            }
+
+            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes];
+            setAllRecipes(combinedRecipes);
+            setCurrentPage(1);
         } catch (error) {
-            console.error("Error during quick search:", error)
-            setErrorMessage("An unexpected error occurred.")
+            console.error("Error during quick search:", error);
+            setErrorMessage("An unexpected error occurred.");
         } finally {
-            setIsSearching(false)
+            setIsSearching(false);
         }
     }
 
@@ -1211,7 +1178,7 @@ const UserInput = () => {
                         ingredients={ingredients}
                         selectedDiet={selectedDiet}
                         isSearching={isSearching}
-                        focusIngredient={focusIngredient}
+                        apiLimitReached={apiLimitReached}
                     />
 
                     {/* Category Selection Dialog */}
