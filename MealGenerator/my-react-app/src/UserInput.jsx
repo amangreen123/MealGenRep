@@ -211,7 +211,6 @@ const UserInput = () => {
 
     useEffect(() => {
         const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
-
         const cocktailDBRecipesArray = Array.isArray(CocktailDBDrinks)
             ? CocktailDBDrinks.map((drink) => ({
                 ...drink,
@@ -221,16 +220,22 @@ const UserInput = () => {
                 idMeal: drink.idDrink,
             }))
             : []
-
-        const spoonacularRecipesArray =
-            !isSpoonacularLimited && Array.isArray(recipes) ? recipes : []
-
+        
+        const spoonacularRecipesArray = Array.isArray(recipes) ? recipes : []
+        
         setAllRecipes([
             ...spoonacularRecipesArray,
             ...mealDBRecipesArray,
             ...cocktailDBRecipesArray,
         ])
-    }, [MealDBRecipes, CocktailDBDrinks, recipes, isSpoonacularLimited])
+    }, [MealDBRecipes, CocktailDBDrinks, recipes])
+
+    // useEffect(() => {
+    //     console.log('Spoonacular recipes:', recipes);
+    //     console.log('MealDB recipes:', MealDBRecipes);
+    //     console.log('CocktailDB recipes:', CocktailDBDrinks);
+    //     console.log('All combined recipes:', allRecipes);
+    // }, [recipes, MealDBRecipes, CocktailDBDrinks, allRecipes]);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
@@ -432,30 +437,64 @@ const UserInput = () => {
         setApiLimitReached(false);
         setFocusSearch(focusSearch);
         setFocusIngredient(focusIngredient || "");
-        setErrorMessage("");
+        setErrorMessage(""); // Clear previous errors
 
         try {
-            // Make API calls
-            const [spoonacularResults, mealDBResults, cocktailResults] = await Promise.all([
-                !apiLimitReached
-                    ? getRecipes(ingredients, selectedDiet, { cookableOnly, strictMode, focusIngredient })
-                    : Promise.resolve([]),
-                getMealDBRecipes(ingredients),
-                getCocktailDBDrinks(ingredients),
-            ]);
+            let spoonacularResults = [];
+            let mealDBResults = [];
+            let cocktailResults = [];
 
-            // Combine results
-            let allRecipes = [
-                ...(spoonacularResults || []),
+            // Spoonacular call with explicit error handling
+            if (!apiLimitReached) {
+                try {
+                    spoonacularResults = await getRecipes(ingredients, selectedDiet, {
+                        cookableOnly,
+                        strictMode,
+                        focusIngredient
+                    }) || [];
+                } catch (spoonError) {
+                    console.error("Spoonacular error:", spoonError);
+                    if (spoonError.response?.status === 402 || spoonError.response?.status === 429) {
+                        setApiLimitReached(true);
+                    }
+                    // Don't set general error - fall through to other APIs
+                }
+            }
+
+            // Other API calls
+            try {
+                [mealDBResults, cocktailResults] = await Promise.all([
+                    getMealDBRecipes(ingredients),
+                    getCocktailDBDrinks(ingredients)
+                ]);
+            } catch (otherError) {
+                console.error("Other API error:", otherError);
+                // Only show error if ALL APIs failed
+                if (spoonacularResults.length === 0) {
+                    setErrorMessage("Failed to fetch recipes from all sources");
+                }
+            }
+
+            const allRecipes = [
+                ...spoonacularResults,
                 ...(mealDBResults || []),
-                ...(cocktailResults || []),
+                ...(cocktailResults || [])
             ];
 
             setAllRecipes(allRecipes);
             setCurrentPage(1);
+
+            // Show warning if only fallback recipes available
+            if (apiLimitReached && allRecipes.length > 0) {
+                setErrorMessage("Using fallback recipes (Spoonacular limit reached)");
+            }
+
         } catch (error) {
             console.error("Search error:", error);
-            setErrorMessage("Failed to search recipes. Please try again.");
+            // Only show error if we got ZERO results
+            if (allRecipes.length === 0) {
+                setErrorMessage("Failed to fetch recipes. Please try again.");
+            }
         } finally {
             setIsSearching(false);
         }
@@ -885,7 +924,7 @@ const UserInput = () => {
                             </div>
                         </DialogContent>
                     </Dialog>
-
+                   
                     {/* Results Section */}
                     {error && !apiLimitReached && allRecipes.length === 0 && (
                         <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again later.</p>

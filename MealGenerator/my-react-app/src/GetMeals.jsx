@@ -48,9 +48,7 @@ const useFetchMeals = () => {
             }
 
             const response = await axios.get("https://api.spoonacular.com/recipes/complexSearch", { params })
-
-            console.log("API Response:", response.data.results);
-            console.log("Processed Results:", results);
+            
             
             // Process results with relevance filtering
             let results = response.data.results
@@ -60,6 +58,10 @@ const useFetchMeals = () => {
                     relevanceScore: calculateRelevance(recipe, ingredients, focusIngredient)
                 }))
                 .sort((a, b) => b.relevanceScore - a.relevanceScore)
+
+            // console.log("API Response:", response.data.results);
+            // console.log("Processed Results:", results);
+            // console.log("Processed Results:", results);
 
             if (focusIngredient) {
                 const focusLower = focusIngredient.toLowerCase()
