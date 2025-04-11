@@ -1,22 +1,20 @@
-"use client"
-
 import { useState, useRef } from "react"
 import axios from "axios"
 
 const useFetchMeals = () => {
     const [recipes, setRecipes] = useState([])
     const [error, setError] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [isSpoonacularLimited, setIsSpoonacularLimited] = useState(false)
     const cache = useRef({})
     const apiKey = import.meta.env.VITE_API_KEY
 
-    const getRecipes = async (ingredients, diet = "", apiParams) => {
-        const key = `${ingredients.join(",").toLowerCase()}_${diet}`
+    const getRecipes = async (ingredients, diet = "", options = {}) => {
+        const { cookableOnly = false, strictMode = false, focusIngredient = null } = options
+        const cacheKey = `${ingredients.join(",").toLowerCase()}_${diet}_${focusIngredient || "all"}`
 
-        if (cache.current[key]) {
-            setRecipes(cache.current[key])
-            setLoading(false)
+        if (cache.current[cacheKey]) {
+            setRecipes(cache.current[cacheKey])
             return
         }
 
@@ -24,71 +22,108 @@ const useFetchMeals = () => {
         setError(null)
 
         try {
-            const response = await axios.get("https://api.spoonacular.com/recipes/complexSearch", {
-                params: {
-                    apiKey,
-                    includeIngredients: ingredients.join(","),
-                    diet: diet || undefined,
-                    addRecipeInformation: true,
-                    fillIngredients: true,
-                    instructionsRequired: true,
-                    number: 20,
-                    sort: "min-missing-ingredients",
-                    ranking: 2,
-                },
-            })
-
-            const results = response.data.results.map((recipe) => ({
-                id: recipe.id,
-                title: recipe.title,
-                image: recipe.image,
-                readyInMinutes: recipe.readyInMinutes,
-                servings: recipe.servings,
-                dishTypes: recipe.dishTypes,
-                summary: recipe.summary,
-                usedIngredients:
-                    recipe.usedIngredients?.map((ing) => ({
-                        id: ing.id,
-                        name: ing.name,
-                        amount: ing.amount,
-                        unit: ing.unit,
-                        image: ing.image,
-                    })) || [],
-                missedIngredients:
-                    recipe.missedIngredients?.map((ing) => ({
-                        id: ing.id,
-                        name: ing.name,
-                        amount: ing.amount,
-                        unit: ing.unit,
-                        image: ing.image,
-                    })) || [],
-            }))
-
-            cache.current[key] = results
-            setRecipes(results)
-            setIsSpoonacularLimited(false) // ✅ Reset the limit flag if successful
-        } catch (error) {
-            if (error.response?.status === 402) {
-                setError("Daily API quota has been reached. Please try again tomorrow.")
-                setIsSpoonacularLimited(true) //Mark Spoonacular as limited
-            } else {
-                setError(error.message || "An error occurred while fetching recipes.")
+            // Base API params
+            const params = {
+                apiKey,
+                includeIngredients: ingredients.join(","),
+                diet: diet || undefined,
+                addRecipeInformation: true,
+                fillIngredients: true,
+                instructionsRequired: true,
+                number: 20,
+                query: focusIngredient || ingredients.join(" "),
+                addRecipeNutrition: true,
+                sort: "max-used-ingredients"
             }
-            console.error("API Error:", error)
+
+            // Enhanced sorting logic
+            if (cookableOnly) {
+                params.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients"
+                params.ranking = strictMode ? 1 : 2
+            }
+
+            if (focusIngredient) {
+                params.includeIngredients = `${focusIngredient},${ingredients.join(",")}`
+                params.sort = "relevance"
+            }
+
+            const response = await axios.get("https://api.spoonacular.com/recipes/complexSearch", { params })
+
+            console.log("API Response:", response.data.results);
+            console.log("Processed Results:", results);
+            
+            // Process results with relevance filtering
+            let results = response.data.results
+                .map(recipe => ({
+                    ...recipe,
+                    // Pass the full recipe object and all needed parameters
+                    relevanceScore: calculateRelevance(recipe, ingredients, focusIngredient)
+                }))
+                .sort((a, b) => b.relevanceScore - a.relevanceScore)
+
+            if (focusIngredient) {
+                const focusLower = focusIngredient.toLowerCase()
+                results = results.filter(recipe => {
+                    const title = recipe.title?.toLowerCase() || ""
+                    const ingredientsText = recipe.extendedIngredients
+                        ?.map(i => i.name?.toLowerCase() || "")
+                        .join(" ") || ""
+
+                    return title.includes(focusLower) || ingredientsText.includes(focusLower)
+                })
+            }
+
+            cache.current[cacheKey] = results
+            setRecipes(results)
+            setIsSpoonacularLimited(false)
+
+        } catch (error) {
+            if (error.response?.status === 402 || error.response?.status === 429) {
+                setError("API limit reached. Using fallback recipes.")
+                setIsSpoonacularLimited(true)
+            } else {
+                setError(error.message || "Failed to fetch recipes")
+            }
         } finally {
             setLoading(false)
         }
     }
 
-    const getCachedRecipes = () => cache.current
+    // Updated relevance calculation
+    const calculateRelevance = (recipe, ingredients, focusIngredient) => {
+        let score = 0
+        const title = recipe.title?.toLowerCase() || ""
+        const firstIngredient = recipe.extendedIngredients?.[0]?.name?.toLowerCase() || ""
+
+        // Boost if focus ingredient is in title
+        if (focusIngredient && title.includes(focusIngredient.toLowerCase())) {
+            score += 50
+        }
+
+        // Boost for used ingredients (Spoonacular specific)
+        if (recipe.usedIngredients) {
+            score += recipe.usedIngredients.length * 10
+        }
+
+        // Penalize for missing ingredients (Spoonacular specific)
+        if (recipe.missedIngredients) {
+            score -= recipe.missedIngredients.length * 5
+        }
+
+        // Boost if focus ingredient is first in ingredients
+        if (focusIngredient && firstIngredient.includes(focusIngredient.toLowerCase())) {
+            score += 30
+        }
+
+        return score
+    }
 
     return {
         recipes,
         error,
         loading,
-        isSpoonacularLimited, //Expose it to the component
-        getRecipes,
-        getCachedRecipes,
+        isSpoonacularLimited,
+        getRecipes
     }
 }
 

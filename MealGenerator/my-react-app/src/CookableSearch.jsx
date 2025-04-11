@@ -10,14 +10,14 @@ const CookableSearch = ({onSearch, ingredients = [], selectedDiet, isSearching =
     const [focusSearch, setFocusSearch] = useState(false)
 
     const handleSearchClick = () => {
-        const searchOptions = {
+        onSearch({
             cookableOnly,
             strictMode,
             focusSearch,
-            focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0].toLowerCase() : null
-        };
-        onSearch(searchOptions);
+            focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0] : null
+        })
     }
+
 
     return (
         <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-4 space-y-4">

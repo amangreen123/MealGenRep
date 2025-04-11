@@ -432,130 +432,25 @@ const UserInput = () => {
         setApiLimitReached(false);
         setFocusSearch(focusSearch);
         setFocusIngredient(focusIngredient || "");
+        setErrorMessage("");
 
         try {
-            let spoonacularRecipes = [];
-            let mealDBRecipes = [];
-            let cocktailRecipes = [];
+            // Make API calls
+            const [spoonacularResults, mealDBResults, cocktailResults] = await Promise.all([
+                !apiLimitReached
+                    ? getRecipes(ingredients, selectedDiet, { cookableOnly, strictMode, focusIngredient })
+                    : Promise.resolve([]),
+                getMealDBRecipes(ingredients),
+                getCocktailDBDrinks(ingredients),
+            ]);
 
-            // Only try Spoonacular if not limited
-            if (!apiLimitReached) {
-                try {
-                    const apiParams = {
-                        includeIngredients: ingredients.join(","),
-                        diet: selectedDiet || undefined,
-                        addRecipeInformation: true,
-                        fillIngredients: true,
-                        instructionsRequired: true,
-                        number: 20,
-                    };
+            // Combine results
+            let allRecipes = [
+                ...(spoonacularResults || []),
+                ...(mealDBResults || []),
+                ...(cocktailResults || []),
+            ];
 
-                    if (cookableOnly) {
-                        apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients";
-                        apiParams.ranking = strictMode ? 1 : 2;
-                    }
-
-                    spoonacularRecipes = await getRecipes(ingredients, selectedDiet, apiParams);
-                } catch (error) {
-                    const errorMsg = String(error);
-                    if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
-                        setApiLimitReached(true);
-                        setIsSpoonacularLimited(true);
-                    } else {
-                        console.error("Spoonacular error:", error);
-                    }
-                }
-            }
-
-            try {
-                const [mealResults, cocktailResults] = await Promise.all([
-                    getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients),
-                ]);
-                mealDBRecipes = mealResults || [];
-                cocktailRecipes = cocktailResults || [];
-            } catch (error) {
-                console.error("Error fetching from MealDB/CocktailDB:", error);
-            }
-
-            // Combine all results
-            let allRecipes = [...spoonacularRecipes, ...mealDBRecipes, ...cocktailRecipes];
-
-            // Apply strict filtering if needed
-            if (cookableOnly) {
-                const filteredRecipes = strictMode
-                    ? filterExactMatches(allRecipes, ingredients)
-                    : filterCookableRecipes(allRecipes, ingredients);
-
-                if (filteredRecipes.length === 0) {
-                    setErrorMessage(
-                        strictMode
-                            ? "No recipes with EXACT ingredient matches. Try relaxing the strict mode."
-                            : "No fully cookable recipes found. Showing all matches instead.",
-                    );
-                    allRecipes = allRecipes.slice(0, 10); // Show limited results
-                } else {
-                    allRecipes = filteredRecipes;
-                }
-            }
-
-            // Apply focus filtering if needed
-            if (focusSearch && ingredients.length > 0) {
-                const mainIngredient = focusIngredient || ingredients[0].toLowerCase().trim();
-
-                // First, try to find recipes that have the ingredient in the title
-                const focusedRecipes = allRecipes.filter(recipe => {
-                    const title = (recipe.title || recipe.strMeal || recipe.strDrink || "").toLowerCase();
-                    return title.includes(mainIngredient);
-                });
-
-                if (focusedRecipes.length > 0) {
-                    allRecipes = focusedRecipes;
-                } else {
-                    // If no title matches, try to find recipes where it's a main ingredient
-                    const backupRecipes = allRecipes.filter(recipe => {
-                        // Get the first few ingredients (assuming first ingredients are more important)
-                        let firstIngredients = [];
-
-                        if (recipe.strMeal) {
-                            // MealDB format - check first 3 ingredients
-                            for (let i = 1; i <= 3; i++) {
-                                const ing = recipe[`strIngredient${i}`];
-                                if (ing && ing.trim()) {
-                                    firstIngredients.push(ing.toLowerCase());
-                                }
-                            }
-                        } else if (recipe.strDrink) {
-                            // CocktailDB format - check first 3 ingredients
-                            for (let i = 1; i <= 3; i++) {
-                                const ing = recipe[`strIngredient${i}`];
-                                if (ing && ing.trim()) {
-                                    firstIngredients.push(ing.toLowerCase());
-                                }
-                            }
-                        } else if (recipe.extendedIngredients && recipe.extendedIngredients.length > 0) {
-                            // Spoonacular format - check first 3 ingredients
-                            firstIngredients = recipe.extendedIngredients
-                                .slice(0, 3)
-                                .map(ing => (ing.name || ing.original || "").toLowerCase());
-                        }
-
-                        // Check if any of the first ingredients match
-                        return firstIngredients.some(ing =>
-                            ing.includes(mainIngredient) || mainIngredient.includes(ing)
-                        );
-                    });
-
-                    if (backupRecipes.length > 0) {
-                        allRecipes = backupRecipes;
-                    } else {
-                        setErrorMessage(
-                            `No recipes found featuring "${mainIngredient}" as a main ingredient. ` +
-                            `Showing other recipes with your ingredients instead.`
-                        );
-                    }
-                }
-            }
             setAllRecipes(allRecipes);
             setCurrentPage(1);
         } catch (error) {
@@ -564,175 +459,7 @@ const UserInput = () => {
         } finally {
             setIsSearching(false);
         }
-    }
-
-    //Recipe to test
-    //Olive Oil, Onion, Carrots, Fish Stock, Water, Potatoes, Bay Leaf, Cod, Salmon
-    const handleCookableSearch = async ({ cookableOnly, strictMode, focusSearch, focusIngredient }) => {
-        if (ingredients.length === 0) return
-
-        setIsSearching(true)
-        setApiLimitReached(false)
-
-        // Set focus search state
-        setFocusSearch(focusSearch)
-        const mainIngredient = focusSearch ? ingredients[0].toLowerCase() : ""
-        setFocusIngredient(mainIngredient)
-
-        try {
-            // Common API parameters
-            const apiParams = {
-                includeIngredients: ingredients.join(","),
-                diet: selectedDiet || undefined,
-                addRecipeInformation: true,
-                fillIngredients: true,
-                instructionsRequired: true,
-                number: 20,
-            }
-
-            // Adjust parameters based on search mode
-            if (cookableOnly) {
-                apiParams.sort = strictMode ? "max-used-ingredients" : "min-missing-ingredients"
-                apiParams.ranking = strictMode ? 1 : 2
-            }
-
-            // Make API calls
-            const [spoonacularResults, mealDBResults, cocktailResults] = await Promise.all([
-                apiLimitReached ? Promise.resolve([]) : getRecipes(ingredients, selectedDiet, apiParams),
-                getMealDBRecipes(ingredients),
-                getCocktailDBDrinks(ingredients),
-            ])
-
-            // Combine all results
-            let allRecipes = [...(spoonacularResults || []), ...(mealDBResults || []), ...(cocktailResults || [])]
-
-            // Apply strict filtering if needed
-            if (cookableOnly) {
-                const filteredRecipes = strictMode
-                    ? filterExactMatches(allRecipes, ingredients)
-                    : filterCookableRecipes(allRecipes, ingredients)
-
-                if (filteredRecipes.length === 0) {
-                    setErrorMessage(
-                        strictMode
-                            ? "No recipes with EXACT ingredient matches. Try relaxing the strict mode."
-                            : "No fully cookable recipes found. Showing all matches instead.",
-                    )
-                    allRecipes = allRecipes.slice(0, 10) // Show limited results
-                } else {
-                    allRecipes = filteredRecipes
-                }
-            }
-
-            // Apply focus filtering if needed
-            if (focusSearch && ingredients.length > 0) {
-                const mainIngredient = ingredients[0].toLowerCase().trim();
-                console.log("Focus searching for:", mainIngredient);
-
-                // Store original recipes before filtering
-                const originalRecipes = [...allRecipes];
-
-                // Count how many matched by title for debugging
-                let titleMatches = 0;
-
-                // First, try to find recipes that have the ingredient in the title
-                const focusedRecipes = allRecipes.filter(recipe => {
-                    const title = (recipe.title || recipe.strMeal || recipe.strDrink || "").toLowerCase();
-
-                    // Check if the ingredient appears in the title
-                    if (title.includes(mainIngredient)) {
-                        titleMatches++;
-                        return true;
-                    }
-
-                    return false;
-                });
-
-                console.log(`Found ${titleMatches} recipes with "${mainIngredient}" in the title`);
-
-                if (focusedRecipes.length > 0) {
-                    // We found recipes with the ingredient in the title!
-                    allRecipes = focusedRecipes;
-                } else {
-                    // No matches in title, try looking for it as a primary ingredient
-                    console.log("No title matches, checking ingredients instead");
-
-                    // This is a simplified backup approach to find recipes where the ingredient is prominent
-                    const backupRecipes = originalRecipes.filter(recipe => {
-                        // Get the first few ingredients (assuming first ingredients are more important)
-                        let firstIngredients = [];
-
-                        if (recipe.strMeal) {
-                            // MealDB format - check first 3 ingredients
-                            for (let i = 1; i <= 3; i++) {
-                                const ing = recipe[`strIngredient${i}`];
-                                if (ing && ing.trim()) {
-                                    firstIngredients.push(ing.toLowerCase());
-                                }
-                            }
-                        } else if (recipe.strDrink) {
-                            // CocktailDB format - check first 3 ingredients
-                            for (let i = 1; i <= 3; i++) {
-                                const ing = recipe[`strIngredient${i}`];
-                                if (ing && ing.trim()) {
-                                    firstIngredients.push(ing.toLowerCase());
-                                }
-                            }
-                        } else if (recipe.extendedIngredients && recipe.extendedIngredients.length > 0) {
-                            // Spoonacular format - check first 3 ingredients
-                            firstIngredients = recipe.extendedIngredients
-                                .slice(0, 3)
-                                .map(ing => (ing.name || ing.original || "").toLowerCase());
-                        }
-
-                        // Check if any of the first ingredients match
-                        return firstIngredients.some(ing =>
-                            ing.includes(mainIngredient) || mainIngredient.includes(ing)
-                        );
-                    });
-
-                    console.log(`Found ${backupRecipes.length} recipes with "${mainIngredient}" as a main ingredient`);
-
-                    if (backupRecipes.length > 0) {
-                        allRecipes = backupRecipes;
-                    } else {
-                        // No matches at all
-                        setErrorMessage(
-                            `No recipes found featuring "${mainIngredient}" as a main ingredient. ` +
-                            `Showing other recipes with your ingredients instead.`
-                        );
-
-                        // Show the first 10 original recipes as fallback
-                        allRecipes = originalRecipes.slice(0, 10);
-                    }
-                }
-            }
-            
-            setAllRecipes(allRecipes)
-            setCurrentPage(1)
-            
-        } catch (error) {
-            console.error("Search error:", error)
-            setErrorMessage("Failed to search recipes. Please try again.")
-        } finally {
-            setIsSearching(false)
-        }
-    }
-
-    // Strict exact matching filter
-    const filterExactMatches = (recipes, userIngredients) => {
-        const userIngSet = new Set(userIngredients.map((ing) => ing.toLowerCase().trim()))
-
-        return recipes.filter((recipe) => {
-            const recipeIngredients = getRecipeIngredients(recipe)
-            return recipeIngredients.every((ing) => userIngSet.has(ing.toLowerCase().trim()))
-        })
-    }
-
-    // Flexible cookable filter
-    const filterCookableRecipes = (recipes, userIngredients) => {
-        return recipes.filter((recipe) => isRecipeCookable(recipe, userIngredients))
-    }
+    };
 
     // Helper to extract ingredients from any recipe format
     const getRecipeIngredients = (recipe) => {
@@ -777,82 +504,7 @@ const UserInput = () => {
 
         return ingredient
     }
-
-    const isRecipeCookable = (recipe, userIngredients) => {
-        //const result = logIngredientMatching(recipe, userIngredients);
-
-        const normalizedUserIngredients = userIngredients.map((ing) => getBaseIngredient(ing).toLowerCase().trim())
-
-        const recipeIngredients = []
-
-        if (recipe.strIngredient1) {
-            for (let i = 1; i <= 20; i++) {
-                const ing = recipe[`strIngredient${i}`]
-                if (ing && ing.trim() !== "") {
-                    const normalized = getBaseIngredient(ing)
-                    if (normalized) recipeIngredients.push(normalized)
-                }
-            }
-        } else if (recipe.extendedIngredients) {
-            recipe.extendedIngredients.forEach((ing) => {
-                if (ing.name) {
-                    const normalized = getBaseIngredient(ing.name)
-                    if (normalized) recipeIngredients.push(normalized)
-                }
-            })
-        }
-
-        return recipeIngredients.every((recipeIng) =>
-            normalizedUserIngredients.some((userIng) => userIng.includes(recipeIng) || recipeIng.includes(userIng)),
-        )
-    }
-    const logIngredientMatching = (recipe, userIngredients) => {
-        console.group(`Checking recipe: ${recipe.strMeal || recipe.title}`)
-
-        console.log("Raw user ingredients:", userIngredients)
-        const normalizedUserIngredients = userIngredients.map((ing) => {
-            const normalized = getBaseIngredient(ing)
-            console.log(`User ingredient: "${ing}" → "${normalized}"`)
-            return normalized.toLowerCase().trim()
-        })
-
-        console.log("Recipe ingredients:")
-        const recipeIngredients = []
-
-        // TheMealDB format
-        if (recipe.strIngredient1) {
-            for (let i = 1; i <= 20; i++) {
-                const ing = recipe[`strIngredient${i}`]
-                if (ing && ing.trim() !== "") {
-                    const normalized = getBaseIngredient(ing)
-                    recipeIngredients.push(normalized)
-                    console.log(`Ingredient ${i}: "${ing}" → "${normalized}"`)
-                }
-            }
-        }
-        // Spoonacular format
-        else if (recipe.extendedIngredients) {
-            recipe.extendedIngredients.forEach((ing) => {
-                if (ing.name) {
-                    const normalized = getBaseIngredient(ing.name)
-                    recipeIngredients.push(normalized)
-                    console.log(`Ingredient: "${ing.name}" → "${normalized}"`)
-                }
-            })
-        }
-
-        console.log("Normalized user ingredients:", normalizedUserIngredients)
-        console.log("Normalized recipe ingredients:", recipeIngredients)
-
-        const isCookable = recipeIngredients.every((recipeIng) =>
-            normalizedUserIngredients.some((userIng) => userIng.includes(recipeIng) || recipeIng.includes(userIng)),
-        )
-
-        console.log(`Result: ${isCookable ? "✅ Cookable" : "❌ Missing ingredients"}`)
-        console.groupEnd()
-
-        return isCookable
-    }
+    
 
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
@@ -906,7 +558,10 @@ const UserInput = () => {
                 console.error("MealDB error:", error);
             }
 
-            const combinedRecipes = [...mealDBRecipes, ...spoonacularRecipes];
+            const combinedRecipes = [
+                ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
+                ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : [])
+            ];            
             setAllRecipes(combinedRecipes);
             setCurrentPage(1);
         } catch (error) {
@@ -1174,7 +829,7 @@ const UserInput = () => {
                     
                     {/* CookableSearch Component */}
                     <CookableSearch
-                        onSearch={handleSearch}
+                        onSearch={handleSearch} 
                         ingredients={ingredients}
                         selectedDiet={selectedDiet}
                         isSearching={isSearching}
@@ -1235,6 +890,7 @@ const UserInput = () => {
                     {error && !apiLimitReached && allRecipes.length === 0 && (
                         <p className="text-red-500 text-center">Error: Unable to fetch recipes. Please try again later.</p>
                     )}
+                    
                     {allRecipes.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
