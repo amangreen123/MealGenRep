@@ -13,6 +13,7 @@ import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 import RecipeNavigator from "@/RecipeNavigator.jsx";
 import {convertToGrams} from "@/nutrition.js"
+import {batchGaladrielResponse, getGaladrielResponse} from "@/getGaladrielResponse.jsx";
 
 const MealDBRecipeDetails = () => {
 
@@ -75,7 +76,6 @@ const MealDBRecipeDetails = () => {
 
 
     useEffect(() => {
-        // Inside the fetchRecipeData function:
         const fetchRecipeData = async () => {
             if (!id) {
                 setError("Invalid recipe ID.");
@@ -91,68 +91,87 @@ const MealDBRecipeDetails = () => {
                     const recipeData = data.meals[0];
                     setRecipeDetails(recipeData);
                     const ingredients = getIngredients(recipeData);
-                    const macrosData = {};
-
-                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
-
-                    for (const item of ingredients) {
-                        try {
-                            const macroData = await getUSDAInfo(item.ingredient);
-
-                            if (macroData) {
-                                macrosData[item.ingredient] = macroData;
-                                const quantityInGrams = convertToGrams(item.measure);
-                                const standardServingInGrams = macroData.servingSize;
-
-                                // Validate serving ratio
-                                let servingRatio = quantityInGrams / standardServingInGrams;
-                                if (servingRatio > 100 || servingRatio < 0.01) {
-                                    console.warn(`Unusual serving ratio for ${item.ingredient}: ${servingRatio}`);
-                                    servingRatio = 1; // Fallback to 1:1 ratio
+                    
+                    const ingredientNames = ingredients.map(item => item.ingredient);
+                    const batchValidated = await batchGaladrielResponse(ingredientNames, "validate");
+                    
+                    const nutritionPromises = ingredients.map(async (item) => {
+                        try{
+                            let macroData = await  getUSDAInfo(item.ingredient);
+                            
+                            if(!macroData){
+                               
+                                const aiResponse = await getGaladrielResponse(
+                                    `Provide nutrition for ${item.ingredient}: ${item.measure} in JSON format`,
+                                    "summary"
+                                );
+                                
+                                try{
+                                    macroData = JSON.parse(aiResponse);
+                                    macroData.source = "AI";
+                                } catch (e) {
+                                    console.warn("Failed to parse AI nutrition response", e);
                                 }
-
-                                // Accumulate macros
-                                totalProtein += (macroData.protein || 0) * servingRatio;
-                                totalFat += (macroData.fat || 0) * servingRatio;
-                                totalCarbs += (macroData.carbs || 0) * servingRatio;
-
-                                console.log(`Nutrition for ${item.ingredient}:`, {
-                                    measure: item.measure,
-                                    convertedGrams: quantityInGrams,
-                                    usdaServing: standardServingInGrams,
-                                    ratio: servingRatio.toFixed(2),
-                                    protein: (macroData.protein * servingRatio).toFixed(1),
-                                    fat: (macroData.fat * servingRatio).toFixed(1),
-                                    carbs: (macroData.carbs * servingRatio).toFixed(1)
-                                });
-                            } else {
-                                console.warn(`Missing USDA data for: ${item.ingredient}`);
                             }
                         } catch (error) {
                             console.error(`Error processing ${item.ingredient}:`, error);
+                            return {
+                                ingredient: item.ingredient,
+                                measure: item.measure,
+                                macroData: {
+                                    calories: 0,
+                                    protein: 0,
+                                    fat: 0,
+                                    carbs: 0,
+                                    servingSize: 100,
+                                    source: "error"
+                                }
+                            };
                         }
+                    });
+                    
+                    const nutritionResults = await Promise.all(nutritionPromises);
+                    const macrosData = {};
+                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
+                    
+                    nutritionResults.forEach(result =>{
+                        const {ingredient, measure, macroData} = result
+                        macrosData[ingredient] = macroData;
+                        
+                        const quantityInGrams = convertToGrams(measure);
+                        const standardServingInGrams = macroData.servingSize || 100;
+                        const servingRatio = quantityInGrams / standardServingInGrams;
+
+                        totalProtein += (macroData.protein || 0) * servingRatio;
+                        totalFat += (macroData.fat || 0) * servingRatio;
+                        totalCarbs += (macroData.carbs || 0) * servingRatio;
+                        totalCals += (macroData.calories || 0) * servingRatio;
+                    })
+                    
+                    if(totalCals <= 0){
+                        console.log("we have no calories data, calculate from macros")
+                        totalCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
                     }
-
-                    // Calculate calories from macros if missing
-                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
-
-                    setMacros(macrosData);
+                    
+                    setMacros(macrosData)
                     setTotalNutrition({
-                        calories: Math.round(calculatedCals),
+                        calories: Math.round(totalCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),
                     });
+                    
                 } else {
                     setError("Recipe details not found.");
                 }
+            
             } catch (error) {
                 setError(error.message || "Error fetching recipe details");
             } finally {
                 setLoading(false);
             }
         }
-        fetchRecipeData()
+    
     }, [id])
 
     if (loading) {
