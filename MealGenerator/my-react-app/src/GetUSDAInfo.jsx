@@ -62,7 +62,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
         } else {
             const aiResponse = await getGaladrielResponse(
                 `Provide nutrition facts for ${normalizedIngredient} per 100g in JSON format: {calories, protein, fat, carbs}`,
-                "summary"
+                "nutrition"
             );
             
             try{

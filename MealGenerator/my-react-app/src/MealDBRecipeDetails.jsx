@@ -103,7 +103,7 @@ const MealDBRecipeDetails = () => {
                                
                                 const aiResponse = await getGaladrielResponse(
                                     `Provide nutrition for ${item.ingredient}: ${item.measure} in JSON format`,
-                                    "summary"
+                                    "nutrition"
                                 );
                                 
                                 try{

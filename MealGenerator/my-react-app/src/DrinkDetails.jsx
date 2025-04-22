@@ -101,90 +101,131 @@ const DrinkDetails = () => {
 
     useEffect(() => {
         const fetchDrinkData = async () => {
-
             const drinkId = id || (state?.drink?.idDrink);
 
             if (!drinkId) {
-                setError("Invalid drink ID.")
-                setLoading(false)
-                return
+                setError("Invalid drink ID.");
+                setLoading(false);
+                return;
             }
 
             try {
-                setLoading(true)
-
-                const data = await getDrinkDetails(id)
+                setLoading(true);
+                const data = await getDrinkDetails(id);
 
                 if (data?.drinks?.[0]) {
-                    const drinkData = data.drinks[0]
-                    setDrinkDetails(drinkData)
+                    const drinkData = data.drinks[0];
+                    setDrinkDetails(drinkData);
+                    const ingredientsList = getIngredients(drinkData);
+                    setIngredients(ingredientsList);
 
-                    const ingredientsList = getIngredients(drinkData)
-                    setIngredients(ingredientsList)
+                    // Batch process ingredients
+                    const nutritionPromises = ingredientsList.map(async (item) => {
+                        try {
+                            let macroData = await getUSDAInfo(item.ingredient);
 
-                    const macrosData = {}
-                    let totalCals = 0,
-                        totalProtein = 0,
-                        totalFat = 0,
-                        totalCarbs = 0,
-                        totalAlcohol = 0
-
-                    for (const item of ingredientsList) {
-
-                        const macroData = await getUSDAInfo(item.ingredient)
-
-                        if (macroData) {
-                            macrosData[item.ingredient] = macroData
-                            totalCals += macroData.calories || 0
-                            totalProtein += macroData.protein || 0
-                            totalFat += macroData.fat || 0
-                            totalCarbs += macroData.carbs || 0
-
-
-                            if(macroData.isAlcoholic){
-                                const expectedCals = ((macroData.protein || 0) * 4) +
-                                    ((macroData.carbs || 0) * 4) +
-                                    ((macroData.fat || 0) * 9)
-
-                                const actualCals = macroData.calories || 0
-
-                                if(actualCals > expectedCals + 10) {
-                                    const alcoholCals = actualCals - expectedCals
-                                    const alcoholGrams = alcoholCals / 7
-
-                                    totalAlcohol += alcoholGrams
-                                    macroData[item.ingredient].alcohol = alcoholGrams
+                            // AI fallback for missing data
+                            if (!macroData) {
+                                const aiResponse = await getGaladrielResponse(
+                                    `Provide nutrition for ${item.ingredient} (alcoholic: ${drinkData.strAlcoholic === "Alcoholic"}): ${item.measure} in JSON`,
+                                    " nutrition"
+                                );
+                                try {
+                                    macroData = JSON.parse(aiResponse);
+                                    macroData.source = "AI";
+                                } catch (e) {
+                                    console.warn("Failed to parse AI drink nutrition", e);
                                 }
                             }
 
-                            totalCals += macroData.calories || 0
+                            return {
+                                ingredient: item.ingredient,
+                                measure: item.measure,
+                                macroData: macroData || {
+                                    calories: 0,
+                                    protein: 0,
+                                    fat: 0,
+                                    carbs: 0,
+                                    servingSize: 100,
+                                    source: "unknown"
+                                },
+                                isAlcoholic: drinkData.strAlcoholic === "Alcoholic"
+                            };
+                        } catch (error) {
+                            console.error(`Error processing ${item.ingredient}:`, error);
+                            return {
+                                ingredient: item.ingredient,
+                                measure: item.measure,
+                                macroData: {
+                                    calories: 0,
+                                    protein: 0,
+                                    fat: 0,
+                                    carbs: 0,
+                                    servingSize: 100,
+                                    source: "error"
+                                },
+                                isAlcoholic: drinkData.strAlcoholic === "Alcoholic"
+                            };
                         }
-                    }
+                    });
 
-                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9) + (totalAlcohol * 7)
+                    const nutritionResults = await Promise.all(nutritionPromises);
+                    const macrosData = {};
+                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0, totalAlcohol = 0;
 
+                    nutritionResults.forEach(result => {
+                        const { ingredient, measure, macroData, isAlcoholic } = result;
+                        macrosData[ingredient] = macroData;
 
+                        const quantityInGrams = convertToGrams(measure);
+                        const standardServingInGrams = macroData.servingSize || 100;
+                        const servingRatio = quantityInGrams / standardServingInGrams;
 
-                    setMacros(macrosData)
+                        // Calculate standard macros
+                        totalProtein += (macroData.protein || 0) * servingRatio;
+                        totalFat += (macroData.fat || 0) * servingRatio;
+                        totalCarbs += (macroData.carbs || 0) * servingRatio;
 
+                        // Special handling for alcoholic ingredients
+                        if (isAlcoholic) {
+                            const expectedCals = ((macroData.protein || 0) * 4) +
+                                ((macroData.carbs || 0) * 4) +
+                                ((macroData.fat || 0) * 9);
+                            const actualCals = (macroData.calories || 0) * servingRatio;
+
+                            if (actualCals > expectedCals + 10) {
+                                const alcoholCals = actualCals - expectedCals;
+                                const alcoholGrams = alcoholCals / 7;
+                                totalAlcohol += alcoholGrams;
+                                macrosData[ingredient].alcohol = alcoholGrams;
+                            }
+                        }
+
+                        totalCals += (macroData.calories || 0) * servingRatio;
+                    });
+
+                    // Final calculations
+                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9) + (totalAlcohol * 7);
+
+                    setMacros(macrosData);
                     setTotalNutrition({
-                        calories: Math.round(totalCals),
-                        calculatedCalories: Math.round(calculatedCals),
+                        calories: Math.round(totalCals > 0 ? totalCals : calculatedCals),
                         protein: Math.round(totalProtein),
                         fat: Math.round(totalFat),
                         carbs: Math.round(totalCarbs),
                         alcohol: Math.round(totalAlcohol)
-                    })
+                    });
                 } else {
-                    setError("Drink details not found.")
+                    setError("Drink details not found.");
                 }
             } catch (error) {
-                setError(error.message || "An error occurred while fetching drink details")
+                setError(error.message || "An error occurred while fetching drink details");
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
         fetchDrinkData()
+        
     }, [id,state])
 
 

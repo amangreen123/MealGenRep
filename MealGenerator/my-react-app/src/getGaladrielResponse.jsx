@@ -14,47 +14,33 @@ const openai = new OpenAI({
 
 // Pre-defined prompts (optimized for token efficiency)
 const PROMPTS = {
-    validate: `You are an ultra-permissive food ingredient validator. Your rules:
-
-1. ACCEPT ALL:
-   - Any edible item (plant, animal, mineral-based foods)
-   - All forms of alcohol(liquors, beers, wines) - Remember Rum is is liquors
-   - Any spelling variation that could reasonably represent food
-   - Non-English food names (e.g. "shiitake", "quinoa")
-   - Brand names when clearly food (e.g. "Tabasco", "Oreo")
-
-2. CORRECT GENTLY:
-   - Only fix obvious single-character typos:
-     "pinaple" → "pineapple"
-     "tomatto" → "tomato"
-   - Preserve regional spelling differences:
-     "eggplant" vs "aubergine"
-     "cilantro" vs "coriander"
-
-3. REJECT ONLY:
-   - Clearly non-food items (e.g. "wood", "plastic")
-   - Dangerous substances (e.g. "poison", "bleach")
-   - Profanity/slurs (e.g. explicit bad words)
-
-4. OUTPUT FORMAT:
-   - Return validated ingredient exactly as phrased if valid
-   - For typos: return corrected version
-   - For rejects: "Error: [item] is not a food ingredient"
+    validate: `Validate food ingredients per these rules:
+1. Accept: Edible items, alcohol, brand foods, non-English names
+2. Correct: Only obvious typos (pinaple→pineapple)
+3. Reject: Non-foods, dangerous items, profanity
+4. Output: Return as-is if valid, corrected if typo, or "Error: [item] not food"
 
 Examples:
-"appl" → "apple"
-"rum" → "rum"
-"whiskey" → "whiskey"
-"rock" → "Error: rock is not a food ingredient"
-"pinaple" → "pineapple"`,
+appl→apple
+rum→rum
+whiskey→whiskey
+rock→Error: rock is not food
+pinaple→pineapple`,
 
-    summary: `Generate 2-sentence recipe summaries highlighting:
-- Key flavor profiles
-- Cooking techniques
-- Cultural origins (when relevant)
-Keep under 30 words. Examples:
-"Classic Italian pasta with garlic and olive oil. Ready in 15 minutes."
-"Tropical cocktail blending rum, pineapple and coconut. Served chilled with a cherry garnish."`
+    summary: `Brief recipe summary (2 sentences max):
+- Key flavors
+- Cooking method
+- Cultural origin if relevant
+Example: "Classic Italian pasta with garlic oil. Ready in 15 minutes."`,
+
+    nutrition: `ONLY respond with this JSON format:
+{
+"cal":number,"pro":number,"fat":number,"carb":number,
+"size":number,"unit":"g"|"ml"
+}
+Include alcohol calories when relevant. Examples:
+{"cal":50,"pro":2,"fat":1,"carb":5,"size":100,"unit":"g"}
+{"cal":150,"pro":0,"fat":0,"carb":10,"size":30,"unit":"ml"}`
 };
 
 // Cache setup with 24-hour expiry
@@ -100,8 +86,6 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
     if (cachedResponse) return cachedResponse;
 
     try {
-
-        
         
         // Dynamic model selection
         const model = mode === "validate" ? "gpt-3.5-turbo" : "gpt-4o";
@@ -127,8 +111,7 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
             || (mode === "validate" ? message : "Description unavailable");
 
         //console.log("Raw AI Response:", response);
-
-
+        
         localStorage.setItem(cacheKey, JSON.stringify({
             response,
             timestamp: Date.now()
