@@ -13,7 +13,8 @@ import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 import RecipeNavigator from "@/RecipeNavigator.jsx";
 import {convertToGrams} from "@/nutrition.js"
-import {batchGaladrielResponse, getGaladrielResponse} from "@/getGaladrielResponse.jsx";
+import {batchGaladrielResponse, getGaladrielResponse,clearNutritionCache} from "@/getGaladrielResponse.jsx";
+
 
 const MealDBRecipeDetails = () => {
 
@@ -75,6 +76,9 @@ const MealDBRecipeDetails = () => {
     };
 
 
+    useEffect(() => {
+        clearNutritionCache(); // optional: only run when debugging
+    }, []);
    
     useEffect(() => {
         const fetchRecipeData = async () => {
@@ -443,6 +447,9 @@ const MealDBRecipeDetails = () => {
                     <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipeDetails} />
                 )}
             </div>
+            {/*<Button variant="destructive" onClick={clearNutritionCache}>*/}
+            {/*    Clear Nutrition Cache*/}
+            {/*</Button>*/}
         </div>
     )
 }

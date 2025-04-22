@@ -14,6 +14,7 @@ import { getUSDAInfo } from "./GetUSDAInfo.jsx"
 import RecipeNavigator from "./RecipeNavigator.jsx";
 
 import {convertToGrams} from "@/nutrition.js";
+import { clearNutritionCache } from "@/getGaladrielResponse.jsx";
 
 const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
    
@@ -503,6 +504,9 @@ const DrinkDetails = () => {
                     />
                 )}
             </div>
+            {/*<Button variant="destructive" onClick={clearNutritionCache}>*/}
+            {/*    Clear Nutrition Cache*/}
+            {/*</Button>*/}
         </div>
     )
 }

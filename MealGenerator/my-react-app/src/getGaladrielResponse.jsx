@@ -60,6 +60,20 @@ export const clearValidationCache = () => {
 
     //console.log('Validation cache cleared');
 };
+
+export const clearNutritionCache = () => {
+    Object.keys(localStorage)
+        .filter(key =>
+            key.startsWith('ai-nutrition-') ||
+            key.includes('nutrition') ||
+            key.includes('ai-nutrition') // covers fallback keys too
+        )
+        .forEach(key => localStorage.removeItem(key));
+
+    console.log("🧹 Cleared all AI nutrition cache.");
+};
+
+
 export const getGaladrielResponse = async (message, mode = "validate") => {
     // Client-side pre-validation
     //console.group(`🔍 Validation Request for: ${message}`);
