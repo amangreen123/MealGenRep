@@ -13,6 +13,8 @@ import getDrinkDetails from "./getDrinkDetails.jsx"
 import { getUSDAInfo } from "./GetUSDAInfo.jsx"
 import RecipeNavigator from "./RecipeNavigator.jsx";
 
+import {convertToGrams} from "@/nutrition.js";
+
 const DrinkIngredientDetails = ({ ingredient, measure, usdaNutrients }) => {
    
     const drinkData = usdaNutrients[ingredient]
@@ -126,9 +128,13 @@ const DrinkDetails = () => {
 
                             // AI fallback for missing data
                             if (!macroData) {
+                                // const aiResponse = await getGaladrielResponse(
+                                //     `Provide nutrition for ${item.ingredient} (alcoholic: ${drinkData.strAlcoholic === "Alcoholic"}): ${item.measure} in JSON`,
+                                //     " nutrition"
+                                // );
                                 const aiResponse = await getGaladrielResponse(
-                                    `Provide nutrition for ${item.ingredient} (alcoholic: ${drinkData.strAlcoholic === "Alcoholic"}): ${item.measure} in JSON`,
-                                    " nutrition"
+                                    `Provide nutrition facts for ${item.ingredient} per 100${item.measure.toLowerCase().includes('ml') ? 'ml' : 'g'} in JSON format: {cal, pro, fat, carb, size, unit}`,
+                                    "nutrition"
                                 );
                                 try {
                                     macroData = JSON.parse(aiResponse);
@@ -152,7 +158,7 @@ const DrinkDetails = () => {
                                 isAlcoholic: drinkData.strAlcoholic === "Alcoholic"
                             };
                         } catch (error) {
-                            console.error(`Error processing ${item.ingredient}:`, error);
+                            //console.error(`Error processing ${item.ingredient}:`, error);
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
@@ -177,31 +183,32 @@ const DrinkDetails = () => {
                         const { ingredient, measure, macroData, isAlcoholic } = result;
                         macrosData[ingredient] = macroData;
 
-                        const quantityInGrams = convertToGrams(measure);
-                        const standardServingInGrams = macroData.servingSize || 100;
-                        const servingRatio = quantityInGrams / standardServingInGrams;
+                        const grams = convertToGrams(measure) || 0;
+                        const servingSize = macroData.servingSize || 100;
+                        const ratio = grams / servingSize;
 
-                        // Calculate standard macros
-                        totalProtein += (macroData.protein || 0) * servingRatio;
-                        totalFat += (macroData.fat || 0) * servingRatio;
-                        totalCarbs += (macroData.carbs || 0) * servingRatio;
+                        totalProtein += (macroData.protein || 0) * ratio;
+                        totalFat += (macroData.fat || 0) * ratio;
+                        totalCarbs += (macroData.carbs || 0) * ratio;
 
-                        // Special handling for alcoholic ingredients
+                        // Alcohol: calories that exceed the known macros
                         if (isAlcoholic) {
-                            const expectedCals = ((macroData.protein || 0) * 4) +
-                                ((macroData.carbs || 0) * 4) +
-                                ((macroData.fat || 0) * 9);
-                            const actualCals = (macroData.calories || 0) * servingRatio;
+                            const expectedMacroCals =
+                                (macroData.protein || 0) * 4 +
+                                (macroData.carbs || 0) * 4 +
+                                (macroData.fat || 0) * 9;
 
-                            if (actualCals > expectedCals + 10) {
-                                const alcoholCals = actualCals - expectedCals;
+                            const actualCals = (macroData.calories || 0) * ratio;
+                            const alcoholCals = actualCals - expectedMacroCals;
+
+                            if (alcoholCals > 10) {
                                 const alcoholGrams = alcoholCals / 7;
                                 totalAlcohol += alcoholGrams;
                                 macrosData[ingredient].alcohol = alcoholGrams;
                             }
                         }
 
-                        totalCals += (macroData.calories || 0) * servingRatio;
+                        totalCals += (macroData.calories || 0) * ratio;
                     });
 
                     // Final calculations
@@ -215,6 +222,7 @@ const DrinkDetails = () => {
                         carbs: Math.round(totalCarbs),
                         alcohol: Math.round(totalAlcohol)
                     });
+                    
                 } else {
                     setError("Drink details not found.");
                 }

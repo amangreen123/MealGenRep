@@ -61,24 +61,24 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             };
         } else {
             const aiResponse = await getGaladrielResponse(
-                `Provide nutrition facts for ${normalizedIngredient} per 100g in JSON format: {calories, protein, fat, carbs}`,
+                `Provide nutrition facts for ${normalizedIngredient} per 100g in JSON format: {cal, pro, fat, carb, size, unit}`,
                 "nutrition"
             );
-            
-            try{
+
+            try {
                 const aiData = JSON.parse(aiResponse);
                 nutrients = {
                     description: normalizedIngredient,
-                    calories: aiData.calories || 0,
-                    protein: aiData.protein || 0,
-                    fat: aiData.fat || 0,
-                    carbs: aiData.carbs || 0,
-                    servingSize: 100,
-                    servingUnit: "g",
+                    calories: aiData.cal ?? 0,
+                    protein: aiData.pro ?? 0,
+                    fat: aiData.fat ?? 0,
+                    carbs: aiData.carb ?? 0,
+                    servingSize: aiData.size ?? 100,
+                    servingUnit: aiData.unit ?? "g",
                     source: "AI"
                 };
             } catch (e) {
-                console.warn(`Failed to parse AI response for ${normalizedIngredient}`);
+                console.warn(`❌ Failed to parse AI nutrition for ${normalizedIngredient}:`, aiResponse);
                 nutrients = {
                     description: normalizedIngredient,
                     calories: 0,
@@ -87,7 +87,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
                     carbs: 0,
                     servingSize: 100,
                     servingUnit: "g",
-                    source: "default"
+                    source: "error"
                 };
             }
         }

@@ -7,8 +7,8 @@ import { Card } from "@/components/ui/card"
 const RecipeNavigator = ({allRecipes, currentRecipe}) => {
 
     const navigate = useNavigate()
-    console.log("allRecipes in RecipeNavigator:", allRecipes);
-    console.log("Current Recipe:", currentRecipe);
+    // console.log("allRecipes in RecipeNavigator:", allRecipes);
+    // console.log("Current Recipe:", currentRecipe);
 
     const getCurrentIndex = () => {
 
