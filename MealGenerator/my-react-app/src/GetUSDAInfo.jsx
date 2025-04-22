@@ -1,8 +1,17 @@
 import axios from "axios"
+import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
+import {convertToGrams} from "@/nutrition.js";
 
 const USDA_API_KEY = import.meta.env.VITE_USDA_KEY;
 const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1"
 const cache = new Map()
+
+
+const extractNutrient = (food, nutrientNumber) => {
+    const nutrient = food.foodNutrients?.find(n => n.nutrientNumber === nutrientNumber);
+    return nutrient ? parseFloat(nutrient.value) : null;
+}
+
 
 export const getUSDAInfo = async (ingredient, userServingSize = null, userServingUnit = null) => {
     const normalizedIngredient = ingredient.toLowerCase().trim();
@@ -22,53 +31,74 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             },
         });
 
-        if (!searchResponse.data.foods || searchResponse.data.foods.length === 0) {
-            console.warn(`No USDA data found for: ${ingredient}`);
-            return null;
-        }
-
-        const food = searchResponse.data.foods[0];
-        const extractNutrient = (nutrientNumber) =>
-            food.foodNutrients.find((n) => n.nutrientNumber === nutrientNumber)?.value || null;
-
-        // Get default serving info and convert to grams
-        const defaultServingSize = food.servingSize || 100;
-        const defaultServingUnit = (food.servingSizeUnit || "g").toLowerCase();
-        let defaultServingSizeInGrams = defaultServingUnit === 'g'
-            ? defaultServingSize
-            : convertToGrams(`${defaultServingSize} ${defaultServingUnit}`);
-
-        // Handle user-provided serving info
-        let targetServingSizeInGrams = defaultServingSizeInGrams;
-        if (userServingSize !== null) {
-            targetServingSizeInGrams = convertToGrams(
-                userServingUnit ? `${userServingSize} ${userServingUnit}` : userServingSize.toString()
-            );
-        }
-
-        const scale = targetServingSizeInGrams / defaultServingSizeInGrams;
-
-        const nutrients = {
-            fdcId: food.fdcId,
-            description: food.description,
-            foodCategory: food.foodCategory,
-            calories: extractNutrient("208") * scale,
-            protein: extractNutrient("203") * scale,
-            fat: extractNutrient("204") * scale,
-            carbs: extractNutrient("205") * scale,
-            servingSize: targetServingSizeInGrams,
-            servingUnit: "g", // Always use grams after conversion
-        };
-
-        // Validate nutrients
-        Object.entries(nutrients).forEach(([key, value]) => {
-            if (value === null && key !== "servingSize" && key !== "servingUnit") {
-                console.warn(`Missing nutrient data for ${key} in ${ingredient}.`);
+        let nutrients = null;
+        
+        if(searchResponse.data.foods?.length > 0){
+            const food = searchResponse.data.foods[0];
+            
+            const defaultServingSize = food.servingSize || 100;
+            const defaultServingUnit = (food.servingSizeUnit || "g").toLowerCase();
+            
+            let scale = 1;
+            
+            if(userServingSize !== null){
+                const userServingInGrams = convertToGrams(userServingUnit ? `${userServingSize} ${userServingUnit}` : userServingSize.toString());
+                const defaultServingInGrams = convertToGrams(`${defaultServingSize} ${defaultServingUnit}`);
+                scale = userServingInGrams / defaultServingInGrams;
             }
-        });
 
-        cache.set(cacheKey, nutrients);
-        return nutrients;
+            nutrients = {
+                fdcId: food.fdcId,
+                description: food.description,
+                foodCategory: food.foodCategory,
+                calories: extractNutrient(food, "208") * scale,
+                protein: extractNutrient(food, "203") * scale,
+                fat: extractNutrient(food, "204") * scale,
+                carbs: extractNutrient(food, "205") * scale,
+                servingSize: defaultServingSize * scale,
+                servingUnit: "g",
+                source: "USDA"
+            };
+        } else {
+            const aiResponse = await getGaladrielResponse(
+                `Provide nutrition facts for ${normalizedIngredient} per 100g in JSON format: {calories, protein, fat, carbs}`,
+                "summary"
+            );
+            
+            try{
+                const aiData = JSON.parse(aiResponse);
+                nutrients = {
+                    description: normalizedIngredient,
+                    calories: aiData.calories || 0,
+                    protein: aiData.protein || 0,
+                    fat: aiData.fat || 0,
+                    carbs: aiData.carbs || 0,
+                    servingSize: 100,
+                    servingUnit: "g",
+                    source: "AI"
+                };
+            } catch (e) {
+                console.warn(`Failed to parse AI response for ${normalizedIngredient}`);
+                nutrients = {
+                    description: normalizedIngredient,
+                    calories: 0,
+                    protein: 0,
+                    fat: 0,
+                    carbs: 0,
+                    servingSize: 100,
+                    servingUnit: "g",
+                    source: "default"
+                };
+            }
+        }
+        
+        if (nutrients) {
+            cache.set(cacheKey,nutrients)
+            return nutrients;
+        }
+        
+        return null;
+        
     } catch (error) {
         console.error(`Error fetching USDA data for ${ingredient}:`, error);
         return null;

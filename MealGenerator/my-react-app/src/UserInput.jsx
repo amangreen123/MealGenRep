@@ -172,6 +172,7 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
 }
 
 const UserInput = () => {
+    
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
     const [isSearching, setIsSearching] = useState(false)
