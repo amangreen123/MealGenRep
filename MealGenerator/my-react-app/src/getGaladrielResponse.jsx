@@ -75,17 +75,16 @@ export const clearNutritionCache = () => {
 
 
 export const getGaladrielResponse = async (message, mode = "validate") => {
-    // Client-side pre-validation
+    //Client-side pre-validation
     //console.group(`🔍 Validation Request for: ${message}`);
    // console.log(`Mode: ${mode}`);
-
+    
     // Client-side pre-validation
     if (mode === "validate") {
         if (message.length > 50) {
             ///console.log(`❌ Rejected: Input too long (${message.length} characters)`);
             return "Error: Input too long";
         }
-
         // Enhanced logging for regex test
         const dangerousInputTest = /(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message);
         //console.log(`Dangerous Input Test Result: ${dangerousInputTest}`);
@@ -94,6 +93,7 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
             return "Error: Invalid input";
         }
     }
+    
     // Check cache
     const cacheKey = `ai-${mode}-${message.toLowerCase().trim()}`;
     const cachedResponse = getCache(cacheKey);
@@ -121,10 +121,21 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
         clearTimeout(timeout);
 
         // Process and cache response
-        const response = completion.choices[0]?.message?.content.trim()
-            || (mode === "validate" ? message : "Description unavailable");
+        let responseText = completion.choices[0]?.message?.content.trim();
+        let response;
 
-        //console.log("Raw AI Response:", response);
+        if (mode === "nutrition") {
+            try {
+                response = JSON.parse(responseText);
+            } catch (e) {
+                console.warn("Invalid nutrition response:", responseText);
+                response = {
+                    cal: 0, pro: 0, fat: 0, carb: 0, size: 100, unit: "g"
+                };
+            }
+        } else {
+            response = responseText || (mode === "validate" ? message : "Description unavailable");
+        }
         
         localStorage.setItem(cacheKey, JSON.stringify({
             response,
