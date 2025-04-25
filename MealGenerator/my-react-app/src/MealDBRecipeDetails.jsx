@@ -79,7 +79,7 @@ const MealDBRecipeDetails = () => {
     useEffect(() => {
         clearNutritionCache(); // optional: only run when debugging
     }, []);
-   
+
     useEffect(() => {
         const fetchRecipeData = async () => {
             if (!id) {
@@ -96,25 +96,53 @@ const MealDBRecipeDetails = () => {
                     const recipeData = data.meals[0];
                     setRecipeDetails(recipeData);
                     const ingredients = getIngredients(recipeData);
-                    
-                    const ingredientNames = ingredients.map(item => item.ingredient);
-                    const batchValidated = await batchGaladrielResponse(ingredientNames, "validate");
 
                     const nutritionPromises = ingredients.map(async (item) => {
                         try {
+                            console.log(`Processing: ${item.ingredient} (${item.measure})`);
+
                             let macroData = await getUSDAInfo(item.ingredient);
+                            console.log("USDA Data:", macroData);
+
+                            const grams = convertToGrams(item.measure) || 0;
+                            console.log(`Converted ${item.measure} to ${grams}g`);
 
                             if (!macroData) {
+                                console.log(`No USDA data, asking AI for ${item.ingredient}`);
                                 const aiResponse = await getGaladrielResponse(
-                                    `Provide nutrition for ${item.ingredient}: ${item.measure} in JSON format`,
+                                    `Provide nutrition for ${item.ingredient}: ${item.measure} in JSON format with calories, protein, fat, carbs, and servingSize`,
                                     "nutrition"
                                 );
 
                                 try {
                                     macroData = JSON.parse(aiResponse);
-                                    macroData.source = "AI";
-                                    console.log("AI nutrition guess for", item.ingredient, macroData);
+                                    console.log("AI Nutrition Response:", aiResponse);
+                                    console.log("Raw AI Response:", aiResponse);
+                                    // Standardize property names
+                                    macroData = {
+                                        calories: macroData.calories || macroData.cal || 0,
+                                        protein: macroData.protein || macroData.pro || 0,
+                                        fat: macroData.fat || 0,
+                                        carbs: macroData.carbs || macroData.carb || 0,
+                                        servingSize: macroData.servingSize || 100,
+                                        servingUnit: macroData.servingUnit || "g",
+                                        source: "AI"
+                                    };
 
+                                    // Validate values
+                                    if (macroData.calories > 1000 || macroData.protein > 200 ||
+                                        macroData.fat > 200 || macroData.carbs > 200) {
+                                        console.warn(`Suspect values for ${item.ingredient}:`, macroData);
+                                        macroData = {
+                                            calories: 0,
+                                            protein: 0,
+                                            fat: 0,
+                                            carbs: 0,
+                                            servingSize: 100,
+                                            servingUnit: "g",
+                                            source: "error"
+                                        };
+                                    }
                                 } catch (e) {
                                     console.warn("Failed to parse AI nutrition response", e);
                                     macroData = {
@@ -123,15 +151,26 @@ const MealDBRecipeDetails = () => {
                                         fat: 0,
                                         carbs: 0,
                                         servingSize: 100,
+                                        servingUnit: "g",
                                         source: "error"
                                     };
                                 }
                             }
-                            
+
+                            // Calculate ratio with validation
+                            const servingSize = macroData.servingSize || 100;
+                            let ratio = grams > 0 ? (grams / servingSize) : 0;
+
+                            if (ratio > 100 || ratio < 0.01) {
+                                console.warn(`Unrealistic ratio (${ratio}) for ${item.ingredient}`);
+                                ratio = 1;
+                            }
+
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
-                                macroData
+                                macroData,
+                                ratio
                             };
 
                         } catch (error) {
@@ -145,58 +184,72 @@ const MealDBRecipeDetails = () => {
                                     fat: 0,
                                     carbs: 0,
                                     servingSize: 100,
+                                    servingUnit: "g",
                                     source: "error"
-                                }
+                                },
+                                ratio: 0
                             };
                         }
                     });
-                    
+
                     const nutritionResults = await Promise.all(nutritionPromises);
                     const macrosData = {};
                     let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
-                    
-                    nutritionResults.forEach(result =>{
-                        const { ingredient, measure, macroData } = result;
 
+                    nutritionResults.forEach(result => {
+                        const { ingredient, macroData, ratio } = result;
                         macrosData[ingredient] = macroData;
                         
-                        const grams = convertToGrams(measure) || 0;
+                        //console.log("Final Macro Data:", macroData);
                         
-                        const servingSize = macroData.servingSize || 100;
-                        const ratio = grams / servingSize;
+                        // Calculate nutrition values
+                        const protein = (macroData.protein || 0) * ratio;
+                        const fat = (macroData.fat || 0) * ratio;
+                        const carbs = (macroData.carbs || 0) * ratio;
+                        const calories = macroData.calories > 0
+                            ? macroData.calories * ratio
+                            : (protein * 4) + (carbs * 4) + (fat * 9); // Fallback calculation
 
-                        totalProtein += (macroData.protein || 0) * ratio;
-                        totalFat += (macroData.fat || 0) * ratio;
-                        totalCarbs += (macroData.carbs || 0) * ratio;
-                        totalCals += (macroData.calories || 0) * ratio;
-                        
-                    })
-                    
-                    if(totalCals <= 0){
-                        console.log("we have no calories data, calculate from macros")
-                        totalCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
-                    }
-                    
-                    setMacros(macrosData)
-                    setTotalNutrition({
-                        calories: Math.round(totalCals),
-                        protein: Math.round(totalProtein),
-                        fat: Math.round(totalFat),
-                        carbs: Math.round(totalCarbs),
+                        // Add to totals
+                        totalProtein += protein;
+                        totalFat += fat;
+                        totalCarbs += carbs;
+                        totalCals += calories;
                     });
-                    
+
+                    // Set state once with final values
+                    setMacros(macrosData);
+
+                    if (totalCals <= 0 && totalProtein <= 0 && totalFat <= 0 && totalCarbs <= 0) {
+                        console.warn("No valid nutrition data found");
+                        setTotalNutrition({
+                            calories: 'N/A',
+                            protein: 'N/A',
+                            fat: 'N/A',
+                            carbs: 'N/A'
+                        });
+                    } else {
+                        setTotalNutrition({
+                            calories: Math.round(totalCals),
+                            protein: Math.round(totalProtein),
+                            fat: Math.round(totalFat),
+                            carbs: Math.round(totalCarbs),
+                        });
+                    }
+
                 } else {
                     setError("Recipe details not found.");
                 }
-            
+
             } catch (error) {
                 setError(error.message || "Error fetching recipe details");
             } finally {
                 setLoading(false);
             }
-        }
-        fetchRecipeData()
-    }, [id])
+        };
+
+        fetchRecipeData();
+    }, [id]);
     
     
 
@@ -337,30 +390,33 @@ const MealDBRecipeDetails = () => {
                                     <TabsContent value="ingredients" className="mt-4">
                                         <ScrollArea className="h-[400px]">
                                             <div className="space-y-4">
-                                                {ingredients.map((item, index) => (
-                                                    <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="font-medium">{item.ingredient}</span>
-                                                            <Badge variant="outline">{item.measure}</Badge>
-                                                        </div>
-                                                        {macros[item.ingredient] ? (() => {
-                                                            const macroData = macros[item.ingredient];
-                                                            const grams = convertToGrams(item.measure) || 0;
-                                                            const ratio = grams / (macroData.servingSize || 100);
+                                                {ingredients.map((item, index) => {
+                                                    const macroData = macros[item.ingredient] || {
+                                                        calories: 0,
+                                                        protein: 0,
+                                                        fat: 0,
+                                                        carbs: 0,
+                                                        servingSize: 100,
+                                                        servingUnit: "g"
+                                                    };
+                                                    const grams = convertToGrams(item.measure) || 0;
+                                                    const ratio = grams / (macroData.servingSize || 100);
 
-                                                            return (
-                                                                <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
-                                                                    <span>Calories: {Math.round((macroData.calories || 0) * ratio)} kcal</span>
-                                                                    <span>Protein: {(macroData.protein * ratio).toFixed(1)}g</span>
-                                                                    <span>Fat: {(macroData.fat * ratio).toFixed(1)}g</span>
-                                                                    <span>Carbs: {(macroData.carbs * ratio).toFixed(1)}g</span>
-                                                                </div>
-                                                            );
-                                                        })() : (
-                                                            <div className="text-sm text-gray-400">Loading nutritional info...</div>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                                    return (
+                                                        <div key={index} className="bg-gray-700/30 p-3 rounded-lg">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="font-medium">{item.ingredient}</span>
+                                                                <Badge variant="outline">{item.measure}</Badge>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400">
+                                                                <span>Calories: {macroData.calories ? Math.round(macroData.calories * ratio) : 'N/A'} kcal</span>
+                                                                <span>Protein: {macroData.protein ? (macroData.protein * ratio).toFixed(1) : 'N/A'}g</span>
+                                                                <span>Fat: {macroData.fat ? (macroData.fat * ratio).toFixed(1) : 'N/A'}g</span>
+                                                                <span>Carbs: {macroData.carbs ? (macroData.carbs * ratio).toFixed(1) : 'N/A'}g</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </ScrollArea>
                                     </TabsContent>

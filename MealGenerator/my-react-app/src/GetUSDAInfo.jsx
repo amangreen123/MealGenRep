@@ -1,109 +1,91 @@
-import axios from "axios"
-import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
-import {convertToGrams} from "@/nutrition.js";
+import axios from "axios";
+import { convertToGrams } from "@/nutrition.js";
 
 const USDA_API_KEY = import.meta.env.VITE_USDA_KEY;
-const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1"
-const cache = new Map()
+const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1";
 
+const cache = new Map();
+
+const NUTRIENT_IDS = {
+    calories: ["1008", "208"], // Energy (kcal) + alternative
+    protein: ["1003", "203"],  // Protein + alternative
+    fat: ["1004", "204"],      // Total lipid (fat)
+    carbs: ["1005", "205"]     // Carbohydrate
+};
 
 const extractNutrient = (food, nutrientNumber) => {
-    const nutrient = food.foodNutrients?.find(n => n.nutrientNumber === nutrientNumber);
-    return nutrient ? parseFloat(nutrient.value) : null;
-}
+    // More robust nutrient extraction
+    const nutrient = food.foodNutrients?.find(n =>
+        n.nutrientId === nutrientNumber ||
+        n.nutrientNumber === nutrientNumber ||
+        n.nutrient?.id === nutrientNumber
+    );
 
+    if (!nutrient) {
+        console.warn(`Nutrient ${nutrientNumber} not found for ${food.description}`);
+        return 0;
+    }
+
+    const value = parseFloat(nutrient.value || nutrient.amount || 0);
+    console.log(`Found nutrient ${nutrientNumber}:`, value); // Debug log
+    return value;
+};
 
 export const getUSDAInfo = async (ingredient, userServingSize = null, userServingUnit = null) => {
     const normalizedIngredient = ingredient.toLowerCase().trim();
-    const cacheKey = userServingSize ? `${normalizedIngredient}-${userServingSize}${userServingUnit || ''}` : normalizedIngredient;
-
-    if (cache.has(cacheKey)) {
-        return cache.get(cacheKey);
-    }
+    console.log(`Searching USDA for: "${normalizedIngredient}"`); // Debug log
 
     try {
         const searchResponse = await axios.get(`${USDA_API_URL}/foods/search`, {
             params: {
                 api_key: USDA_API_KEY,
                 query: normalizedIngredient,
-                dataType: "Foundation, SR Legacy, Branded, Survey (FNDDS)",
+                dataType: "Foundation,SR Legacy", // More focused data types
                 pageSize: 5,
+                sortBy: "dataType.keyword", // Prioritize better data sources
+                sortOrder: "asc"
             },
         });
 
-        let nutrients = null;
-        
-        if(searchResponse.data.foods?.length > 0){
-            const food = searchResponse.data.foods[0];
-            
-            const defaultServingSize = food.servingSize || 100;
-            const defaultServingUnit = (food.servingSizeUnit || "g").toLowerCase();
-            
-            let scale = 1;
-            
-            if(userServingSize !== null){
-                const userServingInGrams = convertToGrams(userServingUnit ? `${userServingSize} ${userServingUnit}` : userServingSize.toString());
-                const defaultServingInGrams = convertToGrams(`${defaultServingSize} ${defaultServingUnit}`);
-                scale = userServingInGrams / defaultServingInGrams;
-            }
+        console.log("USDA Search Results:", searchResponse.data.foods); // Debug log
 
-            nutrients = {
-                fdcId: food.fdcId,
-                description: food.description,
-                foodCategory: food.foodCategory,
-                calories: extractNutrient(food, "208") * scale,
-                protein: extractNutrient(food, "203") * scale,
-                fat: extractNutrient(food, "204") * scale,
-                carbs: extractNutrient(food, "205") * scale,
-                servingSize: defaultServingSize * scale,
-                servingUnit: "g",
-                source: "USDA"
-            };
-        } else {
-            const aiResponse = await getGaladrielResponse(
-                `Provide nutrition facts for ${normalizedIngredient} per 100g in JSON format: {cal, pro, fat, carb, size, unit}`,
-                "nutrition"
-            );
+        if (!searchResponse.data.foods?.length) {
+            console.warn(`No USDA results for "${normalizedIngredient}"`);
+            return null;
+        }
 
-            try {
-                const aiData = JSON.parse(aiResponse);
-                nutrients = {
-                    description: normalizedIngredient,
-                    calories: aiData.cal ?? 0,
-                    protein: aiData.pro ?? 0,
-                    fat: aiData.fat ?? 0,
-                    carbs: aiData.carb ?? 0,
-                    servingSize: aiData.size ?? 100,
-                    servingUnit: aiData.unit ?? "g",
-                    source: "AI"
-                };
-            } catch (e) {
-                console.warn(`❌ Failed to parse AI nutrition for ${normalizedIngredient}:`, aiResponse);
-                nutrients = {
-                    description: normalizedIngredient,
-                    calories: 0,
-                    protein: 0,
-                    fat: 0,
-                    carbs: 0,
-                    servingSize: 100,
-                    servingUnit: "g",
-                    source: "error"
-                };
-            }
-        }
-        
-        if (nutrients) {
-            cache.set(cacheKey,nutrients)
-            return nutrients;
-        }
-        
-        return null;
-        
+        // Find the best match (prioritize Foundation foods)
+        const food = searchResponse.data.foods.find(f =>
+            f.dataType === "Foundation" ||
+            f.description.toLowerCase().includes(normalizedIngredient)
+        ) || searchResponse.data.foods[0];
+
+        console.log("Selected food:", food.description, food.dataType); // Debug log
+
+        // Extract nutrients with better fallbacks
+        const nutrients = {
+            calories: extractNutrient(food, NUTRIENT_IDS.calories) ||
+                extractNutrient(food, "208") || // Alternative energy ID
+                0,
+            protein: extractNutrient(food, NUTRIENT_IDS.protein) || 0,
+            fat: extractNutrient(food, NUTRIENT_IDS.fat) || 0,
+            carbs: extractNutrient(food, NUTRIENT_IDS.carbs) || 0
+        };
+
+        console.log("Extracted nutrients:", nutrients); // Debug log
+
+        // Rest of your serving size calculations...
+        return {
+            ...nutrients,
+            fdcId: food.fdcId,
+            description: food.description,
+            servingSize: food.servingSize || 100,
+            servingUnit: (food.servingSizeUnit || "g").toLowerCase(),
+            source: "USDA"
+        };
+
     } catch (error) {
-        console.error(`Error fetching USDA data for ${ingredient}:`, error);
+        console.error(`USDA Error for ${ingredient}:`, error.response?.data || error.message);
         return null;
     }
 };
-
-
-

@@ -57,7 +57,6 @@ export const clearValidationCache = () => {
     Object.keys(localStorage)
         .filter(key => key.startsWith('ai-validate-'))
         .forEach(key => localStorage.removeItem(key));
-
     //console.log('Validation cache cleared');
 };
 
@@ -69,16 +68,11 @@ export const clearNutritionCache = () => {
             key.includes('ai-nutrition') // covers fallback keys too
         )
         .forEach(key => localStorage.removeItem(key));
-
-    console.log("🧹 Cleared all AI nutrition cache.");
+    //console.log("🧹 Cleared all AI nutrition cache.");
 };
 
 
 export const getGaladrielResponse = async (message, mode = "validate") => {
-    //Client-side pre-validation
-    //console.group(`🔍 Validation Request for: ${message}`);
-   // console.log(`Mode: ${mode}`);
-    
     // Client-side pre-validation
     if (mode === "validate") {
         if (message.length > 50) {
@@ -100,10 +94,8 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
     if (cachedResponse) return cachedResponse;
 
     try {
-        
         // Dynamic model selection
         const model = mode === "validate" ? "gpt-3.5-turbo" : "gpt-4o";
-
         // API call with timeout fallback
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
@@ -119,22 +111,35 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
         });
 
         clearTimeout(timeout);
-
+        
         // Process and cache response
         let responseText = completion.choices[0]?.message?.content.trim();
         let response;
 
         if (mode === "nutrition") {
+            console.log("Raw AI Nutrition Response:", responseText);
             try {
-                response = JSON.parse(responseText);
-            } catch (e) {
-                console.warn("Invalid nutrition response:", responseText);
+                // First parse the response if it's a string
+                const responseData = typeof responseText === 'string' ? JSON.parse(responseText) : responseText;
+
+                // Then standardize property names
                 response = {
-                    cal: 0, pro: 0, fat: 0, carb: 0, size: 100, unit: "g"
+                    calories: responseData.cal || responseData.calories || 0,
+                    protein: responseData.pro || responseData.protein || 0,
+                    fat: responseData.fat || 0,
+                    carbs: responseData.carb || responseData.carbs || 0,
+                    servingSize: responseData.size || 100,
+                    servingUnit: responseData.unit || "g",
+                    source: "AI"
+                };
+                console.log("Processed nutrition data:", response); // Add this
+            } catch (e) {
+                console.warn("Failed to parse nutrition response:", e, "Response:", responseText);
+                response = {
+                    calories: 0, protein: 0, fat: 0, carbs: 0,
+                    servingSize: 100, servingUnit: "g", source: "error"
                 };
             }
-        } else {
-            response = responseText || (mode === "validate" ? message : "Description unavailable");
         }
         
         localStorage.setItem(cacheKey, JSON.stringify({

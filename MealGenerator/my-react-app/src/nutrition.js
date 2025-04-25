@@ -48,6 +48,15 @@
         return conversions[cleaned] || 100;
     }
 
+    if (cleaned.includes('x') && cleaned.includes('g')) {
+        const parts = cleaned.split('x');
+        const count = parseFloat(parts[0]);
+        const grams = parseFloat(parts[1].replace(/[^\d.]/g, ''));
+        if (!isNaN(count) && !isNaN(grams)) {
+            return count * grams;
+        }
+    }
+
     const match = cleaned.match(/^([\d./]+)\s*([a-zA-Z ]+)$/);
     if (!match) return 100;
 
