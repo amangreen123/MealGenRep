@@ -26,19 +26,30 @@ function areAllNutrientsZero(data) {
 
 function normalizeNutritionData(response) {
     try {
-        const data = typeof response === 'string' ? JSON.parse(response) : response
-        return {
-            calories: data.cal || data.calories || 0,
-            protein: data.pro || data.protein || 0,
-            fat: data.fat || 0,
-            carbs: data.carb || data.carbs || 0,
-            servingSize: data.size || 100,
-            servingUnit: data.unit || 'g',
-            source: data.source || 'AI'
+        if (typeof response !== 'string') {
+            // If it's somehow already an object, just use it directly
+            return response;
         }
+
+        // Parse text format using regex
+        const calories = parseFloat(response.match(/Calories:\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
+        const protein = parseFloat(response.match(/Protein:\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
+        const fat = parseFloat(response.match(/Fat:\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
+        const carbs = parseFloat(response.match(/Carbs:\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
+        const servingMatch = response.match(/Serving:\s*(\d+)\s*([a-z]+)/i);
+
+        return {
+            calories: calories,
+            protein: protein,
+            fat: fat,
+            carbs: carbs,
+            servingSize: servingMatch ? parseFloat(servingMatch[1]) : 100,
+            servingUnit: servingMatch ? servingMatch[2] : 'g',
+            source: 'AI'
+        };
     } catch (e) {
-        console.error('Failed to normalize nutrition data:', e)
-        return getManualFallback()
+        console.error('Failed to normalize nutrition data:', e);
+        return getManualFallback();
     }
 }
 
@@ -145,7 +156,7 @@ const MealDBRecipeDetails = () => {
 
                     const nutritionPromises = ingredients.map(async (item) => {
                         try {
-                            console.log(`Processing: ${item.ingredient} (${item.measure})`)
+                            //console.log(`Processing: ${item.ingredient} (${item.measure})`)
 
                             // 1. Try USDA API first
                             let macroData = await getUSDAInfo(item.ingredient)

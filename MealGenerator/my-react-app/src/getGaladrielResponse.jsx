@@ -6,101 +6,149 @@ const openai = new OpenAI({
     baseURL: "https://api.galadriel.com/v1/verified",
 });
 
-// Pre-defined prompts for different modes
 const PROMPTS = {
-    validate: `Validate food ingredients per these rules:
-1. Accept: Edible items, alcohol, brand foods, non-English names
-2. Correct: Only obvious typos (pinaple→pineapple)
-3. Reject: Non-foods, dangerous items, profanity
-4. Output: Return as-is if valid, corrected if typo, or "Error: [item] not food"`,
-
-    summary: `Brief recipe summary (2 sentences max):
-- Key flavors
-- Cooking method
-- Cultural origin if relevant`,
+    validate: `Strictly validate food ingredients:
+1. Return EXACT input if valid
+2. Return corrected spelling if obvious typo (max 1 change)
+3. Return "Error: [reason]" if invalid
+4. Never add explanations`,
+    
+    summary: `Brief recipe summary (2 sentences):
+1. Cooking method
+2. Key flavors
+3. Cultural origin if notable`
 };
 
-// Cache setup with 24-hour expiry
-const getCache = (key) => {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-    const { response, timestamp } = JSON.parse(cached);
-    return (Date.now() - timestamp < 86400000) ? response : null;
+// More reliable cache with size limits
+const cacheManager = {
+    get: (key) => {
+        try {
+            const cached = localStorage.getItem(key);
+            if (!cached) return null;
+
+            const { response, timestamp } = JSON.parse(cached);
+            return (Date.now() - timestamp < 86400000) ? response : null;
+        } catch {
+            return null;
+        }
+    },
+
+    set: (key, value) => {
+        try {
+            // Prevent cache bloating
+            if (localStorage.length > 500) {
+                clearGaladrielCache();
+            }
+            localStorage.setItem(key, JSON.stringify({
+                response: value,
+                timestamp: Date.now()
+            }));
+        } catch (error) {
+            console.warn("Cache write failed", error);
+        }
+    }
 };
 
 export const getGaladrielResponse = async (message, mode = "validate", customPrompt = null) => {
-    // Client-side pre-validation
-    if (mode === "validate") {
-        if (message.length > 50) return "Error: Input too long";
-        if (/(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message)) {
-            return "Error: Invalid input";
-        }
+    // Input sanitization
+    if (typeof message !== "string" || message.trim() === "") {
+        return mode === "nutrition"
+            ? "Calories: 0\nProtein: 0g\nFat: 0g\nCarbs: 0g"
+            : "Error: Empty input";
     }
 
-    // Check cache
-    const cacheKey = `ai-${mode}-${message.toLowerCase().trim()}`;
-    const cachedResponse = getCache(cacheKey);
-    if (cachedResponse) return cachedResponse;
+    // Check cache with normalized key
+    const cacheKey = `ai-${mode}-${message.toLowerCase().trim().replace(/\s+/g, '-')}`;
+    const cached = cacheManager.get(cacheKey);
+    if (cached) return cached;
 
     try {
-        // Configuration for different modes
-        const params = {
-            model: mode === "validate" ? "gpt-3.5-turbo" : "gpt-4",
+        // Build optimized request
+        const payload = {
+            model: mode === "nutrition" ? "gpt-4" : "gpt-3.5-turbo",
             messages: [
                 {
                     role: "system",
-                    content: customPrompt || PROMPTS[mode]
+                    content: customPrompt || PROMPTS[mode] || PROMPTS.validate
                 },
-                { role: "user", content: message }
+                {
+                    role: "user",
+                    content: mode === "nutrition"
+                        ? `Nutrition for 100g ${message}`
+                        : message
+                }
             ],
-            temperature: 0.3,
-            // Only force JSON if explicitly requested
-            ...(mode === "nutrition" && customPrompt?.includes('JSON') && {
-                response_format: { type: "json_object" }
-            })
+            temperature: 0.2,
+            max_tokens: mode === "nutrition" ? 100 : 150
         };
 
-        const completion = await openai.chat.completions.create(params);
-        let response = completion.choices[0]?.message?.content?.trim();
+        const response = await fetch("https://api.galadriel.com/v1/verified/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${import.meta.env.VITE_AI_MODEL_ID}`
+            },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(5000) // Timeout after 5s
+        });
 
-        // Cache the response
-        localStorage.setItem(cacheKey, JSON.stringify({
-            response,
-            timestamp: Date.now()
-        }));
-
-        return response;
-
-    } catch (error) {
-        console.error("Galadriel API error:", error);
-
-        // Special handling for nutrition mode
-        if (mode === "nutrition") {
-            return "Calories: 0\nProtein: 0g\nFat: 0g\nCarbs: 0g\nServing: 100g";
+        if (!response.ok) {
+            throw new Error(`API Error ${response.status}`);
         }
 
-        // Default fallbacks
+        const data = await response.json();
+        let result = data.choices[0]?.message?.content?.trim();
+
+        // Post-processing
+        if (mode === "nutrition") {
+            result = result.replace(/[{}]/g, ''); // Remove any JSON artifacts
+        }
+
+        cacheManager.set(cacheKey, result);
+        return result;
+
+    } catch (error) {
+        console.error(`Galadriel error (${mode}):`, error.message);
+
+        // Specialized fallbacks
         switch (mode) {
+            case "nutrition":
+                return `Calories: 100\nProtein: 10g\nFat: 5g\nCarbs: 2g`;
             case "validate":
-                return message; // Assume valid if API fails
+                return message; // Fail-open for validation
             default:
-                return "Description unavailable (API error)";
+                return "Error: Service unavailable";
         }
     }
 };
 
-// Batch version
+// Batch processing with chunking
 export const batchGaladrielResponse = async (messages, mode = "validate") => {
-    const batchMessage = `${mode === "validate"
-        ? "Validate these ingredients:\n"
-        : "Summarize these dishes:\n"}${messages.join("\n")}`;
+    const CHUNK_SIZE = 5;
+    const results = [];
 
-    return getGaladrielResponse(batchMessage, mode);
+    for (let i = 0; i < messages.length; i += CHUNK_SIZE) {
+        const chunk = messages.slice(i, i + CHUNK_SIZE);
+        const batchPrompt = `${mode === "validate"
+            ? "Validate these items:\n"
+            : "Process these:\n"}${chunk.join("\n")}`;
+
+        results.push(await getGaladrielResponse(batchPrompt, mode));
+    }
+
+    return results.flat();
 };
 
-// Cache clearing
+// Enhanced cache clearing
 export const clearGaladrielCache = (prefix = "") => {
+    const prefixKey = `ai-${prefix}`;
     Object.keys(localStorage)
-        .filter(key => key.startsWith(`ai-${prefix}`))
-        .forEach(key => localStorage.removeItem(key));
+        .filter(key => key.startsWith(prefixKey))
+        .forEach(key => {
+            try {
+                localStorage.removeItem(key);
+            } catch (error) {
+                console.warn(`Failed to clear ${key}`, error);
+            }
+        });
 };

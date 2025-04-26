@@ -28,11 +28,12 @@ Serving: 100g`;
 
 export const fetchNutritionData = async (ingredient, measure = '100g') => {
     const query = `Nutrition for ${measure} ${ingredient}`;
-
+    console.log("Nutrtion Query" + query)
+    
     try {
         // Get AI response with retry logic
         const response = await getGaladrielResponse(query, 'nutrition');
-        console.log('Raw AI response:', response);
+        //console.log('Raw AI response:', response);
 
         // Robust text parsing
         const parsed = parseNutritionText(response);

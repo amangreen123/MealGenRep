@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import axios from "axios"
 const apiKey = import.meta.env.VITE_MEALDB_KEY
 const BASE_URL = `https://www.themealdb.com/api/json/v2/${apiKey}/`;
+
 export const useTheMealDB = () => {
     const [MealDBRecipes, setMealDBRecipes] = useState([])
     const [error, setError] = useState(null)
