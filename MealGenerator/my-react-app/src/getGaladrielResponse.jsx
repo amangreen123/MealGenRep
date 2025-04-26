@@ -6,7 +6,6 @@ const openai = new OpenAI({
     baseURL: "https://api.galadriel.com/v1/verified",
 });
 
-// Pre-defined prompts (optimized for token efficiency)
 const PROMPTS = {
     validate: `Validate food ingredients per these rules:
 1. Accept: Edible items, alcohol, brand foods, non-English names

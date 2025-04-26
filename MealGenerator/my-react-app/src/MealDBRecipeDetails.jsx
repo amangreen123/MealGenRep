@@ -11,7 +11,7 @@ import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 import RecipeNavigator from "@/RecipeNavigator.jsx"
 import { convertToGrams } from "@/nutrition.js"
-import { batchGaladrielResponse, getGaladrielResponse, clearNutritionCache } from "@/getGaladrielResponse.jsx"
+import { batchGaladrielResponse, getGaladrielResponse} from "@/getGaladrielResponse.jsx"
 
 // Helper functions for nutrition processing
 function areAllNutrientsZero(data) {
@@ -124,10 +124,7 @@ const MealDBRecipeDetails = () => {
         )
         return { hasIngredients, missingIngredients }
     }
-
-    useEffect(() => {
-        clearNutritionCache()
-    }, [])
+    
 
     useEffect(() => {
         const fetchRecipeData = async () => {
@@ -217,9 +214,9 @@ const MealDBRecipeDetails = () => {
                         }
                     })
 
-                    const nutritionResults = await Promise.all(nutritionPromises)
-                    const macrosData = {}
-                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0
+                    const nutritionResults = await Promise.all(nutritionPromises);
+                    const macrosData = {};
+                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
 
                     nutritionResults.forEach(result => {
                         const { ingredient, macroData, ratio } = result;
@@ -232,29 +229,32 @@ const MealDBRecipeDetails = () => {
                         totalProtein += protein;
                         totalFat += fat;
                         totalCarbs += carbs;
-                        
                         totalCals += macroData.calories > 0
                             ? macroData.calories * ratio
                             : (protein * 4) + (carbs * 4) + (fat * 9);
                     });
 
+                    const calculatedCals = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
+
+                    if (Math.abs(totalCals - calculatedCals) > 100) {
+                        console.warn(`Recalculating calories from macros. 
+                         API: ${totalCals} vs Calculated: ${calculatedCals}`);
+                        totalCals = calculatedCals;
+                    }
+
                     setMacros(macrosData)
 
                     if (totalCals <= 0 && totalProtein <= 0 && totalFat <= 0 && totalCarbs <= 0) {
-                        console.warn("No valid nutrition data found for any ingredients")
-                        setTotalNutrition({
-                            calories: 'N/A',
-                            protein: 'N/A',
-                            fat: 'N/A',
-                            carbs: 'N/A'
-                        })
+                        console.warn("No valid nutrition data found");
+                        setTotalNutrition({calories: 'N/A', protein: 'N/A', fat: 'N/A', carbs: 'N/A' });
+                        
                     } else {
-                        setTotalNutrition(validateNutritionValues({
+                        setTotalNutrition({
                             calories: Math.round(totalCals),
                             protein: Math.round(totalProtein),
                             fat: Math.round(totalFat),
-                            carbs: Math.round(totalCarbs),
-                        }));
+                            carbs: Math.round(totalCarbs)
+                        });
                     }
 
                 } else {
