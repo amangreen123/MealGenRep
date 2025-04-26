@@ -1,5 +1,6 @@
 import {getManualFallback} from "@/fallbacks.jsx";
 import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
+import { getUSDAInfo } from "@/GetUSDAInfo.jsx";
 
 export const NUTRITION_PROMPT = `Provide ACCURATE nutrition facts with STRICT validation:
 
@@ -53,26 +54,48 @@ export const fetchNutritionData = async (ingredient, measure = '100g') => {
     const query = `Nutrition for ${measure} ${ingredient}`;
 
     try {
-        // Get AI response with retry logic
+        // First try USDA API
+        console.log(`Attempting USDA lookup for ${ingredient}`);
+        const usdaData = await getUSDAInfo(ingredient);
+
+        if (usdaData && usdaData.calories > 0) {
+            console.log(`Found valid USDA data for ${ingredient}`);
+            return {
+                calories: Math.round(usdaData.calories),
+                protein: parseFloat(usdaData.protein.toFixed(1)),
+                fat: parseFloat(usdaData.fat.toFixed(1)),
+                carbs: parseFloat(usdaData.carbs.toFixed(1)),
+                servingSize: usdaData.servingSize,
+                servingUnit: usdaData.servingUnit,
+                source: 'USDA'
+            };
+        }
+
+        // If USDA fails, try AI
+        console.log(`No valid USDA data, using AI for ${ingredient}`);
         const response = await getGaladrielResponse(query, 'nutrition');
         console.log('RAW AI RESPONSE:', response);
-        
-        // Robust text parsing
+
+        // Parse the AI response
         const parsed = parseNutritionText(response);
 
-        // Validate and auto-correct values
+        // Validate the parsed data
         const validated = validateNutritionData(parsed, ingredient);
 
         return {
             ...validated,
             source: 'AI'
         };
-
     } catch (error) {
-        console.error(`NutritionAI error for ${ingredient}:`, error.message);
+        console.error(`Nutrition data error for ${ingredient}:`, error.message);
+
+        // Last resort: use manual fallback
         const fallback = getManualFallback(ingredient, measure);
         console.warn('Using fallback data:', fallback);
-        return fallback;
+        return {
+            ...fallback,
+            source: 'Fallback'
+        };
     }
 };
 
