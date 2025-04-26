@@ -12,6 +12,7 @@ import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
 import RecipeNavigator from "@/RecipeNavigator.jsx"
 import { convertToGrams } from "@/nutrition.js"
 import { batchGaladrielResponse, getGaladrielResponse} from "@/getGaladrielResponse.jsx"
+import {fetchNutritionData} from "@/NutritionAI.jsx";
 
 // Helper functions for nutrition processing
 function areAllNutrientsZero(data) {
@@ -156,74 +157,61 @@ const MealDBRecipeDetails = () => {
 
                     const nutritionPromises = ingredients.map(async (item) => {
                         try {
-                            //console.log(`Processing: ${item.ingredient} (${item.measure})`)
+                            // 1. Try USDA first
+                            let macroData = await getUSDAInfo(item.ingredient);
+                            console.log('USDA Data:', macroData);
+                            const grams = convertToGrams(item.measure) || 0;
 
-                            // 1. Try USDA API first
-                            let macroData = await getUSDAInfo(item.ingredient)
-                            const grams = convertToGrams(item.measure) || 0
-                            console.log('Initial USDA data:', macroData)
-
-                            // 2. Enhanced fallback system
+                            // 2. If USDA fails, use our specialized nutrition AI
                             if (!macroData || areAllNutrientsZero(macroData)) {
-                                console.warn(`Falling back to AI for ${item.ingredient}`)
-
-                                const measureInfo = item.measure ? ` (${item.measure})` : ''
-                                const aiPrompt = `Provide COMPLETE nutrition facts for ${item.ingredient}${measureInfo} as VALID JSON: {
-                  "cal":number, "pro":number, "fat":number, "carb":number,
-                  "size":number, "unit":"g"|"ml", "source":"string"
-                }`
-
-                                try {
-                                    const aiResponse = await getGaladrielResponse(aiPrompt, "nutrition")
-                                    console.log('Raw AI response:', aiResponse)
-                                    macroData = normalizeNutritionData(aiResponse)
-
-                                    if (areAllNutrientsZero(macroData)) {
-                                        console.warn('AI returned zeros - using manual fallback')
-                                        macroData = getManualFallback(item.ingredient)
-                                    }
-                                } catch (aiError) {
-                                    console.error('AI fallback failed:', aiError)
-                                    macroData = getManualFallback(item.ingredient)
-                                }
+                                console.log('Falling back to AI...');
+                                macroData = await fetchNutritionData(item.ingredient, item.measure || '100g');
+                                console.log('AI Data:', macroData);
                             }
 
-                            // 3. Calculate ratios with validation
-                            const servingSize = macroData.servingSize || 100
-                            let ratio = grams > 0 ? (grams / servingSize) : 0
-
-                            if (ratio > 100 || ratio < 0.01) {
-                                console.warn(`Unrealistic ratio ${ratio} for ${item.ingredient}, using 1`)
-                                ratio = 1
+                            // 3. Final fallback
+                            if (areAllNutrientsZero(macroData)) {
+                                console.log('Using manual fallback...');
+                                macroData = getManualFallback(item.ingredient, item.measure);
                             }
 
-                            console.log('Final nutrition for', item.ingredient, {
-                                ...macroData,
-                                calculated: {
-                                    calories: macroData.calories * ratio,
-                                    protein: macroData.protein * ratio,
-                                    fat: macroData.fat * ratio,
-                                    carbs: macroData.carbs * ratio
-                                }
-                            })
+                            if (!macroData || areAllNutrientsZero(macroData)) {
+                                throw new Error('All nutrition values zero after all fallbacks');
+                            }
+
+                            // Calculate ratio with validation
+                            const servingSize = macroData.servingSize || 100;
+                            let ratio = grams > 0 ? (grams / servingSize) : 0;
+
+                            if (ratio > 10 || ratio < 0.01) {
+                                ratio = 1;  // Default to 1:1 ratio if unrealistic
+                            }
 
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
                                 macroData,
                                 ratio
-                            }
-
+                            };
                         } catch (error) {
-                            console.error(`Error processing ${item.ingredient}:`, error)
+                            console.error(`Error processing ${item.ingredient}:`, error);
+                            console.error(`FAILED for ${item.ingredient}:`, error);
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
-                                macroData: getManualFallback(item.ingredient),
+                                macroData: {
+                                    calories: 'N/A',
+                                    protein: 'N/A',
+                                    fat: 'N/A',
+                                    carbs: 'N/A',
+                                    servingSize: 100,
+                                    servingUnit: 'g',
+                                    source: 'error'
+                                },
                                 ratio: 0
-                            }
+                            };
                         }
-                    })
+                    });
 
                     const nutritionResults = await Promise.all(nutritionPromises);
                     const macrosData = {};

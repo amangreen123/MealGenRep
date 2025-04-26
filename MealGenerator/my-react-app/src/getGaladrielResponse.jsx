@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { NUTRITION_PROMPT } from './NutritionAI';
+
 
 const openai = new OpenAI({
     apiKey: import.meta.env.VITE_AI_MODEL_ID,
@@ -16,7 +18,9 @@ const PROMPTS = {
     summary: `Brief recipe summary (2 sentences):
 1. Cooking method
 2. Key flavors
-3. Cultural origin if notable`
+3. Cultural origin if notable`,
+
+    nutrition: NUTRITION_PROMPT
 };
 
 // More reliable cache with size limits
@@ -50,6 +54,7 @@ const cacheManager = {
 };
 
 export const getGaladrielResponse = async (message, mode = "validate", customPrompt = null) => {
+   
     // Input sanitization
     if (typeof message !== "string" || message.trim() === "") {
         return mode === "nutrition"
@@ -73,13 +78,11 @@ export const getGaladrielResponse = async (message, mode = "validate", customPro
                 },
                 {
                     role: "user",
-                    content: mode === "nutrition"
-                        ? `Nutrition for 100g ${message}`
-                        : message
+                    content: message
                 }
             ],
             temperature: 0.2,
-            max_tokens: mode === "nutrition" ? 100 : 150
+            max_tokens: mode === "nutrition" ? 150 : 100
         };
 
         const response = await fetch("https://api.galadriel.com/v1/verified/chat/completions", {

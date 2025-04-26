@@ -60,6 +60,11 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             return null;
         }
 
+        if (!searchResponse.data?.foods?.length) {
+            console.warn('USDA: No results found');
+            return null; // Trigger AI fallback
+        }
+
         // Find the best match (prioritize Foundation foods)
         const food = searchResponse.data.foods.find(f =>
             f.dataType === "Foundation" ||

@@ -1,40 +1,62 @@
-import { getGaladrielResponse } from './getGaladrielResponse';
-import { getManualFallback } from './fallbacks';
+import {getManualFallback} from "@/fallbacks.jsx";
+import {getGaladrielResponse} from "@/getGaladrielResponse.jsx";
 
-const NUTRITION_PROMPT = `Provide nutrition facts in this EXACT format:
+export const NUTRITION_PROMPT = `Provide ACCURATE nutrition facts with STRICT validation:
+
+1. Zero-calorie items:
+   - WATER, COFFEE, TEA (plain): Must be 0 calories, 0g protein, 0g fat, 0g carbs
+   - SPICES, HERBS, SALT, PEPPER (in typical amounts): Must be ≤5 calories per serving
+   - LEMON/LIME JUICE (1 tbsp): Must be ≤5 calories
+
+2. Macronutrient constraints:
+   - PROTEIN FOODS (meats, fish, poultry): Must have protein ≥ fat (in grams)
+   - FATTY FISH (salmon, mackerel): Exception to above rule, can have fat > protein
+   - OILS, BUTTER, GHEE: Must have ≥95% calories from fat, 0g protein, 0g carbs (trace allowed)
+   - PURE CARBS (sugar, corn starch): Must have ≥95% calories from carbs, 0g protein, 0g fat
+
+3. Calories must match macronutrients:
+   - Protein: 4 calories per gram (±0.5 cal/g tolerance)
+   - Carbohydrates: 4 calories per gram (±0.5 cal/g tolerance)
+   - Fat: 9 calories per gram (±0.5 cal/g tolerance)
+   - TOTAL CALORIES must equal sum of calories from protein, carbs, and fat (±10 cal tolerance)
+
+4. Serving size constraints:
+   - Specify realistic serving sizes (e.g., 3-8oz for meats, 1-2 tbsp for oils)
+   - All values must be per specified serving (not per 100g unless explicitly stated)
+   - Include both volume (cups, tbsp) AND weight (g, oz) when applicable
+
+5. Maximum limits per serving:
+   - Calories: 1200 (flag if >800 for single ingredients)
+   - Protein: 100g (flag if >50g for single ingredients)
+   - Fat: 100g (flag if >40g for single ingredients)
+   - Carbs: 100g (flag if >60g for single ingredients)
+
+6. Data validation:
+   - REJECT negative values for any nutrient
+   - FLAG unrealistic nutrient density (e.g., vegetables with >30% protein)
+   - FLAG outliers based on USDA database typical values (±30% tolerance)
+   - EXPLAIN any unusual or unexpected values
+
+7. Return data in this EXACT format:
+
 Calories: [number]
 Protein: [number]g
 Fat: [number]g
 Carbs: [number]g
-Serving: [number][g/ml]
+Fiber: [number]g (if applicable)
+    Sugar: [number]g (if applicable)
+    Serving: [number][unit] ([number]g)
+    `
 
-STRICT RULES:
-1. NO JSON formatting
-2. NEVER return all zeros
-3. Include ALL values
-4. Meat MUST contain protein (>0)
-5. Fats/oils MUST contain fat (>0)
-6. If uncertain, use these estimates:
-   - Protein: 15-30% of calories (4 cal/g)
-   - Fat: 20-35% of calories (9 cal/g)
-   - Carbs: Remainder (4 cal/g)
-
-EXAMPLE:
-Calories: 250
-Protein: 26g
-Fat: 15g
-Carbs: 0g
-Serving: 100g`;
 
 export const fetchNutritionData = async (ingredient, measure = '100g') => {
     const query = `Nutrition for ${measure} ${ingredient}`;
-    console.log("Nutrtion Query" + query)
-    
+
     try {
         // Get AI response with retry logic
         const response = await getGaladrielResponse(query, 'nutrition');
-        //console.log('Raw AI response:', response);
-
+        console.log('RAW AI RESPONSE:', response);
+        
         // Robust text parsing
         const parsed = parseNutritionText(response);
 
@@ -48,13 +70,13 @@ export const fetchNutritionData = async (ingredient, measure = '100g') => {
 
     } catch (error) {
         console.error(`NutritionAI error for ${ingredient}:`, error.message);
-        const fallback = getManualFallback(ingredient);
+        const fallback = getManualFallback(ingredient, measure);
         console.warn('Using fallback data:', fallback);
         return fallback;
     }
 };
 
-// Robust text parser
+// More robust text parser
 function parseNutritionText(text) {
     if (!text) throw new Error('Empty response');
 
