@@ -17,7 +17,7 @@ import useTheCocktailDB from "./GetCocktailDB.jsx"
 
 import {Check, ChevronLeft, ChevronRight, InfoIcon, PlusCircle, X} from "lucide-react"
 
-import {batchGaladrielResponse, clearValidationCache, getGaladrielResponse} from "@/getGaladrielResponse.jsx"
+import {batchGaladrielResponse, getGaladrielResponse} from "@/getGaladrielResponse.jsx"
 
 import CookableSearch from "./CookableSearch.jsx"
 

@@ -6,25 +6,18 @@ const openai = new OpenAI({
     baseURL: "https://api.galadriel.com/v1/verified",
 });
 
+// Pre-defined prompts for different modes
 const PROMPTS = {
     validate: `Validate food ingredients per these rules:
 1. Accept: Edible items, alcohol, brand foods, non-English names
 2. Correct: Only obvious typos (pinaple→pineapple)
 3. Reject: Non-foods, dangerous items, profanity
-4. Output: Return as-is if valid, corrected if typo, or "Error: [item] not food"
-
-Examples:
-appl→apple
-rum→rum
-whiskey→whiskey
-rock→Error: rock is not food
-pinaple→pineapple`,
+4. Output: Return as-is if valid, corrected if typo, or "Error: [item] not food"`,
 
     summary: `Brief recipe summary (2 sentences max):
 - Key flavors
 - Cooking method
-- Cultural origin if relevant
-Example: "Classic Italian pasta with garlic oil. Ready in 15 minutes."`
+- Cultural origin if relevant`,
 };
 
 // Cache setup with 24-hour expiry
@@ -35,21 +28,11 @@ const getCache = (key) => {
     return (Date.now() - timestamp < 86400000) ? response : null;
 };
 
-export const clearValidationCache = () => {
-    Object.keys(localStorage)
-        .filter(key => key.startsWith('ai-validate-'))
-        .forEach(key => localStorage.removeItem(key));
-};
-
-export const getGaladrielResponse = async (message, mode = "validate") => {
+export const getGaladrielResponse = async (message, mode = "validate", customPrompt = null) => {
     // Client-side pre-validation
     if (mode === "validate") {
-        if (message.length > 50) {
-            return "Error: Input too long";
-        }
-
-        const dangerousInputTest = /(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message);
-        if (dangerousInputTest) {
+        if (message.length > 50) return "Error: Input too long";
+        if (/(\b\d+\b|profanity|slurs)(?!\s*(proof|%))/i.test(message)) {
             return "Error: Invalid input";
         }
     }
@@ -60,42 +43,64 @@ export const getGaladrielResponse = async (message, mode = "validate") => {
     if (cachedResponse) return cachedResponse;
 
     try {
-        // Dynamic model selection
-        const model = mode === "validate" ? "gpt-3.5-turbo" : "gpt-4o";
-
-        const completion = await openai.chat.completions.create({
-            model,
+        // Configuration for different modes
+        const params = {
+            model: mode === "validate" ? "gpt-3.5-turbo" : "gpt-4",
             messages: [
-                { role: "system", content: PROMPTS[mode] },
+                {
+                    role: "system",
+                    content: customPrompt || PROMPTS[mode]
+                },
                 { role: "user", content: message }
             ],
-            temperature: 0.7
-        });
+            temperature: 0.3,
+            // Only force JSON if explicitly requested
+            ...(mode === "nutrition" && customPrompt?.includes('JSON') && {
+                response_format: { type: "json_object" }
+            })
+        };
 
-        const responseText = completion.choices[0]?.message?.content.trim();
+        const completion = await openai.chat.completions.create(params);
+        let response = completion.choices[0]?.message?.content?.trim();
 
-        // Cache and return response
+        // Cache the response
         localStorage.setItem(cacheKey, JSON.stringify({
-            response: responseText,
+            response,
             timestamp: Date.now()
         }));
 
-        return responseText;
+        return response;
 
     } catch (error) {
-        console.error("AI Error:", error);
-        // Fallback strategies
-        return mode === "validate"
-            ? message // Assume valid if API fails
-            : "Description unavailable (API error)";
+        console.error("Galadriel API error:", error);
+
+        // Special handling for nutrition mode
+        if (mode === "nutrition") {
+            return "Calories: 0\nProtein: 0g\nFat: 0g\nCarbs: 0g\nServing: 100g";
+        }
+
+        // Default fallbacks
+        switch (mode) {
+            case "validate":
+                return message; // Assume valid if API fails
+            default:
+                return "Description unavailable (API error)";
+        }
     }
 };
 
-// Batch Version
+// Batch version
 export const batchGaladrielResponse = async (messages, mode = "validate") => {
     const batchMessage = `${mode === "validate"
         ? "Validate these ingredients:\n"
         : "Summarize these dishes:\n"}${messages.join("\n")}`;
 
     return getGaladrielResponse(batchMessage, mode);
+};
+
+// Cache clearing
+export const clearGaladrielCache = (prefix = "") => {
+    Object.keys(localStorage)
+        .filter(key => key.startsWith(`ai-${prefix}`))
+        .forEach(key => localStorage.removeItem(key));
 };
