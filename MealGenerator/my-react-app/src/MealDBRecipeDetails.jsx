@@ -1,7 +1,5 @@
-"use client"
-
 import { useEffect, useState } from "react"
-import {useLocation, useNavigate, useParams} from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { ChevronLeft, Globe2, UtensilsCrossed, Scale, ShoppingCart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,13 +9,77 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import GetMealDBRecipeDetails from "@/GetMealDBRecipeDetails.jsx"
 import { getUSDAInfo } from "@/GetUSDAInfo.jsx"
-import RecipeNavigator from "@/RecipeNavigator.jsx";
-import {convertToGrams} from "@/nutrition.js"
-import {batchGaladrielResponse, getGaladrielResponse,clearNutritionCache} from "@/getGaladrielResponse.jsx";
+import RecipeNavigator from "@/RecipeNavigator.jsx"
+import { convertToGrams } from "@/nutrition.js"
+import { batchGaladrielResponse, getGaladrielResponse, clearNutritionCache } from "@/getGaladrielResponse.jsx"
 
+// Helper functions for nutrition processing
+function areAllNutrientsZero(data) {
+    if (!data) return true
+    return (
+        (data.calories === 0 || isNaN(data.calories)) &&
+        (data.protein === 0 || isNaN(data.protein)) &&
+        (data.fat === 0 || isNaN(data.fat)) &&
+        (data.carbs === 0 || isNaN(data.carbs))
+    )
+}
+
+function normalizeNutritionData(response) {
+    try {
+        const data = typeof response === 'string' ? JSON.parse(response) : response
+        return {
+            calories: data.cal || data.calories || 0,
+            protein: data.pro || data.protein || 0,
+            fat: data.fat || 0,
+            carbs: data.carb || data.carbs || 0,
+            servingSize: data.size || 100,
+            servingUnit: data.unit || 'g',
+            source: data.source || 'AI'
+        }
+    } catch (e) {
+        console.error('Failed to normalize nutrition data:', e)
+        return getManualFallback()
+    }
+}
+
+function validateNutritionValues(values) {
+    const MAX_VALUES = {
+        calories: 2000,  // per ingredient
+        protein: 200,
+        fat: 200,
+        carbs: 200
+    };
+
+    return {
+        calories: Math.min(values.calories, MAX_VALUES.calories),
+        protein: Math.min(values.protein, MAX_VALUES.protein),
+        fat: Math.min(values.fat, MAX_VALUES.fat),
+        carbs: Math.min(values.carbs, MAX_VALUES.carbs)
+    };
+}
+
+function getManualFallback(ingredient = '') {
+    const MANUAL_FALLBACKS = {
+        'garlic': { calories: 149, protein: 6.4, fat: 0.5, carbs: 33.1, servingSize: 100, servingUnit: 'g' },
+        'olive oil': { calories: 884, protein: 0, fat: 100, carbs: 0, servingSize: 100, servingUnit: 'g' },
+        'chicken': { calories: 239, protein: 27, fat: 14, carbs: 0, servingSize: 100, servingUnit: 'g' },
+        'tomato': { calories: 18, protein: 0.9, fat: 0.2, carbs: 3.9, servingSize: 100, servingUnit: 'g' },
+        'onion': { calories: 40, protein: 1.1, fat: 0.1, carbs: 9.3, servingSize: 100, servingUnit: 'g' }
+    }
+
+    const normalizedIngredient = ingredient.toLowerCase().trim()
+    return MANUAL_FALLBACKS[normalizedIngredient] || {
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0,
+        servingSize: 100,
+        servingUnit: 'g',
+        source: 'fallback'
+    }
+}
 
 const MealDBRecipeDetails = () => {
-
     const { id } = useParams()
     const [loading, setLoading] = useState(true)
     const [recipeDetails, setRecipeDetails] = useState(null)
@@ -28,15 +90,11 @@ const MealDBRecipeDetails = () => {
         fat: 0,
         carbs: 0,
     })
-
     const [error, setError] = useState(null)
     const navigate = useNavigate()
-
-    const {state} = useLocation()
+    const { state } = useLocation()
     const previousPath = state?.previousPath || '/'
-    const userIngredients = state?.userIngredients || [];
-    
-    
+    const userIngredients = state?.userIngredients || []
 
     const handleBackClick = () => {
         navigate(previousPath)
@@ -53,203 +111,163 @@ const MealDBRecipeDetails = () => {
         }
         return ingredients
     }
-    
 
-    //Compares the user ingredients with the recipe ingredients
     const compareIngredients = (recipeIngredients, userIngredients) => {
-        // Normalize user ingredients to lowercase and trim
         const userIngredientsNormalized = userIngredients.map(ingredient =>
             ingredient.toLowerCase().trim()
-        );
-
-        // Filter ingredients the user has
+        )
         const hasIngredients = recipeIngredients.filter(item =>
             userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
-        );
-
-        // Filter ingredients the user is missing - IMPORTANT: ingredients should only be in one list
+        )
         const missingIngredients = recipeIngredients.filter(item =>
             !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
-        );
-
-        return { hasIngredients, missingIngredients };
-    };
-
+        )
+        return { hasIngredients, missingIngredients }
+    }
 
     useEffect(() => {
-        clearNutritionCache(); // optional: only run when debugging
-    }, []);
+        clearNutritionCache()
+    }, [])
 
     useEffect(() => {
         const fetchRecipeData = async () => {
             if (!id) {
-                setError("Invalid recipe ID.");
-                setLoading(false);
-                return;
+                setError("Invalid recipe ID.")
+                setLoading(false)
+                return
             }
 
             try {
-                setLoading(true);
-                const data = await GetMealDBRecipeDetails(id);
+                setLoading(true)
+                const data = await GetMealDBRecipeDetails(id)
 
                 if (data?.meals?.[0]) {
-                    const recipeData = data.meals[0];
-                    setRecipeDetails(recipeData);
-                    const ingredients = getIngredients(recipeData);
+                    const recipeData = data.meals[0]
+                    setRecipeDetails(recipeData)
+                    const ingredients = getIngredients(recipeData)
 
                     const nutritionPromises = ingredients.map(async (item) => {
                         try {
-                            console.log(`Processing: ${item.ingredient} (${item.measure})`);
+                            console.log(`Processing: ${item.ingredient} (${item.measure})`)
 
-                            let macroData = await getUSDAInfo(item.ingredient);
-                            console.log("USDA Data:", macroData);
+                            // 1. Try USDA API first
+                            let macroData = await getUSDAInfo(item.ingredient)
+                            const grams = convertToGrams(item.measure) || 0
+                            console.log('Initial USDA data:', macroData)
 
-                            const grams = convertToGrams(item.measure) || 0;
-                            console.log(`Converted ${item.measure} to ${grams}g`);
+                            // 2. Enhanced fallback system
+                            if (!macroData || areAllNutrientsZero(macroData)) {
+                                console.warn(`Falling back to AI for ${item.ingredient}`)
 
-                            if (!macroData) {
-                                console.log(`No USDA data, asking AI for ${item.ingredient}`);
-                                const aiResponse = await getGaladrielResponse(
-                                    `Provide nutrition for ${item.ingredient}: ${item.measure} in JSON format with calories, protein, fat, carbs, and servingSize`,
-                                    "nutrition"
-                                );
+                                const measureInfo = item.measure ? ` (${item.measure})` : ''
+                                const aiPrompt = `Provide COMPLETE nutrition facts for ${item.ingredient}${measureInfo} as VALID JSON: {
+                  "cal":number, "pro":number, "fat":number, "carb":number,
+                  "size":number, "unit":"g"|"ml", "source":"string"
+                }`
 
                                 try {
-                                    macroData = JSON.parse(aiResponse);
-                                    console.log("AI Nutrition Response:", aiResponse);
-                                    console.log("Raw AI Response:", aiResponse);
-                                    // Standardize property names
-                                    macroData = {
-                                        calories: macroData.calories || macroData.cal || 0,
-                                        protein: macroData.protein || macroData.pro || 0,
-                                        fat: macroData.fat || 0,
-                                        carbs: macroData.carbs || macroData.carb || 0,
-                                        servingSize: macroData.servingSize || 100,
-                                        servingUnit: macroData.servingUnit || "g",
-                                        source: "AI"
-                                    };
+                                    const aiResponse = await getGaladrielResponse(aiPrompt, "nutrition")
+                                    console.log('Raw AI response:', aiResponse)
+                                    macroData = normalizeNutritionData(aiResponse)
 
-                                    // Validate values
-                                    if (macroData.calories > 1000 || macroData.protein > 200 ||
-                                        macroData.fat > 200 || macroData.carbs > 200) {
-                                        console.warn(`Suspect values for ${item.ingredient}:`, macroData);
-                                        macroData = {
-                                            calories: 0,
-                                            protein: 0,
-                                            fat: 0,
-                                            carbs: 0,
-                                            servingSize: 100,
-                                            servingUnit: "g",
-                                            source: "error"
-                                        };
+                                    if (areAllNutrientsZero(macroData)) {
+                                        console.warn('AI returned zeros - using manual fallback')
+                                        macroData = getManualFallback(item.ingredient)
                                     }
-                                } catch (e) {
-                                    console.warn("Failed to parse AI nutrition response", e);
-                                    macroData = {
-                                        calories: 0,
-                                        protein: 0,
-                                        fat: 0,
-                                        carbs: 0,
-                                        servingSize: 100,
-                                        servingUnit: "g",
-                                        source: "error"
-                                    };
+                                } catch (aiError) {
+                                    console.error('AI fallback failed:', aiError)
+                                    macroData = getManualFallback(item.ingredient)
                                 }
                             }
 
-                            // Calculate ratio with validation
-                            const servingSize = macroData.servingSize || 100;
-                            let ratio = grams > 0 ? (grams / servingSize) : 0;
+                            // 3. Calculate ratios with validation
+                            const servingSize = macroData.servingSize || 100
+                            let ratio = grams > 0 ? (grams / servingSize) : 0
 
                             if (ratio > 100 || ratio < 0.01) {
-                                console.warn(`Unrealistic ratio (${ratio}) for ${item.ingredient}`);
-                                ratio = 1;
+                                console.warn(`Unrealistic ratio ${ratio} for ${item.ingredient}, using 1`)
+                                ratio = 1
                             }
+
+                            console.log('Final nutrition for', item.ingredient, {
+                                ...macroData,
+                                calculated: {
+                                    calories: macroData.calories * ratio,
+                                    protein: macroData.protein * ratio,
+                                    fat: macroData.fat * ratio,
+                                    carbs: macroData.carbs * ratio
+                                }
+                            })
 
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
                                 macroData,
                                 ratio
-                            };
+                            }
 
                         } catch (error) {
-                            console.error(`Error processing ${item.ingredient}:`, error);
+                            console.error(`Error processing ${item.ingredient}:`, error)
                             return {
                                 ingredient: item.ingredient,
                                 measure: item.measure,
-                                macroData: {
-                                    calories: 0,
-                                    protein: 0,
-                                    fat: 0,
-                                    carbs: 0,
-                                    servingSize: 100,
-                                    servingUnit: "g",
-                                    source: "error"
-                                },
+                                macroData: getManualFallback(item.ingredient),
                                 ratio: 0
-                            };
+                            }
                         }
-                    });
+                    })
 
-                    const nutritionResults = await Promise.all(nutritionPromises);
-                    const macrosData = {};
-                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
+                    const nutritionResults = await Promise.all(nutritionPromises)
+                    const macrosData = {}
+                    let totalCals = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0
 
                     nutritionResults.forEach(result => {
                         const { ingredient, macroData, ratio } = result;
                         macrosData[ingredient] = macroData;
-                        
-                        //console.log("Final Macro Data:", macroData);
-                        
-                        // Calculate nutrition values
+
                         const protein = (macroData.protein || 0) * ratio;
                         const fat = (macroData.fat || 0) * ratio;
                         const carbs = (macroData.carbs || 0) * ratio;
-                        const calories = macroData.calories > 0
-                            ? macroData.calories * ratio
-                            : (protein * 4) + (carbs * 4) + (fat * 9); // Fallback calculation
 
-                        // Add to totals
                         totalProtein += protein;
                         totalFat += fat;
                         totalCarbs += carbs;
-                        totalCals += calories;
+                        
+                        totalCals += macroData.calories > 0
+                            ? macroData.calories * ratio
+                            : (protein * 4) + (carbs * 4) + (fat * 9);
                     });
 
-                    // Set state once with final values
-                    setMacros(macrosData);
+                    setMacros(macrosData)
 
                     if (totalCals <= 0 && totalProtein <= 0 && totalFat <= 0 && totalCarbs <= 0) {
-                        console.warn("No valid nutrition data found");
+                        console.warn("No valid nutrition data found for any ingredients")
                         setTotalNutrition({
                             calories: 'N/A',
                             protein: 'N/A',
                             fat: 'N/A',
                             carbs: 'N/A'
-                        });
+                        })
                     } else {
-                        setTotalNutrition({
+                        setTotalNutrition(validateNutritionValues({
                             calories: Math.round(totalCals),
                             protein: Math.round(totalProtein),
                             fat: Math.round(totalFat),
                             carbs: Math.round(totalCarbs),
-                        });
+                        }));
                     }
 
                 } else {
-                    setError("Recipe details not found.");
+                    setError("Recipe details not found.")
                 }
-
             } catch (error) {
-                setError(error.message || "Error fetching recipe details");
+                setError(error.message || "Error fetching recipe details")
             } finally {
-                setLoading(false);
+                setLoading(false)
             }
-        };
-
-        fetchRecipeData();
-    }, [id]);
+        }
+        fetchRecipeData()
+    }, [id])
     
     
 

@@ -33,7 +33,13 @@ const extractNutrient = (food, nutrientNumber) => {
 
 export const getUSDAInfo = async (ingredient, userServingSize = null, userServingUnit = null) => {
     const normalizedIngredient = ingredient.toLowerCase().trim();
-    console.log(`Searching USDA for: "${normalizedIngredient}"`); // Debug log
+    // console.log(`Searching USDA for: "${normalizedIngredient}"`); // Debug log
+
+    if (cache.has(normalizedIngredient)) {
+        console.log(`Using cached data for ${normalizedIngredient}`);
+        return cache.get(normalizedIngredient);
+    }
+
 
     try {
         const searchResponse = await axios.get(`${USDA_API_URL}/foods/search`, {
@@ -60,7 +66,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             f.description.toLowerCase().includes(normalizedIngredient)
         ) || searchResponse.data.foods[0];
 
-        console.log("Selected food:", food.description, food.dataType); // Debug log
+        //console.log("Selected food:", food.description, food.dataType); // Debug log
 
         // Extract nutrients with better fallbacks
         const nutrients = {
@@ -72,10 +78,10 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             carbs: extractNutrient(food, NUTRIENT_IDS.carbs) || 0
         };
 
-        console.log("Extracted nutrients:", nutrients); // Debug log
+        //console.log("Extracted nutrients:", nutrients); // Debug log
 
         // Rest of your serving size calculations...
-        return {
+       const result =  {
             ...nutrients,
             fdcId: food.fdcId,
             description: food.description,
@@ -83,6 +89,9 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
             servingUnit: (food.servingSizeUnit || "g").toLowerCase(),
             source: "USDA"
         };
+       
+       cache.set(normalizedIngredient, result)
+        return result
 
     } catch (error) {
         console.error(`USDA Error for ${ingredient}:`, error.response?.data || error.message);
