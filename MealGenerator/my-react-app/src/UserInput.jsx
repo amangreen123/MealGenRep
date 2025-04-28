@@ -779,15 +779,17 @@ const UserInput = () => {
                             <div className="flex items-center justify-center h-full">
                                 <div className="text-center text-gray-500 font-terminal">
                                     YOU HAVE NOT ADDED
-                                    <br />
+                                    <br/>
                                     ANY INGREDIENTS
                                 </div>
                             </div>
                         ) : (
                             ingredients.map((item, index) => (
-                                <div key={index} className="mb-2 text-xl flex justify-between items-center font-terminal text-text">
+                                <div key={index}
+                                     className="mb-2 text-xl flex justify-between items-center font-terminal text-text">
                                     {item}
-                                    <button onClick={() => handleRemoveIngredient(item)} className="text-accent hover:text-white">
+                                    <button onClick={() => handleRemoveIngredient(item)}
+                                            className="text-accent hover:text-white">
                                         ✕
                                     </button>
                                 </div>
@@ -829,26 +831,27 @@ const UserInput = () => {
                                 <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo"
                                      className="h-16 mb-6"/>
                                 <div>
-                                YOU HAVE NOTHING
-                                    <br />
-                                    IN YOUR PANTRY !
-                                    <br />
-                                    <br />
+                                    YOU HAVE NOTHING
+                                    <br/>
+                                    IN YOUR PANTRY!
+                                    <br/>
+                                    <br/>
                                     TRY ADDING INGREDIENTS
-                                    <br />
+                                    <br/>
                                     .....
                                 </div>
                             </div>
                         ) : allRecipes.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
+                            <div
+                                className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
                                 <div>
                                     NO RECIPES FOUND
-                                    <br />
+                                    <br/>
                                     WITH YOUR INGREDIENTS
-                                    <br />
-                                    <br />
+                                    <br/>
+                                    <br/>
                                     TRY ADDING MORE INGREDIENTS
-                                    <br />
+                                    <br/>
                                     .....
                                 </div>
                             </div>
@@ -881,7 +884,7 @@ const UserInput = () => {
                         <div className="mt-4">
                             <Button
                                 className="border border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-[#ce7c1c] px-8 py-2 font-terminal rounded-2xl cursor-pointer w-full"
-                                onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
+                                onClick={() => handleSearch({cookableOnly: false, strictMode: false})}
                                 disabled={isSearching || ingredients.length === 0}
                             >
                                 {isSearching ? "Generating..." : "Generate"}
@@ -896,20 +899,20 @@ const UserInput = () => {
                     </h2>
                     <div className="space-y-4">
                         {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
-                            const dietValue = diet.toLowerCase().replace(" ", "-")
+                            const dietValue = diet.toLowerCase().replace(" ", "-");
                             return (
                                 <Button
                                     key={index}
                                     className={`w-full py-3 font-title text-lg border ${
                                         selectedDiet === dietValue
                                             ? "bg-[#ce7c1c] text-white font-bold"
-                                            : "border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-[#ce7c1c] font-bold"
+                                            : "border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
                                     } rounded-2xl cursor-pointer`}
                                     onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
                                 >
                                     {diet}
                                 </Button>
-                            )
+                            );
                         })}
                     </div>
                 </div>
@@ -918,7 +921,8 @@ const UserInput = () => {
             {/* Category Selection Dialog - Keep this from your original code */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                 <DialogContent className="bg-gray-800 text-white max-w-md">
-                    <DialogTitle className="text-center text-xl font-title mb-2">{selectedCategory} Recipes</DialogTitle>
+                    <DialogTitle
+                        className="text-center text-xl font-title mb-2">{selectedCategory} Recipes</DialogTitle>
                     <DialogDescription className="text-center text-gray-300 mb-6 font-terminal">
                         Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                     </DialogDescription>

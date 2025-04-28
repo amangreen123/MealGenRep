@@ -5,7 +5,7 @@
 /* Font imports */
 @font-face {
   font-family: "ITC Machine";
-  src: url("/fonts/itc-machine.woff2") format("woff2");
+  src: url("./fonts/ITCMachineBold.otf") format("ot");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -13,7 +13,7 @@
 
 @font-face {
   font-family: "Proggyclean";
-  src: url("/fonts/proggyclean-bold.woff2") format("woff2");
+  src: url("./fonts/ProggyClean.ttf") format("truetype");
   font-weight: bold;
   font-style: normal;
   font-display: swap;
@@ -37,11 +37,11 @@ body {
 }
 
 .font-machine {
-  font-family: "ITC Machine", monospace;
+  font-family: "ITC Machine", sans-serif;
 }
 
 .font-title {
-  font-family: "Proggyclean", sans-serif;
+  font-family: "ITC Machine", sans-serif;
   font-weight: bold;
 }
 
