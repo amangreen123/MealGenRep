@@ -725,18 +725,18 @@ const UserInput = () => {
                         <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-20" />
                     </div>
                     <div className="relative w-full max-w-md mx-auto">
-                        <div className="relative">
+                        <div className="relative w-full">
                             <Input
                                 type="text"
                                 placeholder="Enter an ingredient ....."
-                                className="w-full bg-transparent border border-gray-600 rounded-full py-2 px-4 text-white pl-10"
+                                className="w-full bg-transparent border border-gray-600 rounded-full py-2 px-4 text-white pl-10 pr-10"  // Added pr-10 for right padding
                                 value={inputString}
                                 onChange={handleInputChange}
                                 onKeyPress={(e) => e.key === "Enter" && handleAddIngredient()}
                             />
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
                             <Button
-                                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 rounded-full bg-transparent hover:bg-gray-700 p-0 flex items-center justify-center"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 text-lg font-medium grid place-items-center transition-colors"
                                 onClick={handleAddIngredient}
                             >
                                 +
@@ -795,7 +795,7 @@ const UserInput = () => {
                         )}
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-2xl font-machine mb-4 text-center">
+                        <h3 className="text-3xl font-machine text-text mb-4 text-center">
                             <span className="text-text">QUICK</span> <span className="text-accent">ADD</span>
                         </h3>
                         <div className="border border-gray-700 rounded-2xl p-6 bg-gray-900/50">
@@ -803,12 +803,12 @@ const UserInput = () => {
                                 {popularIngredients.map((item, index) => (
                                     <Button
                                         key={index}
-                                        className={`flex items-center justify-center h-14 bg-transparent border ${
-                                            index === 6 ? "border-[#ce7c1c] text-[#ce7c1c]" : "border-white"
+                                        className={`flex items-center justify-center h-14 bg-transparent border border-white ${
+                                            index === 6 ? "text-[#ce7c1c]" : "" // Keeps the specific color for the 7th button
                                         } hover:bg-gray-800 rounded-2xl cursor-pointer`}
                                         onClick={() => handleQuickSearch(item.name)}
                                     >
-                                        <item.icon className={`text-2xl ${item.color}`} />
+                                        <item.icon className={`text-2xl ${item.color}`}/>
                                     </Button>
                                 ))}
                             </div>
@@ -819,15 +819,17 @@ const UserInput = () => {
                 {/* Middle Column - RECIPIES */}
                 <div className="flex flex-col w-full md:w-1/3">
                     <h2 className="text-3xl font-machine text-text mb-4 text-center">
-                        <span className="text-accent">RE</span>CIPES
+                        <span className="text-accent">RECIPES</span>
                     </h2>
 
                     <div className="border border-gray-700 rounded-2xl p-4 mb-4 flex-grow bg-gray-900/50 flex flex-col">
                         {ingredients.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
-                                <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-16 mb-6" />
+                            <div
+                                className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
+                                <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo"
+                                     className="h-16 mb-6"/>
                                 <div>
-                                    YOU HAVE NOTHING
+                                YOU HAVE NOTHING
                                     <br />
                                     IN YOUR PANTRY !
                                     <br />
