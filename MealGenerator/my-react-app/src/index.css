@@ -5,7 +5,7 @@
 /* Font imports */
 @font-face {
   font-family: "ITC Machine";
-  src: url("./fonts/ITCMachineBold.otf") format("ot");
+  src: url("./fonts/ITCMachineBold.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -34,6 +34,7 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
+  min-height: 100vh;
 }
 
 .font-machine {
@@ -50,7 +51,7 @@ body {
 }
 
 .font-terminal {
-  font-family: "ITC Machine", monospace;
+  font-family: "Proggyclean", monospace;
 }
 
 .text-accent {
@@ -104,3 +105,50 @@ body {
   border-radius: 3px;
 }
 
+/* Override shadcn button styles */
+.button-primary {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+/* Override switch component styles */
+[data-state="checked"] {
+  background-color: var(--accent) !important;
+}
+
+/* Full height containers */
+.full-height-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Larger headings */
+.section-heading {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .section-heading {
+    font-size: 2rem;
+  }
+}
+
+/* Update the diet-button class to make buttons larger and more spaced out */
+
+/* Diet buttons */
+.diet-button {
+  font-size: 1.5rem !important;
+  padding: 1rem 1.5rem !important;
+  margin-bottom: 0.5rem;
+  height: auto !important;
+}

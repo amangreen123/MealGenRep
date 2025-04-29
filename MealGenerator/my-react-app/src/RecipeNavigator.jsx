@@ -1,95 +1,85 @@
-import {useNavigate} from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react"
+"use client"
+
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
-
-const RecipeNavigator = ({allRecipes, currentRecipe}) => {
-
+const RecipeNavigator = ({ allRecipes, currentRecipe }) => {
     const navigate = useNavigate()
-    // console.log("allRecipes in RecipeNavigator:", allRecipes);
-    // console.log("Current Recipe:", currentRecipe);
 
-    const getCurrentIndex = () => {
-
-
-        if(!currentRecipe || !allRecipes || allRecipes.length === 0) return -1
-
-        if(currentRecipe.id){
-            return allRecipes.findIndex((r) => r.id === currentRecipe.id)
+    // Find the current recipe index
+    const currentIndex = allRecipes.findIndex((recipe) => {
+        if (recipe.id && currentRecipe.id) {
+            return recipe.id === currentRecipe.id
+        } else if (recipe.idMeal && currentRecipe.idMeal) {
+            return recipe.idMeal === currentRecipe.idMeal
+        } else if (recipe.idDrink && currentRecipe.idDrink) {
+            return recipe.idDrink === currentRecipe.idDrink
         }
+        return false
+    })
 
-        if(typeof currentRecipe === "string"){
-            return allRecipes.findIndex((r) => r.strDrink === currentRecipe)
+    // Get previous and next indices with wrap-around
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : allRecipes.length - 1
+    const nextIndex = currentIndex < allRecipes.length - 1 ? currentIndex + 1 : 0
+
+    const navigateToRecipe = (recipe) => {
+        if (!recipe) return
+
+        // Determine the recipe type and navigate accordingly
+        if (recipe.idDrink) {
+            navigate(`/drink/${recipe.idDrink}`, {
+                state: {
+                    drink: recipe,
+                    userIngredients: window.history.state?.usr?.userIngredients || [],
+                    allRecipes: allRecipes,
+                    previousPath: window.history.state?.usr?.previousPath || "/",
+                },
+            })
+        } else if (recipe.idMeal) {
+            navigate(`/mealdb-recipe/${recipe.idMeal}`, {
+                state: {
+                    meal: recipe,
+                    userIngredients: window.history.state?.usr?.userIngredients || [],
+                    allRecipes: allRecipes,
+                    previousPath: window.history.state?.usr?.previousPath || "/",
+                },
+            })
+        } else {
+            navigate(`/recipe/${recipe.id}`, {
+                state: {
+                    recipe: recipe,
+                    userIngredients: window.history.state?.usr?.userIngredients || [],
+                    allRecipes: allRecipes,
+                    previousPath: window.history.state?.usr?.previousPath || "/",
+                },
+            })
         }
-
-        if (currentRecipe.idMeal){
-            return allRecipes.findIndex((r) => r.idMeal === currentRecipe.idMeal)
-        }
-
-        if(currentRecipe.idDrink) {
-            return allRecipes.findIndex((r) => r.idDrink === currentRecipe.idDrink)
-        }
-
-        return -1
     }
-
-    const currentIndex = getCurrentIndex()
-
-    if(currentIndex === -1 || allRecipes.length < 2){
-        return null
-    }
-
-    const navigateToRecipe = (newIndex) => {
-        const nextRecipe = allRecipes[newIndex];
-        //Handles each recipe type
-
-        if (nextRecipe.id) {
-            navigate(`/recipe/${nextRecipe.id}`, { state: { recipe: nextRecipe, allRecipes } })
-        } else if (nextRecipe.idDrink) {
-            navigate(`/drink/${nextRecipe.idDrink}`, { state: { drink: nextRecipe, allRecipes } })
-        } else if (nextRecipe.idMeal) {
-            navigate(`/mealdb-recipe/${nextRecipe.idMeal}`, { state: { recipe: nextRecipe, allRecipes } })
-        }
-    }
-
-    const handleNext = () => {
-        const newIndex = (currentIndex + 1) % allRecipes.length;
-        navigateToRecipe(newIndex);
-    };
-
-    const handlePrevious = () => {
-        const newIndex = (currentIndex - 1 + allRecipes.length) % allRecipes.length;
-        navigateToRecipe(newIndex);
-    };
 
     return (
-        <Card className="bg-gray-800/50 border-gray-700 p-4 mb-6">
-            <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-400">
-                    Recipe {currentIndex + 1} of {allRecipes.length}
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={handlePrevious}
-                        className="bg-gray-700/30 hover:bg-gray-700/50 border-gray-600"
-                    >
-                        <ChevronLeft className="w-4 h-4 mr-2" />
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={handleNext}
-                        className="bg-gray-700/30 hover:bg-gray-700/50 border-gray-600"
-                    >
-                        Next
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                    </Button>
-                </div>
+        <div className="flex justify-between items-center mb-6">
+            <Button
+                variant="outline"
+                onClick={() => navigateToRecipe(allRecipes[prevIndex])}
+                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20"
+            >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous Recipe
+            </Button>
+            <div className="text-[#f5efe4] font-terminal">
+                {currentIndex + 1} of {allRecipes.length}
             </div>
-        </Card>
-    );
+            <Button
+                variant="outline"
+                onClick={() => navigateToRecipe(allRecipes[nextIndex])}
+                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20"
+            >
+                Next Recipe
+                <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+        </div>
+    )
 }
 
-export default RecipeNavigator;
+export default RecipeNavigator

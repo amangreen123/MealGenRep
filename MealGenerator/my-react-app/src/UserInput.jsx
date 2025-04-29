@@ -717,19 +717,19 @@ const UserInput = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#131415] text-[#f5efe4]">
+        <div className="full-height-container bg-[#131415] text-[#f5efe4]">
             {/* Header */}
             <div className="w-full max-w-7xl mx-auto px-6 py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-20" />
+                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-24" />
                     </div>
                     <div className="relative w-full max-w-md mx-auto">
                         <div className="relative w-full">
                             <Input
                                 type="text"
                                 placeholder="Enter an ingredient ....."
-                                className="w-full bg-transparent border border-gray-600 rounded-full py-2 px-4 text-white pl-10 pr-10"  // Added pr-10 for right padding
+                                className="w-full bg-transparent border border-gray-600 rounded-full py-2 px-4 text-white pl-10 pr-10"
                                 value={inputString}
                                 onChange={handleInputChange}
                                 onKeyPress={(e) => e.key === "Enter" && handleAddIngredient()}
@@ -770,26 +770,24 @@ const UserInput = () => {
             {/* Main Content */}
             <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-6 px-6 py-4 flex-grow">
                 {/* Left Column - MY PANTRY */}
-                <div className="flex flex-col w-full md:w-1/3">
-                    <h2 className="text-3xl font-machine text-text mb-4 text-center">
+                <div className="flex flex-col w-full md:w-1/3 mb-6 md:mb-0">
+                    <h2 className="section-heading font-title">
                         <span className="text-accent">MY</span> PANTRY
                     </h2>
-                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 min-h-[100px] bg-gray-900/50">
+                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 min-h-[200px] md:min-h-[300px] bg-gray-900/50 flex-grow">
                         {ingredients.length === 0 ? (
                             <div className="flex items-center justify-center h-full">
                                 <div className="text-center text-gray-500 font-terminal">
                                     YOU HAVE NOT ADDED
-                                    <br/>
+                                    <br />
                                     ANY INGREDIENTS
                                 </div>
                             </div>
                         ) : (
                             ingredients.map((item, index) => (
-                                <div key={index}
-                                     className="mb-2 text-xl flex justify-between items-center font-terminal text-text">
+                                <div key={index} className="mb-2 text-xl flex justify-between items-center font-terminal text-text">
                                     {item}
-                                    <button onClick={() => handleRemoveIngredient(item)}
-                                            className="text-accent hover:text-white">
+                                    <button onClick={() => handleRemoveIngredient(item)} className="text-accent hover:text-white">
                                         ✕
                                     </button>
                                 </div>
@@ -797,7 +795,7 @@ const UserInput = () => {
                         )}
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-machine text-text mb-4 text-center">
+                        <h3 className="section-heading font-title">
                             <span className="text-text">QUICK</span> <span className="text-accent">ADD</span>
                         </h3>
                         <div className="border border-gray-700 rounded-2xl p-6 bg-gray-900/50">
@@ -805,12 +803,11 @@ const UserInput = () => {
                                 {popularIngredients.map((item, index) => (
                                     <Button
                                         key={index}
-                                        className={`flex items-center justify-center h-14 bg-transparent border border-white ${
-                                            index === 6 ? "text-[#ce7c1c]" : "" // Keeps the specific color for the 7th button
-                                        } hover:bg-gray-800 rounded-2xl cursor-pointer`}
+                                        className={`flex flex-col items-center justify-center h-20 bg-transparent border border-white hover:bg-gray-800 rounded-2xl cursor-pointer`}
                                         onClick={() => handleQuickSearch(item.name)}
                                     >
-                                        <item.icon className={`text-2xl ${item.color}`}/>
+                                        <item.icon className={`text-2xl ${item.color} mb-1`} />
+                                        <span className="text-xs font-terminal text-white">{item.name}</span>
                                     </Button>
                                 ))}
                             </div>
@@ -818,40 +815,36 @@ const UserInput = () => {
                     </div>
                 </div>
 
-                {/* Middle Column - RECIPIES */}
-                <div className="flex flex-col w-full md:w-1/3">
-                    <h2 className="text-3xl font-machine text-text mb-4 text-center">
+                {/* Middle Column - RECIPES */}
+                <div className="flex flex-col w-full md:w-1/3 mb-6 md:mb-0">
+                    <h2 className="section-heading font-title">
                         <span className="text-accent">RECIPES</span>
                     </h2>
-
-                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 flex-grow bg-gray-900/50 flex flex-col">
+                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 bg-gray-900/50 flex flex-col flex-grow min-h-[400px] md:min-h-[600px]">
                         {ingredients.length === 0 ? (
-                            <div
-                                className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
-                                <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo"
-                                     className="h-16 mb-6"/>
+                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
+                                <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-16 mb-6" />
                                 <div>
                                     YOU HAVE NOTHING
-                                    <br/>
+                                    <br />
                                     IN YOUR PANTRY!
-                                    <br/>
-                                    <br/>
+                                    <br />
+                                    <br />
                                     TRY ADDING INGREDIENTS
-                                    <br/>
+                                    <br />
                                     .....
                                 </div>
                             </div>
                         ) : allRecipes.length === 0 ? (
-                            <div
-                                className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
+                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
                                 <div>
                                     NO RECIPES FOUND
-                                    <br/>
+                                    <br />
                                     WITH YOUR INGREDIENTS
-                                    <br/>
-                                    <br/>
+                                    <br />
+                                    <br />
                                     TRY ADDING MORE INGREDIENTS
-                                    <br/>
+                                    <br />
                                     .....
                                 </div>
                             </div>
@@ -883,8 +876,8 @@ const UserInput = () => {
                         )}
                         <div className="mt-4">
                             <Button
-                                className="border border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-[#ce7c1c] px-8 py-2 font-terminal rounded-2xl cursor-pointer w-full"
-                                onClick={() => handleSearch({cookableOnly: false, strictMode: false})}
+                                className="border border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-[#ce7c1c] px-8 py-3 font-terminal rounded-2xl cursor-pointer w-full text-xl font-bold"
+                                onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
                                 disabled={isSearching || ingredients.length === 0}
                             >
                                 {isSearching ? "Generating..." : "Generate"}
@@ -893,36 +886,38 @@ const UserInput = () => {
                     </div>
                 </div>
 
+                {/* Right Column - MY DIET */}
                 <div className="flex flex-col w-full md:w-1/3">
-                    <h2 className="text-3xl font-machine text-text mb-4 text-center">
+                    <h2 className="section-heading font-title">
                         <span className="text-accent">MY</span> DIET
                     </h2>
-                    <div className="space-y-4">
+                    <div className="flex flex-col space-y-6 py-4 flex-grow">
                         {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
-                            const dietValue = diet.toLowerCase().replace(" ", "-");
+                            const dietValue = diet.toLowerCase().replace(" ", "-")
                             return (
                                 <Button
                                     key={index}
-                                    className={`w-full py-3 font-title text-lg border ${
+                                    className={`w-full py-4 font-title diet-button border ${
                                         selectedDiet === dietValue
                                             ? "bg-[#ce7c1c] text-white font-bold"
                                             : "border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
-                                    } rounded-2xl cursor-pointer`}
+                                    } rounded-2xl cursor-pointer text-xl`}
                                     onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
                                 >
                                     {diet}
                                 </Button>
-                            );
+                            )
                         })}
                     </div>
                 </div>
             </div>
 
-            {/* Category Selection Dialog - Keep this from your original code */}
+            {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                <DialogContent className="bg-gray-800 text-white max-w-md">
-                    <DialogTitle
-                        className="text-center text-xl font-title mb-2">{selectedCategory} Recipes</DialogTitle>
+                <DialogContent className="bg-[#1e1e1e] border border-gray-700 text-white max-w-md">
+                    <DialogTitle className="text-center text-xl font-title mb-2 text-[#ce7c1c]">
+                        {selectedCategory} Recipes
+                    </DialogTitle>
                     <DialogDescription className="text-center text-gray-300 mb-6 font-terminal">
                         Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                     </DialogDescription>
@@ -932,7 +927,7 @@ const UserInput = () => {
                         <Button
                             variant="default"
                             onClick={() => handleCategorySearch(selectedCategory)}
-                            className="w-full py-6 text-lg font-terminal font-bold"
+                            className="w-full py-6 text-lg font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80"
                         >
                             Surprise Me
                         </Button>
@@ -943,7 +938,7 @@ const UserInput = () => {
                                 <span className="w-full border-t border-gray-700" />
                             </div>
                             <div className="relative flex justify-center">
-                                <span className="px-3 bg-gray-800 text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
+                                <span className="px-3 bg-[#1e1e1e] text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
                             </div>
                         </div>
 
@@ -958,7 +953,7 @@ const UserInput = () => {
                                         key={ingredient}
                                         variant="outline"
                                         onClick={() => handleCategorySearch(ingredient)}
-                                        className="py-4 font-terminal hover:bg-gray-700/50"
+                                        className="py-4 font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white"
                                     >
                                         {ingredient}
                                     </Button>
