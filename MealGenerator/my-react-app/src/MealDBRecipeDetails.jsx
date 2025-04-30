@@ -186,11 +186,11 @@ const MealDBRecipeDetails = () => {
                         <h1 className="text-4xl font-title text-center mb-6 relative">
                             <span className="text-[#ce7c1c]">{recipeDetails.strMeal.split(" ")[0]}</span>{" "}
                             {recipeDetails.strMeal.split(" ").slice(1).join(" ")}
-                            <div className="absolute -top-4 -right-4">
-                                <Badge className="bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 text-xs font-bold">
-                                    <Flag className="w-3 h-3 mr-1" /> {recipeDetails.strArea || "International"}
-                                </Badge>
-                            </div>
+                            {/*<div className="absolute -top-4 -right-4">*/}
+                            {/*    <Badge className="bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 text-xs font-bold">*/}
+                            {/*        <Flag className="w-3 h-3 mr-1" /> {recipeDetails.strArea || "International"}*/}
+                            {/*    </Badge>*/}
+                            {/*</div>*/}
                         </h1>
                         <div className="rounded-3xl overflow-hidden border-2 border-[#ce7c1c] shadow-xl shadow-[#ce7c1c]/20 transform hover:scale-[1.02] transition-all duration-300">
                             <img
@@ -246,21 +246,21 @@ const MealDBRecipeDetails = () => {
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.protein} <span className="text-5xl">G</span>
+                                    {nutritionInfo.protein} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.fat} <span className="text-5xl">G</span>
+                                    {nutritionInfo.fat} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">FAT</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.carbs} <span className="text-5xl">G</span>
+                                    {nutritionInfo.carbs} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
                             </div>

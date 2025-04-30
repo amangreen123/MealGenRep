@@ -194,14 +194,14 @@ const DrinkDetails = () => {
                         <h1 className="text-4xl font-title text-center mb-6 relative">
                             <span className="text-[#ce7c1c]">{drinkDetails.strDrink.split(" ")[0]}</span>{" "}
                             {drinkDetails.strDrink.split(" ").slice(1).join(" ")}
-                            <div className="absolute -top-4 -right-4">
-                                <Badge
-                                    className={`${isAlcoholic ? "bg-purple-600 hover:bg-purple-700" : "bg-green-600 hover:bg-green-700"} rounded-full px-3 py-1 text-xs font-bold`}
-                                >
-                                    {isAlcoholic ? <Wine className="w-3 h-3 mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                                    {drinkDetails.strAlcoholic || "Beverage"}
-                                </Badge>
-                            </div>
+                            {/*<div className="absolute -top-4 -right-4">*/}
+                            {/*    <Badge*/}
+                            {/*        className={`${isAlcoholic ? "bg-purple-600 hover:bg-purple-700" : "bg-green-600 hover:bg-green-700"} rounded-full px-3 py-1 text-xs font-bold`}*/}
+                            {/*    >*/}
+                            {/*        {isAlcoholic ? <Wine className="w-3 h-3 mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}*/}
+                            {/*        {drinkDetails.strAlcoholic || "Beverage"}*/}
+                            {/*    </Badge>*/}
+                            {/*</div>*/}
                         </h1>
                         <div className="rounded-3xl overflow-hidden border-2 border-[#ce7c1c] shadow-xl shadow-[#ce7c1c]/20 transform hover:scale-[1.02] transition-all duration-300">
                             <img
@@ -258,7 +258,7 @@ const DrinkDetails = () => {
                             {totalNutrition.protein > 0 && (
                                 <div className="text-center transform hover:scale-105 transition-all duration-300">
                                     <div className="text-6xl font-title">
-                                        {totalNutrition.protein} <span className="text-5xl">G</span>
+                                        {totalNutrition.protein} <span className="text-5xl -ml-1">G</span>
                                     </div>
                                     <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
                                 </div>
@@ -275,7 +275,7 @@ const DrinkDetails = () => {
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {totalNutrition.carbs} <span className="text-5xl">G</span>
+                                    {totalNutrition.carbs} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
                             </div>
@@ -283,7 +283,7 @@ const DrinkDetails = () => {
                             {totalNutrition.alcohol > 0 && (
                                 <div className="text-center transform hover:scale-105 transition-all duration-300">
                                     <div className="text-6xl font-title">
-                                        {totalNutrition.alcohol} <span className="text-5xl">G</span>
+                                        {totalNutrition.alcohol} <span className="text-5xl -ml-2 ">G</span>
                                     </div>
                                     <div className="text-2xl font-title text-[#ce7c1c] mt-2">ALCOHOL</div>
                                 </div>

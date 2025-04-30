@@ -226,21 +226,21 @@ const RecipeDetails = () => {
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {Math.round(macros?.protein || 0)} <span className="text-5xl">G</span>
+                                    {Math.round(macros?.protein || 0)} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {Math.round(macros?.fat || 0)} <span className="text-5xl">G</span>
+                                    {Math.round(macros?.fat || 0)} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">FAT</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {Math.round(macros?.carbs || 0)} <span className="text-5xl">G</span>
+                                    {Math.round(macros?.carbs || 0)} <span className="text-5xl -ml-2">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
                             </div>

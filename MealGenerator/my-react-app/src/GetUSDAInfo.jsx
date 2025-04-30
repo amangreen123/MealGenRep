@@ -52,22 +52,22 @@ const extractNutrient = (food, nutrientIds) => {
             );
 
             // Valid nutrient found
-            console.log(`Found nutrient ${id} for ${food.description}: ${value}${nutrient.unitName || 'g'}`);
+            //console.log(`Found nutrient ${id} for ${food.description}: ${value}${nutrient.unitName || 'g'}`);
             return value;
         }
     }
 
     // No matching nutrient found after trying all IDs
-    console.warn(`None of these nutrients found: [${idList.join(', ')}] for ${food?.description || 'unknown food'}`);
+   // console.warn(`None of these nutrients found: [${idList.join(', ')}] for ${food?.description || 'unknown food'}`);
     return 0;
 };
 
 export const getUSDAInfo = async (ingredient, userServingSize = null, userServingUnit = null) => {
     const normalizedIngredient = ingredient.toLowerCase().trim();
-    console.log(`Searching USDA for: "${normalizedIngredient}"`);
+    //console.log(`Searching USDA for: "${normalizedIngredient}"`);
 
     if (cache.has(normalizedIngredient)) {
-        console.log(`Using cached data for ${normalizedIngredient}`);
+        //console.log(`Using cached data for ${normalizedIngredient}`);
         return cache.get(normalizedIngredient);
     }
 
@@ -85,7 +85,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
         });
 
         if (!searchResponse.data?.foods?.length) {
-            console.warn(`No USDA results for "${normalizedIngredient}"`);
+           // console.warn(`No USDA results for "${normalizedIngredient}"`);
             return null;
         }
 
@@ -106,7 +106,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
         // Last resort: just use the first result
         const food = bestMatch || searchResponse.data.foods[0];
 
-        console.log("Selected USDA food:", food.description, food.dataType);
+        //console.log("Selected USDA food:", food.description, food.dataType);
 
         // Extract nutrients with improved function
         const nutrients = {
@@ -119,7 +119,7 @@ export const getUSDAInfo = async (ingredient, userServingSize = null, userServin
         // Validate the nutrients - if all are zero, something is wrong
         if (nutrients.calories === 0 && nutrients.protein === 0 &&
             nutrients.fat === 0 && nutrients.carbs === 0) {
-            console.warn(`All nutrients zero for ${food.description}, likely data issue`);
+           // console.warn(`All nutrients zero for ${food.description}, likely data issue`);
 
             // Calculate calories if we have macros but no calories
             if (nutrients.protein > 0 || nutrients.fat > 0 || nutrients.carbs > 0) {

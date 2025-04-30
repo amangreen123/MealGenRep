@@ -15,7 +15,7 @@ import useFetchMeals from "./GetMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx"
 
-import { ChevronLeft, ChevronRight, InfoIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, InfoIcon, Search, Plus, Sparkles } from "lucide-react"
 
 import { batchGaladrielResponse, getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
@@ -128,10 +128,10 @@ const stripHtml = (html) => {
     return html.replace(/<\/?[^>]+(>|$)/g, "")
 }
 
-const debugCache = () => {
-    const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
-    return Object.keys(cachedSummaries).length
-}
+// const debugCache = () => {
+//     const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
+//     return Object.keys(cachedSummaries).length
+// }
 
 const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
     const pageNumbers = []
@@ -145,13 +145,27 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
         <nav className="flex justify-center mt-4">
             <ul className="flex space-x-2">
                 <li>
-                    <Button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} variant="outline" size="icon">
+                    <Button
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full hover:bg-[#ce7c1c]/20 hover:border-[#ce7c1c] transition-all duration-300"
+                    >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
                 </li>
                 {pageNumbers.map((number) => (
                     <li key={number}>
-                        <Button onClick={() => paginate(number)} variant={currentPage === number ? "default" : "outline"}>
+                        <Button
+                            onClick={() => paginate(number)}
+                            variant={currentPage === number ? "default" : "outline"}
+                            className={`rounded-full transition-all duration-300 ${
+                                currentPage === number
+                                    ? "bg-[#ce7c1c] hover:bg-[#ce7c1c]/90"
+                                    : "hover:bg-[#ce7c1c]/20 hover:border-[#ce7c1c]"
+                            }`}
+                        >
                             {number}
                         </Button>
                     </li>
@@ -162,6 +176,7 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
                         disabled={currentPage === totalPages}
                         variant="outline"
                         size="icon"
+                        className="rounded-full hover:bg-[#ce7c1c]/20 hover:border-[#ce7c1c] transition-all duration-300"
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -196,6 +211,8 @@ const UserInput = () => {
     const [isSpoonacularLimited, setIsSpoonacularLimited] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
     const [showFilters, setShowFilters] = useState(false)
+    const [loadingText, setLoadingText] = useState("")
+
 
     useEffect(() => {
         setApiLimitReached(false)
@@ -237,103 +254,103 @@ const UserInput = () => {
         return { currentRecipes, indexOfFirstRecipe, indexOfLastRecipe }
     }, [allRecipes, currentPage, recipesPerPage])
 
-    useEffect(() => {
-        if (currentRecipes.length > 0) {
-            const recipeNeedingSummaries = currentRecipes.filter((recipe) => {
-                const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                return dishName && !recipe.summary
-            })
+    // useEffect(() => {
+    //     if (currentRecipes.length > 0) {
+    //         const recipeNeedingSummaries = currentRecipes.filter((recipe) => {
+    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //             return dishName && !recipe.summary
+    //         })
+    //
+    //         // if (recipeNeedingSummaries.length > 0) {
+    //         //     generateSummaries(recipeNeedingSummaries)
+    //         // }
+    //     }
+    // }, [currentPage, allRecipes.length])
 
-            if (recipeNeedingSummaries.length > 0) {
-                generateSummaries(recipeNeedingSummaries)
-            }
-        }
-    }, [currentPage, allRecipes.length])
+    // const generateSummaries = async (recipes) => {
+    //     const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
+    //     const uncachedRecipes = recipes.filter((recipe) => !recipe.summary)
+    //
+    //     if (uncachedRecipes.length === 0) return
+    //
+    //     const generateSummariesIndividually = async (recipesToProcess) => {
+    //         const updates = {}
+    //         for (const recipe of recipesToProcess) {
+    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //             if (!dishName) continue
+    //
+    //             if (cachedSummaries[dishName]) {
+    //                 updates[dishName] = cachedSummaries[dishName]
+    //             } else {
+    //                 try {
+    //                     const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary")
+    //                     updates[dishName] = summary
+    //                     cachedSummaries[dishName] = summary
+    //                 } catch (error) {
+    //                     console.error(`Error generating summary for ${dishName}:`, error)
+    //                     updates[dishName] = "Description unavailable"
+    //                 }
+    //             }
+    //         }
+    //
+    //         if (Object.keys(updates).length > 0) {
+    //             // Update both localStorage and state
+    //             localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
+    //
+    //             setAllRecipes((prevRecipes) => {
+    //                 return prevRecipes.map((recipe) => {
+    //                     const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //                     return updates[dishName] ? { ...recipe, summary: updates[dishName] } : recipe
+    //                 })
+    //             })
+    //         }
+    //     }
+    //
+    //     if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
+    //         try {
+    //             const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title).filter(Boolean)
+    //             const batchResult = await batchGaladrielResponse(dishNames, "summary")
+    //             const summaries = batchResult.split("\n")
+    //
+    //             const summaryMap = {}
+    //             uncachedRecipes.forEach((recipe, index) => {
+    //                 const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //                 if (dishName && index < summaries.length) {
+    //                     summaryMap[dishName] = summaries[index]
+    //                     cachedSummaries[dishName] = summaries[index]
+    //                 }
+    //             })
+    //
+    //             // Update both localStorage and state
+    //             localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
+    //
+    //             setAllRecipes((prevRecipes) => {
+    //                 return prevRecipes.map((recipe) => {
+    //                     const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //                     return summaryMap[dishName] ? { ...recipe, summary: summaryMap[dishName] } : recipe
+    //                 })
+    //             })
+    //         } catch (error) {
+    //             console.error("Batch summary failed:", error)
+    //             await generateSummariesIndividually(uncachedRecipes)
+    //         }
+    //     } else {
+    //         await generateSummariesIndividually(uncachedRecipes)
+    //     }
+    // }
 
-    const generateSummaries = async (recipes) => {
-        const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
-        const uncachedRecipes = recipes.filter((recipe) => !recipe.summary)
-
-        if (uncachedRecipes.length === 0) return
-
-        const generateSummariesIndividually = async (recipesToProcess) => {
-            const updates = {}
-            for (const recipe of recipesToProcess) {
-                const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                if (!dishName) continue
-
-                if (cachedSummaries[dishName]) {
-                    updates[dishName] = cachedSummaries[dishName]
-                } else {
-                    try {
-                        const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary")
-                        updates[dishName] = summary
-                        cachedSummaries[dishName] = summary
-                    } catch (error) {
-                        console.error(`Error generating summary for ${dishName}:`, error)
-                        updates[dishName] = "Description unavailable"
-                    }
-                }
-            }
-
-            if (Object.keys(updates).length > 0) {
-                // Update both localStorage and state
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
-
-                setAllRecipes((prevRecipes) => {
-                    return prevRecipes.map((recipe) => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                        return updates[dishName] ? { ...recipe, summary: updates[dishName] } : recipe
-                    })
-                })
-            }
-        }
-
-        if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
-            try {
-                const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title).filter(Boolean)
-                const batchResult = await batchGaladrielResponse(dishNames, "summary")
-                const summaries = batchResult.split("\n")
-
-                const summaryMap = {}
-                uncachedRecipes.forEach((recipe, index) => {
-                    const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                    if (dishName && index < summaries.length) {
-                        summaryMap[dishName] = summaries[index]
-                        cachedSummaries[dishName] = summaries[index]
-                    }
-                })
-
-                // Update both localStorage and state
-                localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
-
-                setAllRecipes((prevRecipes) => {
-                    return prevRecipes.map((recipe) => {
-                        const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                        return summaryMap[dishName] ? { ...recipe, summary: summaryMap[dishName] } : recipe
-                    })
-                })
-            } catch (error) {
-                console.error("Batch summary failed:", error)
-                await generateSummariesIndividually(uncachedRecipes)
-            }
-        } else {
-            await generateSummariesIndividually(uncachedRecipes)
-        }
-    }
-
-    useEffect(() => {
-        if (allRecipes.length > 0) {
-            const recipesNeedingSummaries = allRecipes.filter((recipe) => {
-                const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-                return dishName && !recipe.summary
-            })
-
-            if (recipesNeedingSummaries.length > 0) {
-                generateSummaries(recipesNeedingSummaries)
-            }
-        }
-    }, [allRecipes])
+    // useEffect(() => {
+    //     if (allRecipes.length > 0) {
+    //         const recipesNeedingSummaries = allRecipes.filter((recipe) => {
+    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
+    //             return dishName && !recipe.summary
+    //         })
+    //
+    //         // if (recipesNeedingSummaries.length > 0) {
+    //         //     generateSummaries(recipesNeedingSummaries)
+    //         // }
+    //     }
+    // }, [allRecipes])
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -345,15 +362,21 @@ const UserInput = () => {
             return
         }
 
+        // Parse ingredients first to determine singular or plural message
+        const ingredientsArray = inputString
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+
+        // Set custom loading message based on number of ingredients
+        const isMultipleIngredients = ingredientsArray.length > 1
+        const loadingMessage = isMultipleIngredients ? "ADDING INGREDIENTS..." : "ADDING INGREDIENT..."
+
         setIsSearching(true)
         setErrorMessage("")
+        setLoadingText(loadingMessage) // Store loading message in state
 
         try {
-            const ingredientsArray = inputString
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean)
-
             const duplicates = []
             const validationErrors = []
             const newIngredients = []
@@ -402,6 +425,7 @@ const UserInput = () => {
         } finally {
             setIsSearching(false)
             setInputString("")
+            setLoadingText("") // Clear loading text when done
         }
     }
 
@@ -430,11 +454,15 @@ const UserInput = () => {
         if (ingredients.length === 0) return
 
         setIsSearching(true)
+        setLoadingText("GENERATING...") // Set the loading text to GENERATING
         setApiLimitReached(false)
         setFocusSearch(focusSearch)
         setFocusIngredient(focusIngredient || "")
         setErrorMessage("") // Clear previous errors
         setShowFilters(false) // Hide filters after search
+
+        // Clear existing recipes to prevent the flicker effect
+        setAllRecipes([])
 
         try {
             let spoonacularResults = []
@@ -475,6 +503,7 @@ const UserInput = () => {
 
             const allRecipes = [...spoonacularResults, ...(mealDBResults || []), ...(cocktailResults || [])]
 
+            // Set all recipes in one go to prevent flickering
             setAllRecipes(allRecipes)
             setCurrentPage(1)
 
@@ -490,6 +519,7 @@ const UserInput = () => {
             }
         } finally {
             setIsSearching(false)
+            setLoadingText("") // Clear loading text when done
         }
     }
 
@@ -609,12 +639,12 @@ const UserInput = () => {
     const RecipeCard = ({ recipe, onClick }) => (
         <Dialog>
             <DialogTrigger asChild>
-                <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors">
+                <Card className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-xl">
                     <CardContent className="p-4">
                         <img
                             src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
                             alt={recipe.title || recipe.strMeal || recipe.strDrink}
-                            className="w-full h-32 object-cover rounded-md mb-2"
+                            className="w-full h-32 object-cover rounded-2xl mb-3"
                         />
                         <div className="flex justify-between items-center">
                             <h4 className="font-medium text-gray-300 text-sm line-clamp-2">
@@ -625,7 +655,9 @@ const UserInput = () => {
                                     <BiDrink className="text-blue-400 h-5 w-5" />
                                     {recipe.strAlcoholic === "Non alcoholic" || recipe.strAlcoholic === "Non Alcoholic" ? (
                                         <span className="text-xs text-green-400 ml-1">Non-Alc</span>
-                                    ) : null}
+                                    ) : (
+                                        <span className="text-xs text-purple-400 ml-1">Alcoholic</span>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -633,7 +665,7 @@ const UserInput = () => {
                 </Card>
             </DialogTrigger>
 
-            <DialogContent className="bg-gray-800 text-white">
+            <DialogContent className="bg-gray-800 text-white rounded-3xl border-2 border-[#ce7c1c]">
                 <DialogTitle className="font-medium text-gray-300 text-lg flex items-center">
                     {recipe.title || recipe.strMeal || recipe.strDrink}
                     {recipe.isDrink && (
@@ -641,22 +673,27 @@ const UserInput = () => {
                             <BiDrink className="text-blue-400 h-5 w-5" />
                             {recipe.strAlcoholic === "Non alcoholic" || recipe.strAlcoholic === "Non Alcoholic" ? (
                                 <span className="text-xs text-green-400 ml-1">Non-Alcoholic</span>
-                            ) : null}
+                            ) : (
+                                <span className="text-xs text-purple-400 ml-1">Alcoholic</span>
+                            )}
                         </div>
                     )}
                 </DialogTitle>
                 <DialogDescription asChild>
                     <div className="text-white font-bold">
                         <div className="space-y-4">
-                            <div className="relative w-full pb-[56.25%] overflow-hidden rounded-md">
+                            <div className="relative w-full pb-[56.25%] overflow-hidden rounded-2xl">
                                 <img
                                     src={recipe.image || recipe.strMealThumb || recipe.strDrinkThumb || "/placeholder.svg"}
                                     alt={recipe.title || recipe.strMeal || recipe.strDrink}
                                     className="absolute inset-0 w-full h-full object-cover"
                                 />
                             </div>
-                            <p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p>
-                            <Button onClick={onClick} className="w-full font-bold">
+                            {/*<p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p>*/}
+                            <Button
+                                onClick={onClick}
+                                className="w-full font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 rounded-full py-6 transform hover:scale-105 transition-all duration-300"
+                            >
                                 View Full Recipe
                             </Button>
                         </div>
@@ -709,8 +746,7 @@ const UserInput = () => {
             return () => clearTimeout(timer)
         }
     }, [errorMessage])
-
-    // Add a function to clear focus search
+    
     const clearFocusSearch = () => {
         setFocusSearch(false)
         setFocusIngredient("")
@@ -719,35 +755,41 @@ const UserInput = () => {
     return (
         <div className="full-height-container bg-[#131415] text-[#f5efe4]">
             {/* Header */}
-            <div className="w-full max-w-7xl mx-auto px-6 py-4">
+            <div className="w-full max-w-7xl mx-auto px-50 py-50">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-24" />
+                        <img
+                            src={MealForgerLogo || "/placeholder.svg"}
+                            alt="Meal Forger Logo"
+                            className="h-24 w-auto transform hover:scale-105 transition-all duration-300"
+                        />
                     </div>
                     <div className="relative w-full max-w-md mx-auto">
                         <div className="relative w-full">
-                            <Input
+                        <Input
                                 type="text"
-                                placeholder="Enter an ingredient ....."
-                                className="w-full bg-transparent border border-gray-600 rounded-full py-2 px-4 text-white pl-10 pr-10"
+                                placeholder="ENTER AN INGREDIENT ....."
+                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 font-terminal"
                                 value={inputString}
                                 onChange={handleInputChange}
                                 onKeyPress={(e) => e.key === "Enter" && handleAddIngredient()}
                             />
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-[#ce7c1c]/20 p-2 rounded-full">
+                                <Search className="h-4 w-4 text-[#ce7c1c]" />
+                            </div>
                             <Button
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 text-lg font-medium grid place-items-center transition-colors"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 text-lg font-medium grid place-items-center transition-all duration-300 transform hover:scale-110"
                                 onClick={handleAddIngredient}
                             >
-                                +
+                                <Plus className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-6">
                     <Button
                         variant="outline"
-                        className="border border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 px-8 py-2 rounded-md"
+                        className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 px-8 py-3 rounded-full font-bold transition-all duration-300 transform hover:scale-105"
                         onClick={() => setShowFilters(!showFilters)}
                     >
                         FILTERS
@@ -768,13 +810,13 @@ const UserInput = () => {
             )}
 
             {/* Main Content */}
-            <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-6 px-6 py-4 flex-grow">
+            <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-8 px-6 py-6 flex-grow">
                 {/* Left Column - MY PANTRY */}
                 <div className="flex flex-col w-full md:w-1/3 mb-6 md:mb-0">
                     <h2 className="section-heading font-title">
                         <span className="text-accent">MY</span> PANTRY
                     </h2>
-                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 min-h-[200px] md:min-h-[300px] bg-gray-900/50 flex-grow">
+                    <div className="border-2 border-gray-700 rounded-3xl p-6 mb-6 min-h-[200px] md:min-h-[300px] bg-gray-900/50 flex-grow shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
                         {ingredients.length === 0 ? (
                             <div className="flex items-center justify-center h-full">
                                 <div className="text-center text-gray-500 font-terminal">
@@ -785,9 +827,15 @@ const UserInput = () => {
                             </div>
                         ) : (
                             ingredients.map((item, index) => (
-                                <div key={index} className="mb-2 text-xl flex justify-between items-center font-terminal text-text">
+                                <div
+                                    key={index}
+                                    className="mb-3 text-xl flex justify-between items-center font-terminal text-text p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-200"
+                                >
                                     {item}
-                                    <button onClick={() => handleRemoveIngredient(item)} className="text-accent hover:text-white">
+                                    <button
+                                        onClick={() => handleRemoveIngredient(item)}
+                                        className="text-accent hover:text-white bg-gray-700/50 hover:bg-gray-700 rounded-full p-1 transition-all duration-200"
+                                    >
                                         ✕
                                     </button>
                                 </div>
@@ -798,16 +846,18 @@ const UserInput = () => {
                         <h3 className="section-heading font-title">
                             <span className="text-text">QUICK</span> <span className="text-accent">ADD</span>
                         </h3>
-                        <div className="border border-gray-700 rounded-2xl p-6 bg-gray-900/50">
+                        <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
                             <div className="grid grid-cols-4 gap-4">
                                 {popularIngredients.map((item, index) => (
                                     <Button
                                         key={index}
-                                        className={`flex flex-col items-center justify-center h-20 bg-transparent border border-white hover:bg-gray-800 rounded-2xl cursor-pointer`}
+                                        className={`flex flex-col items-center justify-center h-20 bg-transparent border-2 border-white hover:border-[#ce7c1c] hover:bg-gray-800 rounded-2xl cursor-pointer group transition-all duration-300 transform hover:scale-105`}
                                         onClick={() => handleQuickSearch(item.name)}
                                     >
-                                        <item.icon className={`text-2xl ${item.color} mb-1`} />
-                                        <span className="text-xs font-terminal text-white">{item.name}</span>
+                                        <item.icon className={`text-2xl ${item.color} mb-1 transition-colors duration-300`} />
+                                        <span className="text-xs font-terminal text-white group-hover:text-[#ce7c1c] transition-colors duration-300">
+                      {item.name}
+                    </span>
                                     </Button>
                                 ))}
                             </div>
@@ -820,10 +870,14 @@ const UserInput = () => {
                     <h2 className="section-heading font-title">
                         <span className="text-accent">RECIPES</span>
                     </h2>
-                    <div className="border border-gray-700 rounded-2xl p-4 mb-4 bg-gray-900/50 flex flex-col flex-grow min-h-[400px] md:min-h-[600px]">
+                    <div className="border-2 border-gray-700 rounded-3xl p-6 mb-4 bg-gray-900/50 flex flex-col flex-grow min-h-[400px] md:min-h-[600px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
                         {ingredients.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
-                                <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger Logo" className="h-16 mb-6" />
+                                <img
+                                    src={MealForgerLogo || "/placeholder.svg"}
+                                    alt="Meal Forger Logo"
+                                    className="h-16 mb-6 animate-pulse"
+                                />
                                 <div>
                                     YOU HAVE NOTHING
                                     <br />
@@ -837,6 +891,7 @@ const UserInput = () => {
                             </div>
                         ) : allRecipes.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
+                                <Sparkles className="h-16 w-16 mb-6 text-[#ce7c1c]/50 animate-pulse" />
                                 <div>
                                     NO RECIPES FOUND
                                     <br />
@@ -853,7 +908,7 @@ const UserInput = () => {
                                 {allRecipes.map((recipe) => (
                                     <div
                                         key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                        className="mb-4 bg-[#1e1e1e] rounded-2xl overflow-hidden cursor-pointer"
+                                        className="mb-4 bg-[#1e1e1e] rounded-2xl overflow-hidden cursor-pointer transform hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
                                         onClick={() => clickHandler(recipe)}
                                     >
                                         <div className="flex">
@@ -864,23 +919,33 @@ const UserInput = () => {
                                                     className="w-full h-full object-cover"
                                                 />
                                             </div>
-                                            <div className="w-2/3 p-4 flex items-center">
+                                            <div className="w-2/3 p-4 flex items-center justify-between">
                                                 <div className="text-lg font-terminal text-text">
                                                     {recipe.title || recipe.strMeal || recipe.strDrink}
                                                 </div>
+                                                {recipe.isDrink && (
+                                                    <div className="flex items-center ml-2">
+                                                        <BiDrink className="text-blue-400 h-5 w-5" />
+                                                        {recipe.strAlcoholic === "Non alcoholic" || recipe.strAlcoholic === "Non Alcoholic" ? (
+                                                            <span className="text-xs text-green-400 ml-1">Non-Alc</span>
+                                                        ) : (
+                                                            <span className="text-xs text-purple-400 ml-1">Alcoholic</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
-                        <div className="mt-4">
+                        <div className="mt-6">
                             <Button
-                                className="border border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-[#ce7c1c] px-8 py-3 font-terminal rounded-2xl cursor-pointer w-full text-xl font-bold"
+                                className="border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-8 py-4 font-terminal rounded-full cursor-pointer w-full text-xl font-bold shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300"
                                 onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
                                 disabled={isSearching || ingredients.length === 0}
                             >
-                                {isSearching ? "Generating..." : "Generate"}
+                                {isSearching ? "GENERATING..." : "GENERATE"}
                             </Button>
                         </div>
                     </div>
@@ -897,11 +962,11 @@ const UserInput = () => {
                             return (
                                 <Button
                                     key={index}
-                                    className={`w-full py-4 font-title diet-button border ${
+                                    className={`w-full py-5 font-title diet-button border-2 ${
                                         selectedDiet === dietValue
-                                            ? "bg-[#ce7c1c] text-white font-bold"
+                                            ? "bg-[#ce7c1c] text-white font-bold shadow-lg shadow-[#ce7c1c]/30"
                                             : "border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
-                                    } rounded-2xl cursor-pointer text-xl`}
+                                    } rounded-3xl cursor-pointer text-xl transform hover:scale-[1.02] transition-all duration-300`}
                                     onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
                                 >
                                     {diet}
@@ -914,7 +979,7 @@ const UserInput = () => {
 
             {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                <DialogContent className="bg-[#1e1e1e] border border-gray-700 text-white max-w-md">
+                <DialogContent className="bg-[#1e1e1e] border-2 border-[#ce7c1c] text-white max-w-md rounded-3xl shadow-2xl">
                     <DialogTitle className="text-center text-xl font-title mb-2 text-[#ce7c1c]">
                         {selectedCategory} Recipes
                     </DialogTitle>
@@ -927,7 +992,7 @@ const UserInput = () => {
                         <Button
                             variant="default"
                             onClick={() => handleCategorySearch(selectedCategory)}
-                            className="w-full py-6 text-lg font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80"
+                            className="w-full py-6 text-lg font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 rounded-full transform hover:scale-105 transition-all duration-300"
                         >
                             Surprise Me
                         </Button>
@@ -953,7 +1018,7 @@ const UserInput = () => {
                                         key={ingredient}
                                         variant="outline"
                                         onClick={() => handleCategorySearch(ingredient)}
-                                        className="py-4 font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white"
+                                        className="py-4 font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white rounded-xl transform hover:scale-105 transition-all duration-300"
                                     >
                                         {ingredient}
                                     </Button>
@@ -967,7 +1032,7 @@ const UserInput = () => {
             {/* Error Message */}
             {errorMessage && (
                 <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-                    <Alert className="bg-red-950 border-red-800 text-white">
+                    <Alert className="bg-red-950 border-red-800 text-white rounded-xl shadow-lg animate-bounce">
                         <InfoIcon className="h-4 w-4 text-red-300" />
                         <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
                     </Alert>

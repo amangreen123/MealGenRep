@@ -12,7 +12,7 @@ export const getInstructions = async (id) => {
         const cacheDuration = 60 * 60 * 1000 // 1 hour
 
         if (currentTime - cacheTime < cacheDuration) {
-            console.log("Using cached recipe data")
+            //console.log("Using cached recipe data")
             return parsedData.data
         }
     }
@@ -52,7 +52,7 @@ export const getInstructions = async (id) => {
                 const key = normalizeName(ingredient.name);
 
                 const usdaData = await getUSDAInfo(key)
-                console.log("USDA data for", ingredient.name, usdaData)
+                //console.log("USDA data for", ingredient.name, usdaData)
 
                 if (usdaData) {
 
