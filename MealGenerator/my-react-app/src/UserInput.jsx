@@ -761,12 +761,12 @@ const UserInput = () => {
                         <img
                             src={MealForgerLogo || "/placeholder.svg"}
                             alt="Meal Forger Logo"
-                            className="h-24 w-auto transform hover:scale-105 transition-all duration-300"
+                            className="h-[160px] w-auto transition-transform duration-300 hover:scale-105"
                         />
                     </div>
                     <div className="relative w-full max-w-md mx-auto">
                         <div className="relative w-full">
-                        <Input
+                            <Input
                                 type="text"
                                 placeholder="ENTER AN INGREDIENT ....."
                                 className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 font-terminal"
