@@ -703,38 +703,65 @@ const UserInput = () => {
         </Dialog>
     )
 
+
+
     const clickHandler = (recipe) => {
-        const currentPath = window.location.pathname
+        const currentPath = window.location.pathname;
+
+        // Get the recipe name - handle all possible cases
+        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || recipe.name || 'unnamed-recipe';
+
+        // Generate a clean slug from the name
+        const slug = getSlug(recipeName);
 
         if (recipe.isDrink) {
-            navigate(`/drink/${recipe.idDrink}`, {
+            navigate(`/drink/${slug}`, {
                 state: {
                     drink: recipe,
+                    id: recipe.idDrink, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
                 },
-            })
+            });
         } else if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, {
+            navigate(`/mealdb-recipe/${slug}`, {
                 state: {
                     meal: recipe,
+                    id: recipe.idMeal, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
                 },
-            })
+            });
         } else {
-            navigate(`/recipe/${recipe.id}`, {
+            navigate(`/recipe/${slug}`, {
                 state: {
                     recipe,
+                    id: recipe.id, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
                 },
-            })
+            });
         }
-    }
+    };
+
+// Improved slug function
+    const getSlug = (str) => {
+        if (!str) return 'unnamed-recipe';
+
+        return str
+            .toString()
+            .toLowerCase()
+            .normalize('NFD') // Normalize diacritics
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+            .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+            .trim()
+            .replace(/\s+/g, '-') // Spaces to hyphens
+            .replace(/-+/g, '-') // Multiple hyphens to single
+            .substring(0, 60); // Limit length
+    };
 
     useEffect(() => {
         if (errorMessage) {
