@@ -11,7 +11,7 @@ import getMealDBRecipeDetails from "./GetMealDBRecipeDetails"
 import RecipeNavigator from "./RecipeNavigator.jsx"
 
 const MealDBRecipeDetails = () => {
-    const { id } = useParams() // This now captures the slug (name-based URL)
+    const { id } = useParams()
     const location = useLocation()
     const navigate = useNavigate()
     const state = location.state || {}
@@ -24,31 +24,18 @@ const MealDBRecipeDetails = () => {
 
     useEffect(() => {
         const fetchRecipeData = async () => {
-            // First check if we have the meal in state (from navigation)
-            if (meal) {
-                setRecipeDetails(meal)
+            const mealId = id || meal?.idMeal
+
+            if (!mealId) {
+                setError("Invalid meal ID")
                 setLoading(false)
                 return
             }
 
-            // If no state, try to find in allRecipes by name
-            if (allRecipes.length > 0) {
-                const foundRecipe = allRecipes.find(r => {
-                    const recipeName = r.strMeal || r.title || r.name
-                    return recipeName && getSlug(recipeName) === id
-                })
-
-                if (foundRecipe) {
-                    setRecipeDetails(foundRecipe)
-                    setLoading(false)
-                    return
-                }
-            }
-
-            // If still not found, try to fetch by ID (backward compatibility)
             try {
                 setLoading(true)
-                const data = await getMealDBRecipeDetails(id)
+                const data = await getMealDBRecipeDetails(mealId)
+                const mealName = data.meals[0]?.strMeal;
 
                 if (data?.meals?.[0]) {
                     setRecipeDetails(data.meals[0])
@@ -63,23 +50,7 @@ const MealDBRecipeDetails = () => {
         }
 
         fetchRecipeData()
-    }, [id, meal, allRecipes])
-    
-    const getSlug = (str) => {
-        if (!str) return 'unnamed-recipe';
-
-        return str
-            .toString()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .substring(0, 60);
-    };
-
+    }, [id, meal])
 
     const handleHomeClick = () => {
         navigate("/")

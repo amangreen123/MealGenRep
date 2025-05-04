@@ -186,6 +186,15 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
     )
 }
 
+const slugify = (text) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/[\s\W-]+/g, '-') // Replace spaces and non-word chars with hyphen
+        .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
+};
+
 const UserInput = () => {
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
@@ -228,7 +237,7 @@ const UserInput = () => {
     }, [error])
 
     useEffect(() => {
-        const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
+        const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : [];
         const cocktailDBRecipesArray = Array.isArray(CocktailDBDrinks)
             ? CocktailDBDrinks.map((drink) => ({
                 ...drink,
@@ -237,12 +246,20 @@ const UserInput = () => {
                 strMeal: drink.strDrink,
                 idMeal: drink.idDrink,
             }))
-            : []
+            : [];
+        const spoonacularRecipesArray = Array.isArray(recipes) ? recipes : [];
+        
+        const addSlug = (recipe) => ({
+            ...recipe,
+            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || 'recipe'),
+        });
 
-        const spoonacularRecipesArray = Array.isArray(recipes) ? recipes : []
-
-        setAllRecipes([...spoonacularRecipesArray, ...mealDBRecipesArray, ...cocktailDBRecipesArray])
-    }, [MealDBRecipes, CocktailDBDrinks, recipes])
+        setAllRecipes([
+            ...spoonacularRecipesArray.map(addSlug),
+            ...mealDBRecipesArray.map(addSlug),
+            ...cocktailDBRecipesArray.map(addSlug),
+        ]);
+    }, [MealDBRecipes, CocktailDBDrinks, recipes]);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
@@ -455,72 +472,97 @@ const UserInput = () => {
 
         setIsSearching(true)
         setLoadingText("GENERATING...") // Set the loading text to GENERATING
-        setApiLimitReached(false)
+        setErrorMessage("") // Clear previous errors
         setFocusSearch(focusSearch)
         setFocusIngredient(focusIngredient || "")
-        setErrorMessage("") // Clear previous errors
         setShowFilters(false) // Hide filters after search
 
         // Clear existing recipes to prevent the flicker effect
         setAllRecipes([])
 
-        try {
-            let spoonacularResults = []
-            let mealDBResults = []
-            let cocktailResults = []
+        // Track all our results
+        let spoonacularResults = []
+        let mealDBResults = []
+        let cocktailResults = []
+        let spoonacularError = false
+        let otherAPIError = false
 
-            // Spoonacular call with explicit error handling
-            if (!apiLimitReached) {
-                try {
-                    spoonacularResults =
-                        (await getRecipes(ingredients, selectedDiet, {
+        // Try all APIs in parallel but handle errors individually
+        await Promise.all([
+            // 1. Spoonacular API call with explicit error handling
+            (async () => {
+                if (!apiLimitReached) {
+                    try {
+                        const results = await getRecipes(ingredients, selectedDiet, {
                             cookableOnly,
                             strictMode,
                             focusIngredient,
-                        })) || []
-                } catch (spoonError) {
-                    console.error("Spoonacular error:", spoonError)
-                    if (spoonError.response?.status === 402 || spoonError.response?.status === 429) {
-                        setApiLimitReached(true)
+                        })
+                        spoonacularResults = Array.isArray(results) ? results : []
+                    } catch (error) {
+                        console.error("Spoonacular error:", error)
+                        spoonacularError = true
+                        // Mark API as limited if rate limit error
+                        if (error.response?.status === 402 || error.response?.status === 429 ||
+                            String(error).includes("quota") || String(error).includes("API limit")) {
+                            setApiLimitReached(true)
+                            setIsSpoonacularLimited(true)
+                        }
                     }
-                    // Don't set general error - fall through to other APIs
                 }
-            }
+            })(),
 
-            // Other API calls
-            try {
-                ;[mealDBResults, cocktailResults] = await Promise.all([
-                    getMealDBRecipes(ingredients),
-                    getCocktailDBDrinks(ingredients),
-                ])
-            } catch (otherError) {
-                console.error("Other API error:", otherError)
-                // Only show error if ALL APIs failed
-                if (spoonacularResults.length === 0) {
-                    setErrorMessage("Failed to fetch recipes from all sources")
+            // 2. MealDB API call
+            (async () => {
+                try {
+                    const results = await getMealDBRecipes(ingredients)
+                    mealDBResults = Array.isArray(results) ? results : []
+                } catch (error) {
+                    console.error("MealDB error:", error)
+                    otherAPIError = true
                 }
-            }
+            })(),
 
-            const allRecipes = [...spoonacularResults, ...(mealDBResults || []), ...(cocktailResults || [])]
+            // 3. CocktailDB API call
+            (async () => {
+                try {
+                    const results = await getCocktailDBDrinks(ingredients)
+                    cocktailResults = Array.isArray(results) ? results : []
+                } catch (error) {
+                    console.error("CocktailDB error:", error)
+                    otherAPIError = true
+                }
+            })()
+        ])
 
-            // Set all recipes in one go to prevent flickering
-            setAllRecipes(allRecipes)
-            setCurrentPage(1)
+        // Combine all results, ensuring each array is valid
+        const allResults = [
+            ...spoonacularResults,
+            ...mealDBResults,
+            ...cocktailResults
+        ]
 
-            // Show warning if only fallback recipes available
-            if (apiLimitReached && allRecipes.length > 0) {
-                setErrorMessage("Using fallback recipes (Spoonacular limit reached)")
-            }
-        } catch (error) {
-            console.error("Search error:", error)
-            // Only show error if we got ZERO results
-            if (allRecipes.length === 0) {
-                setErrorMessage("Failed to fetch recipes. Please try again.")
-            }
-        } finally {
-            setIsSearching(false)
-            setLoadingText("") // Clear loading text when done
+        // Add slugs to all recipes
+        const resultsWithSlugs = allResults.map(recipe => ({
+            ...recipe,
+            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || 'recipe'),
+        }))
+
+        // Set state with all valid results
+        setAllRecipes(resultsWithSlugs)
+        setCurrentPage(1)
+
+        // Handle error messages but don't block displaying results
+        if (spoonacularError && apiLimitReached && (mealDBResults.length > 0 || cocktailResults.length > 0)) {
+            // Spoonacular failed but we have fallback results
+            setErrorMessage("Using fallback recipes (Spoonacular limit reached)")
+        } else if (spoonacularError && otherAPIError && allResults.length === 0) {
+            // All APIs failed and we have no results
+            setErrorMessage("Failed to fetch recipes from all sources. Please try again.")
         }
+
+        setIsSearching(false)
+        setLoadingText("") // Clear loading text when done
     }
 
     // Helper to extract ingredients from any recipe format
@@ -703,22 +745,27 @@ const UserInput = () => {
         </Dialog>
     )
 
-
-
+    const getSlug = (text) => {
+        return text
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/[\s\W-]+/g, '-') // Replace spaces and non-word chars with hyphen
+            .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
+    };
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname;
 
-        // Get the recipe name - handle all possible cases
+        // More robust way to get the recipe name
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || recipe.name || 'unnamed-recipe';
 
-        // Generate a clean slug from the name
+        // Generate slug
         const slug = getSlug(recipeName);
 
         if (recipe.isDrink) {
             navigate(`/drink/${slug}`, {
                 state: {
                     drink: recipe,
-                    id: recipe.idDrink, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
@@ -728,7 +775,6 @@ const UserInput = () => {
             navigate(`/mealdb-recipe/${slug}`, {
                 state: {
                     meal: recipe,
-                    id: recipe.idMeal, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
@@ -738,7 +784,6 @@ const UserInput = () => {
             navigate(`/recipe/${slug}`, {
                 state: {
                     recipe,
-                    id: recipe.id, // Keep ID in state if needed
                     userIngredients: ingredients,
                     allRecipes: allRecipes,
                     previousPath: currentPath,
@@ -747,21 +792,6 @@ const UserInput = () => {
         }
     };
 
-// Improved slug function
-    const getSlug = (str) => {
-        if (!str) return 'unnamed-recipe';
-
-        return str
-            .toString()
-            .toLowerCase()
-            .normalize('NFD') // Normalize diacritics
-            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-            .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-            .trim()
-            .replace(/\s+/g, '-') // Spaces to hyphens
-            .replace(/-+/g, '-') // Multiple hyphens to single
-            .substring(0, 60); // Limit length
-    };
 
     useEffect(() => {
         if (errorMessage) {
