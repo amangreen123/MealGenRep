@@ -143,8 +143,6 @@ body {
   }
 }
 
-
-
 /* Update the diet-button class to make buttons larger and more spaced out */
 
 /* Diet buttons */
@@ -153,4 +151,95 @@ body {
   padding: 1rem 1.5rem !important;
   margin-bottom: 0.5rem;
   height: auto !important;
+}
+
+/* Enhanced UI elements */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(206, 124, 28, 0.3);
+}
+
+.input-enhanced {
+  transition: all 0.3s ease;
+  border-radius: 9999px;
+}
+
+.input-enhanced:focus {
+  box-shadow: 0 0 0 2px rgba(206, 124, 28, 0.5);
+  border-color: var(--accent);
+}
+
+.button-enhanced {
+  transition: all 0.3s ease;
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+
+.button-enhanced::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.button-enhanced:hover::after {
+  opacity: 1;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Rounded elements */
+.rounded-box {
+  border-radius: 1.5rem;
+}
+
+.rounded-button {
+  border-radius: 9999px;
+}
+
+.rounded-card {
+  border-radius: 1.5rem;
+  overflow: hidden;
+}
+
+/* Shadows */
+.shadow-accent {
+  box-shadow: 0 4px 14px -4px rgba(206, 124, 28, 0.5);
+}
+
+.shadow-accent-hover:hover {
+  box-shadow: 0 8px 20px -4px rgba(206, 124, 28, 0.6);
 }

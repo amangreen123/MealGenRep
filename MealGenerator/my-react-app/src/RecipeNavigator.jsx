@@ -3,6 +3,7 @@
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { slugify } from "./utils/slugify"
 
 const RecipeNavigator = ({ allRecipes, currentRecipe }) => {
     const navigate = useNavigate()
@@ -26,32 +27,39 @@ const RecipeNavigator = ({ allRecipes, currentRecipe }) => {
     const navigateToRecipe = (recipe) => {
         if (!recipe) return
 
+        // Get recipe name for slug
+        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || recipe.name || "recipe"
+        const slug = recipe.slug || slugify(recipeName)
+
         // Determine the recipe type and navigate accordingly
         if (recipe.idDrink) {
-            navigate(`/drink/${recipe.idDrink}`, {
+            navigate(`/drink/${slug}`, {
                 state: {
                     drink: recipe,
                     userIngredients: window.history.state?.usr?.userIngredients || [],
                     allRecipes: allRecipes,
                     previousPath: window.history.state?.usr?.previousPath || "/",
+                    recipeId: recipe.idDrink,
                 },
             })
         } else if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${recipe.idMeal}`, {
+            navigate(`/mealdb-recipe/${slug}`, {
                 state: {
                     meal: recipe,
                     userIngredients: window.history.state?.usr?.userIngredients || [],
                     allRecipes: allRecipes,
                     previousPath: window.history.state?.usr?.previousPath || "/",
+                    recipeId: recipe.idMeal,
                 },
             })
         } else {
-            navigate(`/recipe/${recipe.id}`, {
+            navigate(`/recipe/${slug}`, {
                 state: {
                     recipe: recipe,
                     userIngredients: window.history.state?.usr?.userIngredients || [],
                     allRecipes: allRecipes,
                     previousPath: window.history.state?.usr?.previousPath || "/",
+                    recipeId: recipe.id,
                 },
             })
         }
@@ -62,7 +70,7 @@ const RecipeNavigator = ({ allRecipes, currentRecipe }) => {
             <Button
                 variant="outline"
                 onClick={() => navigateToRecipe(allRecipes[prevIndex])}
-                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20"
+                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 rounded-full transform hover:scale-105 transition-all duration-300"
             >
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Previous Recipe
@@ -73,7 +81,7 @@ const RecipeNavigator = ({ allRecipes, currentRecipe }) => {
             <Button
                 variant="outline"
                 onClick={() => navigateToRecipe(allRecipes[nextIndex])}
-                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20"
+                className="border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 rounded-full transform hover:scale-105 transition-all duration-300"
             >
                 Next Recipe
                 <ChevronRight className="w-4 h-4 ml-2" />

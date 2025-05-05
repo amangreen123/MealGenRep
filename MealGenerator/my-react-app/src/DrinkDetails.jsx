@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Home, GlassWater, Globe, Wine, Sparkles } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import getDrinkDetails from "./getDrinkDetails.jsx"
 import RecipeNavigator from "./RecipeNavigator.jsx"
@@ -16,6 +14,9 @@ const DrinkDetails = () => {
     const navigate = useNavigate()
     const state = location.state || {}
     const { drink, userIngredients = [], allRecipes = [], previousPath = "/" } = state
+
+    // Get the recipe ID from state or try to extract from the URL
+    const drinkId = state.recipeId || drink?.idDrink || id
 
     const [loading, setLoading] = useState(true)
     const [drinkDetails, setDrinkDetails] = useState(null)
@@ -34,8 +35,6 @@ const DrinkDetails = () => {
 
     useEffect(() => {
         const fetchDrinkData = async () => {
-            const drinkId = id || drink?.idDrink
-
             if (!drinkId) {
                 setError("Invalid drink ID")
                 setLoading(false)
@@ -44,6 +43,7 @@ const DrinkDetails = () => {
 
             try {
                 setLoading(true)
+                console.log("Fetching drink with ID:", drinkId)
                 const data = await getDrinkDetails(drinkId)
 
                 if (data?.drinks?.[0]) {
@@ -71,7 +71,7 @@ const DrinkDetails = () => {
         }
 
         fetchDrinkData()
-    }, [id, drink])
+    }, [drinkId])
 
     const handleHomeClick = () => {
         navigate("/")
@@ -99,6 +99,7 @@ const DrinkDetails = () => {
         )
     }
 
+    // Now that we know drinkDetails is not null, we can safely extract the data
     // Determine which ingredients the user has and which they need to buy
     const userIngredientsNormalized = userIngredients.map((ing) => ing.toLowerCase().trim())
     const pantryItems = ingredients.filter((item) =>
@@ -114,7 +115,8 @@ const DrinkDetails = () => {
         .filter((step) => step.trim())
         .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
 
-    const isAlcoholic = drinkDetails.strAlcoholic?.toLowerCase().includes("alcoholic")
+    // Fix for alcoholic/non-alcoholic display
+    const isAlcoholic = drinkDetails.strAlcoholic && !drinkDetails.strAlcoholic.toLowerCase().includes("non")
 
     return (
         <div className="min-h-screen bg-[#131415] text-[#f5efe4] p-6 md:p-8">
@@ -194,14 +196,18 @@ const DrinkDetails = () => {
                         <h1 className="text-4xl font-title text-center mb-6 relative">
                             <span className="text-[#ce7c1c]">{drinkDetails.strDrink.split(" ")[0]}</span>{" "}
                             {drinkDetails.strDrink.split(" ").slice(1).join(" ")}
-                            {/*<div className="absolute -top-4 -right-4">*/}
-                            {/*    <Badge*/}
-                            {/*        className={`${isAlcoholic ? "bg-purple-600 hover:bg-purple-700" : "bg-green-600 hover:bg-green-700"} rounded-full px-3 py-1 text-xs font-bold`}*/}
-                            {/*    >*/}
-                            {/*        {isAlcoholic ? <Wine className="w-3 h-3 mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}*/}
-                            {/*        {drinkDetails.strAlcoholic || "Beverage"}*/}
-                            {/*    </Badge>*/}
-                            {/*</div>*/}
+                            <div className="absolute -top-4 -right-4">
+                                <Badge
+                                    className={`${isAlcoholic ? "bg-purple-600 hover:bg-purple-700" : "bg-green-600 hover:bg-green-700"} rounded-full px-3 py-1 text-xs font-bold`}
+                                >
+                                    {isAlcoholic ? (
+                                        <Wine className="w-3 h-3 mr-1 inline" />
+                                    ) : (
+                                        <Sparkles className="w-3 h-3 mr-1 inline" />
+                                    )}
+                                    {isAlcoholic ? "Alcoholic" : "Non-Alcoholic"}
+                                </Badge>
+                            </div>
                         </h1>
                         <div className="rounded-3xl overflow-hidden border-2 border-[#ce7c1c] shadow-xl shadow-[#ce7c1c]/20 transform hover:scale-[1.02] transition-all duration-300">
                             <img
@@ -220,7 +226,7 @@ const DrinkDetails = () => {
                                     </div>
                                     <div className="font-terminal">
                                         <div className="text-sm text-gray-400">TYPE</div>
-                                        <div>{drinkDetails.strAlcoholic || "Unknown"}</div>
+                                        <div>{isAlcoholic ? "Alcoholic" : "Non-Alcoholic"}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -258,7 +264,7 @@ const DrinkDetails = () => {
                             {totalNutrition.protein > 0 && (
                                 <div className="text-center transform hover:scale-105 transition-all duration-300">
                                     <div className="text-6xl font-title">
-                                        {totalNutrition.protein} <span className="text-5xl -ml-1">G</span>
+                                        {totalNutrition.protein} <span className="text-5xl">G</span>
                                     </div>
                                     <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
                                 </div>
@@ -275,15 +281,15 @@ const DrinkDetails = () => {
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {totalNutrition.carbs} <span className="text-5xl -ml-2">G</span>
+                                    {totalNutrition.carbs} <span className="text-5xl">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
                             </div>
 
-                            {totalNutrition.alcohol > 0 && (
+                            {totalNutrition.alcohol > 0 && isAlcoholic && (
                                 <div className="text-center transform hover:scale-105 transition-all duration-300">
                                     <div className="text-6xl font-title">
-                                        {totalNutrition.alcohol} <span className="text-5xl -ml-2 ">G</span>
+                                        {totalNutrition.alcohol} <span className="text-5xl">G</span>
                                     </div>
                                     <div className="text-2xl font-title text-[#ce7c1c] mt-2">ALCOHOL</div>
                                 </div>
@@ -297,27 +303,24 @@ const DrinkDetails = () => {
                         <RecipeNavigator allRecipes={location.state?.allRecipes || []} currentRecipe={drinkDetails} />
                     </div>
                 )}
+                {/* Instructions Section */}
+                {showInstructions && (
+                    <div className="mt-12">
+                        <h2 className="text-4xl mb-6 font-title text-center">
+                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span>
+                        </h2>
+                        <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                            <ol className="list-decimal list-inside space-y-5 font-terminal text-lg px-4">
+                                {instructionSteps.map((step, index) => (
+                                    <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
+                                        {step}
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Instructions Dialog */}
-            <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
-                <DialogContent className="bg-[#1e1e1e] border-2 border-[#ce7c1c] text-[#f5efe4] max-w-3xl rounded-3xl shadow-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-title text-center">
-                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span> - {drinkDetails.strDrink}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <ScrollArea className="h-[60vh] mt-6">
-                        <ol className="list-decimal list-inside space-y-5 font-terminal text-lg px-4">
-                            {instructionSteps.map((step, index) => (
-                                <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
-                                    {step}
-                                </li>
-                            ))}
-                        </ol>
-                    </ScrollArea>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }

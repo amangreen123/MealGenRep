@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Home, Utensils, Globe, ChefHat, Flag } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import getMealDBRecipeDetails from "./GetMealDBRecipeDetails"
 import RecipeNavigator from "./RecipeNavigator.jsx"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const MealDBRecipeDetails = () => {
     const { id } = useParams()
@@ -17,16 +17,25 @@ const MealDBRecipeDetails = () => {
     const state = location.state || {}
     const { meal, userIngredients = [], allRecipes = [], previousPath = "/" } = state
 
+    // Get the recipe ID from state or try to extract from the URL
+    const recipeId = state.recipeId || meal?.idMeal || id
+
     const [loading, setLoading] = useState(true)
     const [recipeDetails, setRecipeDetails] = useState(null)
     const [error, setError] = useState(null)
     const [showInstructions, setShowInstructions] = useState(false)
 
+    // Mock nutrition info for demonstration purposes
+    const nutritionInfo = {
+        calories: 650,
+        protein: 40,
+        fat: 30,
+        carbs: 50,
+    }
+
     useEffect(() => {
         const fetchRecipeData = async () => {
-            const mealId = id || meal?.idMeal
-
-            if (!mealId) {
+            if (!recipeId) {
                 setError("Invalid meal ID")
                 setLoading(false)
                 return
@@ -34,8 +43,8 @@ const MealDBRecipeDetails = () => {
 
             try {
                 setLoading(true)
-                const data = await getMealDBRecipeDetails(mealId)
-                const mealName = data.meals[0]?.strMeal;
+                console.log("Fetching recipe with ID:", recipeId)
+                const data = await getMealDBRecipeDetails(recipeId)
 
                 if (data?.meals?.[0]) {
                     setRecipeDetails(data.meals[0])
@@ -50,10 +59,10 @@ const MealDBRecipeDetails = () => {
         }
 
         fetchRecipeData()
-    }, [id, meal])
+    }, [recipeId])
 
     const handleHomeClick = () => {
-        navigate("/")
+        navigate(previousPath)
     }
 
     if (loading) {
@@ -78,6 +87,7 @@ const MealDBRecipeDetails = () => {
         )
     }
 
+    // Now that we know recipeDetails is not null, we can safely extract the data
     // Extract ingredients and measures
     const ingredients = []
     for (let i = 1; i <= 20; i++) {
@@ -94,14 +104,6 @@ const MealDBRecipeDetails = () => {
     const shoppingListItems = ingredients.filter(
         (item) => !userIngredientsNormalized.includes(item.name.toLowerCase().trim()),
     )
-
-    // Mock nutrition data (in a real app, this would come from an API)
-    const nutritionInfo = {
-        calories: 2775,
-        protein: 139,
-        fat: 197,
-        carbs: 111,
-    }
 
     // Parse instructions
     const instructionSteps = recipeDetails.strInstructions
@@ -187,11 +189,11 @@ const MealDBRecipeDetails = () => {
                         <h1 className="text-4xl font-title text-center mb-6 relative">
                             <span className="text-[#ce7c1c]">{recipeDetails.strMeal.split(" ")[0]}</span>{" "}
                             {recipeDetails.strMeal.split(" ").slice(1).join(" ")}
-                            {/*<div className="absolute -top-4 -right-4">*/}
-                            {/*    <Badge className="bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 text-xs font-bold">*/}
-                            {/*        <Flag className="w-3 h-3 mr-1" /> {recipeDetails.strArea || "International"}*/}
-                            {/*    </Badge>*/}
-                            {/*</div>*/}
+                            <div className="absolute -top-4 -right-4">
+                                <Badge className="bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 text-xs font-bold">
+                                    <Flag className="w-3 h-3 mr-1" /> {recipeDetails.strArea || "International"}
+                                </Badge>
+                            </div>
                         </h1>
                         <div className="rounded-3xl overflow-hidden border-2 border-[#ce7c1c] shadow-xl shadow-[#ce7c1c]/20 transform hover:scale-[1.02] transition-all duration-300">
                             <img
@@ -247,21 +249,21 @@ const MealDBRecipeDetails = () => {
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.protein} <span className="text-5xl -ml-2">G</span>
+                                    {nutritionInfo.protein} <span className="text-5xl">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.fat} <span className="text-5xl -ml-2">G</span>
+                                    {nutritionInfo.fat} <span className="text-5xl">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">FAT</div>
                             </div>
 
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
-                                    {nutritionInfo.carbs} <span className="text-5xl -ml-2">G</span>
+                                    {nutritionInfo.carbs} <span className="text-5xl">G</span>
                                 </div>
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
                             </div>

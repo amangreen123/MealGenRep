@@ -6,10 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AI_CONFIG } from "@/ai.js"
-import "@/fonts/fonts.css"
-
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { slugify } from "./utils/slugify"
+import "@/fonts/fonts.css"
 
 import useFetchMeals from "./GetMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
@@ -128,11 +127,6 @@ const stripHtml = (html) => {
     return html.replace(/<\/?[^>]+(>|$)/g, "")
 }
 
-// const debugCache = () => {
-//     const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
-//     return Object.keys(cachedSummaries).length
-// }
-
 const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => {
     const pageNumbers = []
     const totalPages = Math.ceil(totalRecipes / recipesPerPage)
@@ -186,15 +180,6 @@ const Pagination = ({ recipesPerPage, totalRecipes, paginate, currentPage }) => 
     )
 }
 
-const slugify = (text) => {
-    return text
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/[\s\W-]+/g, '-') // Replace spaces and non-word chars with hyphen
-        .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
-};
-
 const UserInput = () => {
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
@@ -221,7 +206,36 @@ const UserInput = () => {
     const [focusIngredient, setFocusIngredient] = useState("")
     const [showFilters, setShowFilters] = useState(false)
     const [loadingText, setLoadingText] = useState("")
+    const [randomRecipes, setRandomRecipes] = useState([])
+    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
+    const apiKey = import.meta.env.VITE_MEALDB_KEY
 
+    // Fetch random recipes on initial load
+    useEffect(() => {
+        const fetchRandomRecipes = async () => {
+            try {
+                setLoadingRandomRecipes(true)
+                const response = await fetch(`https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`)
+                const data = await response.json()
+
+                if (data && data.meals) {
+                    // Add slugs to the random recipes
+                    const recipesWithSlugs = data.meals.map((recipe) => ({
+                        ...recipe,
+                        slug: slugify(recipe.strMeal),
+                        idMeal: recipe.idMeal,
+                    }))
+                    setRandomRecipes(recipesWithSlugs)
+                }
+            } catch (error) {
+                console.error("Error fetching random recipes:", error)
+            } finally {
+                setLoadingRandomRecipes(false)
+            }
+        }
+
+        fetchRandomRecipes()
+    }, [])
 
     useEffect(() => {
         setApiLimitReached(false)
@@ -237,7 +251,7 @@ const UserInput = () => {
     }, [error])
 
     useEffect(() => {
-        const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : [];
+        const mealDBRecipesArray = Array.isArray(MealDBRecipes) ? MealDBRecipes : []
         const cocktailDBRecipesArray = Array.isArray(CocktailDBDrinks)
             ? CocktailDBDrinks.map((drink) => ({
                 ...drink,
@@ -246,20 +260,20 @@ const UserInput = () => {
                 strMeal: drink.strDrink,
                 idMeal: drink.idDrink,
             }))
-            : [];
-        const spoonacularRecipesArray = Array.isArray(recipes) ? recipes : [];
-        
+            : []
+        const spoonacularRecipesArray = Array.isArray(recipes) ? recipes : []
+
         const addSlug = (recipe) => ({
             ...recipe,
-            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || 'recipe'),
-        });
+            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
+        })
 
         setAllRecipes([
             ...spoonacularRecipesArray.map(addSlug),
             ...mealDBRecipesArray.map(addSlug),
             ...cocktailDBRecipesArray.map(addSlug),
-        ]);
-    }, [MealDBRecipes, CocktailDBDrinks, recipes]);
+        ])
+    }, [MealDBRecipes, CocktailDBDrinks, recipes])
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
@@ -270,104 +284,7 @@ const UserInput = () => {
 
         return { currentRecipes, indexOfFirstRecipe, indexOfLastRecipe }
     }, [allRecipes, currentPage, recipesPerPage])
-
-    // useEffect(() => {
-    //     if (currentRecipes.length > 0) {
-    //         const recipeNeedingSummaries = currentRecipes.filter((recipe) => {
-    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //             return dishName && !recipe.summary
-    //         })
-    //
-    //         // if (recipeNeedingSummaries.length > 0) {
-    //         //     generateSummaries(recipeNeedingSummaries)
-    //         // }
-    //     }
-    // }, [currentPage, allRecipes.length])
-
-    // const generateSummaries = async (recipes) => {
-    //     const cachedSummaries = JSON.parse(localStorage.getItem("recipeSummaries")) || {}
-    //     const uncachedRecipes = recipes.filter((recipe) => !recipe.summary)
-    //
-    //     if (uncachedRecipes.length === 0) return
-    //
-    //     const generateSummariesIndividually = async (recipesToProcess) => {
-    //         const updates = {}
-    //         for (const recipe of recipesToProcess) {
-    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //             if (!dishName) continue
-    //
-    //             if (cachedSummaries[dishName]) {
-    //                 updates[dishName] = cachedSummaries[dishName]
-    //             } else {
-    //                 try {
-    //                     const summary = await getGaladrielResponse(`Describe ${dishName} in 2 sentences`, "summary")
-    //                     updates[dishName] = summary
-    //                     cachedSummaries[dishName] = summary
-    //                 } catch (error) {
-    //                     console.error(`Error generating summary for ${dishName}:`, error)
-    //                     updates[dishName] = "Description unavailable"
-    //                 }
-    //             }
-    //         }
-    //
-    //         if (Object.keys(updates).length > 0) {
-    //             // Update both localStorage and state
-    //             localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
-    //
-    //             setAllRecipes((prevRecipes) => {
-    //                 return prevRecipes.map((recipe) => {
-    //                     const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //                     return updates[dishName] ? { ...recipe, summary: updates[dishName] } : recipe
-    //                 })
-    //             })
-    //         }
-    //     }
-    //
-    //     if (uncachedRecipes.length >= AI_CONFIG.BATCH_THRESHOLD) {
-    //         try {
-    //             const dishNames = uncachedRecipes.map((r) => r.strMeal || r.strDrink || r.title).filter(Boolean)
-    //             const batchResult = await batchGaladrielResponse(dishNames, "summary")
-    //             const summaries = batchResult.split("\n")
-    //
-    //             const summaryMap = {}
-    //             uncachedRecipes.forEach((recipe, index) => {
-    //                 const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //                 if (dishName && index < summaries.length) {
-    //                     summaryMap[dishName] = summaries[index]
-    //                     cachedSummaries[dishName] = summaries[index]
-    //                 }
-    //             })
-    //
-    //             // Update both localStorage and state
-    //             localStorage.setItem("recipeSummaries", JSON.stringify(cachedSummaries))
-    //
-    //             setAllRecipes((prevRecipes) => {
-    //                 return prevRecipes.map((recipe) => {
-    //                     const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //                     return summaryMap[dishName] ? { ...recipe, summary: summaryMap[dishName] } : recipe
-    //                 })
-    //             })
-    //         } catch (error) {
-    //             console.error("Batch summary failed:", error)
-    //             await generateSummariesIndividually(uncachedRecipes)
-    //         }
-    //     } else {
-    //         await generateSummariesIndividually(uncachedRecipes)
-    //     }
-    // }
-
-    // useEffect(() => {
-    //     if (allRecipes.length > 0) {
-    //         const recipesNeedingSummaries = allRecipes.filter((recipe) => {
-    //             const dishName = recipe.strMeal || recipe.strDrink || recipe.title
-    //             return dishName && !recipe.summary
-    //         })
-    //
-    //         // if (recipesNeedingSummaries.length > 0) {
-    //         //     generateSummaries(recipesNeedingSummaries)
-    //         // }
-    //     }
-    // }, [allRecipes])
+    
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -424,6 +341,10 @@ const UserInput = () => {
 
             if (newIngredients.length > 0) {
                 setIngredients((prev) => [...prev, ...newIngredients])
+
+                // Save ingredients to localStorage for returning users
+                const updatedIngredients = [...ingredients, ...newIngredients]
+                localStorage.setItem("mealForgerIngredients", JSON.stringify(updatedIngredients))
             }
 
             const errorParts = []
@@ -447,19 +368,17 @@ const UserInput = () => {
     }
 
     const handleRemoveIngredient = (ingredientToRemove) => {
-        setIngredients(ingredients.filter((ingredient) => ingredient !== ingredientToRemove))
+        const updatedIngredients = ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
+        setIngredients(updatedIngredients)
+
+        // Update localStorage
+        localStorage.setItem("mealForgerIngredients", JSON.stringify(updatedIngredients))
     }
 
-    const clearValidationCache = () => {
-        localStorage.removeItem("ai-validation-cache")
-    }
-
-    const handleClearValidationCache = () => {
-        clearValidationCache()
-        Object.keys(localStorage)
-            .filter((key) => key.includes("ai-"))
-            .forEach((key) => localStorage.removeItem(key))
-        alert("Validation cache has been cleared. Please try adding ingredients again.")
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter") {
+            handleAddIngredient()
+        }
     }
 
     const handleSearch = async ({
@@ -503,8 +422,12 @@ const UserInput = () => {
                         console.error("Spoonacular error:", error)
                         spoonacularError = true
                         // Mark API as limited if rate limit error
-                        if (error.response?.status === 402 || error.response?.status === 429 ||
-                            String(error).includes("quota") || String(error).includes("API limit")) {
+                        if (
+                            error.response?.status === 402 ||
+                            error.response?.status === 429 ||
+                            String(error).includes("quota") ||
+                            String(error).includes("API limit")
+                        ) {
                             setApiLimitReached(true)
                             setIsSpoonacularLimited(true)
                         }
@@ -532,20 +455,16 @@ const UserInput = () => {
                     console.error("CocktailDB error:", error)
                     otherAPIError = true
                 }
-            })()
+            })(),
         ])
 
         // Combine all results, ensuring each array is valid
-        const allResults = [
-            ...spoonacularResults,
-            ...mealDBResults,
-            ...cocktailResults
-        ]
+        const allResults = [...spoonacularResults, ...mealDBResults, ...cocktailResults]
 
         // Add slugs to all recipes
-        const resultsWithSlugs = allResults.map(recipe => ({
+        const resultsWithSlugs = allResults.map((recipe) => ({
             ...recipe,
-            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || 'recipe'),
+            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
         }))
 
         // Set state with all valid results
@@ -565,65 +484,17 @@ const UserInput = () => {
         setLoadingText("") // Clear loading text when done
     }
 
-    // Helper to extract ingredients from any recipe format
-    const getRecipeIngredients = (recipe) => {
-        // Add debug logging
-        console.log("Getting ingredients for:", recipe.title || recipe.strMeal || recipe.strDrink)
-
-        if (recipe.strMeal && recipe.strIngredient1) {
-            // TheMealDB format
-            const ingredients = Array.from({ length: 20 }, (_, i) => recipe[`strIngredient${i + 1}`] || "").filter(
-                (ing) => ing && ing.trim(),
-            )
-            console.log(`Found ${ingredients.length} TheMealDB ingredients`)
-            return ingredients
-        } else if (recipe.extendedIngredients) {
-            // Spoonacular format
-            const ingredients = recipe.extendedIngredients
-                .map((ing) => ing.name || ing.original || "")
-                .filter((ing) => ing && ing.trim())
-            console.log(`Found ${ingredients.length} Spoonacular ingredients`)
-            return ingredients
-        } else if (recipe.strDrink && recipe.strIngredient1) {
-            // CocktailDB format - correctly identified by strDrink + strIngredient1
-            const ingredients = Array.from({ length: 15 }, (_, i) => recipe[`strIngredient${i + 1}`] || "").filter(
-                (ing) => ing && ing.trim(),
-            )
-            console.log(`Found ${ingredients.length} CocktailDB ingredients`)
-            return ingredients
-        }
-
-        // If we can't identify the format, log the issue
-        console.warn("Unknown recipe format:", recipe)
-        return []
-    }
-
-    const getBaseIngredient = (ingredient) => {
-        if (!ingredient) return ""
-
-        const lowerIngredient = ingredient.toLowerCase()
-        if (lowerIngredient.includes("chicken breast")) return "chicken"
-        if (lowerIngredient.includes("salmon fillet")) return "salmon"
-        if (lowerIngredient.includes("ground beef")) return "beef"
-        if (lowerIngredient.includes("cheddar cheese")) return "cheddar"
-        if (lowerIngredient.includes("apple")) return "apple"
-        if (lowerIngredient.includes("carrot")) return "carrot"
-
-        return ingredient
-    }
-
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
         setCategoryDialogOpen(true)
-        // Remove any focus search setting from here
     }
 
-    // Modify the handleCategorySearch function to implement focus search
     const handleCategorySearch = async (specificIngredient) => {
         setCategoryDialogOpen(false)
         setIsSearching(true)
         setApiLimitReached(false)
         setErrorMessage("")
+        setLoadingText("SEARCHING...")
 
         let searchQuery = specificIngredient || selectedCategory
 
@@ -640,9 +511,13 @@ const UserInput = () => {
 
         setIngredients([searchQuery])
 
+        // Save to localStorage
+        localStorage.setItem("mealForgerIngredients", JSON.stringify([searchQuery]))
+
         try {
             let mealDBRecipes = []
             let spoonacularRecipes = []
+            let cocktailResults = []
 
             // Only try Spoonacular if not limited
             if (!apiLimitReached) {
@@ -657,26 +532,122 @@ const UserInput = () => {
                 }
             }
 
-            // Always try MealDB
+            // Always try MealDB and CocktailDB
             try {
-                mealDBRecipes = await getMealDBRecipes([searchQuery])
+                ;[mealDBRecipes, cocktailResults] = await Promise.all([
+                    getMealDBRecipes([searchQuery]),
+                    getCocktailDBDrinks([searchQuery]),
+                ])
             } catch (error) {
-                console.error("MealDB error:", error)
+                console.error("API error:", error)
             }
 
             const combinedRecipes = [
                 ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
                 ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
+                ...(Array.isArray(cocktailResults) ? cocktailResults : []),
             ]
-            setAllRecipes(combinedRecipes)
+
+            // Add slugs to all recipes
+            const recipesWithSlugs = combinedRecipes.map((recipe) => ({
+                ...recipe,
+                slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
+            }))
+
+            setAllRecipes(recipesWithSlugs)
             setCurrentPage(1)
         } catch (error) {
             console.error("Error during quick search:", error)
             setErrorMessage("An unexpected error occurred.")
         } finally {
             setIsSearching(false)
+            setLoadingText("")
         }
     }
+
+    const clickHandler = (recipe) => {
+        const currentPath = window.location.pathname
+        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || "recipe"
+        const recipeSlug = recipe.slug || slugify(recipeName)
+
+        // Store the recipe ID in the state object
+        if (recipe.isDrink) {
+            navigate(`/drink/${recipeSlug}`, {
+                state: {
+                    drink: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath,
+                    // Store the ID explicitly
+                    recipeId: recipe.idDrink,
+                },
+            })
+        } else if (recipe.idMeal) {
+            navigate(`/mealdb-recipe/${recipeSlug}`, {
+                state: {
+                    meal: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath,
+                    // Store the ID explicitly
+                    recipeId: recipe.idMeal,
+                },
+            })
+        } else {
+            navigate(`/recipe/${recipeSlug}`, {
+                state: {
+                    recipe,
+                    userIngredients: ingredients,
+                    allRecipes: allRecipes,
+                    previousPath: currentPath,
+                    // Store the ID explicitly
+                    recipeId: recipe.id,
+                },
+            })
+        }
+    }
+
+    const handleRandomRecipeClick = (recipe) => {
+        const currentPath = window.location.pathname
+        const recipeSlug = recipe.slug || slugify(recipe.strMeal)
+
+        navigate(`/mealdb-recipe/${recipeSlug}`, {
+            state: {
+                meal: recipe,
+                userIngredients: ingredients,
+                allRecipes: randomRecipes,
+                previousPath: currentPath,
+                // Store the ID explicitly
+                recipeId: recipe.idMeal,
+            },
+        })
+    }
+
+    useEffect(() => {
+        if (errorMessage) {
+            setShowInput(false)
+            const timer = setTimeout(() => {
+                setShowInput(true)
+                setErrorMessage("")
+            }, 5000)
+            return () => clearTimeout(timer)
+        }
+    }, [errorMessage])
+
+    // Load saved ingredients from localStorage on component mount
+    useEffect(() => {
+        const savedIngredients = localStorage.getItem("mealForgerIngredients")
+        if (savedIngredients) {
+            try {
+                const parsedIngredients = JSON.parse(savedIngredients)
+                if (Array.isArray(parsedIngredients) && parsedIngredients.length > 0) {
+                    setIngredients(parsedIngredients)
+                }
+            } catch (error) {
+                console.error("Error parsing saved ingredients:", error)
+            }
+        }
+    }, [])
 
     const RecipeCard = ({ recipe, onClick }) => (
         <Dialog>
@@ -731,9 +702,9 @@ const UserInput = () => {
                                     className="absolute inset-0 w-full h-full object-cover"
                                 />
                             </div>
-                            {/*<p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p>*/}
+                            <p className="mb-4">{stripHtml(recipe.summary) || "No summary available."}</p>
                             <Button
-                                onClick={onClick}
+                                onClick={() => onClick(recipe)}
                                 className="w-full font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 rounded-full py-6 transform hover:scale-105 transition-all duration-300"
                             >
                                 View Full Recipe
@@ -745,91 +716,27 @@ const UserInput = () => {
         </Dialog>
     )
 
-    const getSlug = (text) => {
-        return text
-            .toString()
-            .toLowerCase()
-            .trim()
-            .replace(/[\s\W-]+/g, '-') // Replace spaces and non-word chars with hyphen
-            .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
-    };
-    const clickHandler = (recipe) => {
-        const currentPath = window.location.pathname;
-
-        // More robust way to get the recipe name
-        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || recipe.name || 'unnamed-recipe';
-
-        // Generate slug
-        const slug = getSlug(recipeName);
-
-        if (recipe.isDrink) {
-            navigate(`/drink/${slug}`, {
-                state: {
-                    drink: recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                },
-            });
-        } else if (recipe.idMeal) {
-            navigate(`/mealdb-recipe/${slug}`, {
-                state: {
-                    meal: recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                },
-            });
-        } else {
-            navigate(`/recipe/${slug}`, {
-                state: {
-                    recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                },
-            });
-        }
-    };
-
-
-    useEffect(() => {
-        if (errorMessage) {
-            setShowInput(false)
-            const timer = setTimeout(() => {
-                setShowInput(true)
-                setErrorMessage("")
-            }, 5000)
-            return () => clearTimeout(timer)
-        }
-    }, [errorMessage])
-    
-    const clearFocusSearch = () => {
-        setFocusSearch(false)
-        setFocusIngredient("")
-    }
-
     return (
         <div className="full-height-container bg-[#131415] text-[#f5efe4]">
             {/* Header */}
-            <div className="w-full max-w-7xl mx-auto px-50 py-50">
+            <div className="w-full max-w-7xl mx-auto px-6 py-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
                         <img
                             src={MealForgerLogo || "/placeholder.svg"}
                             alt="Meal Forger Logo"
-                            className="h-[160px] w-auto transition-transform duration-300 hover:scale-105"
+                            className="h-24 transform hover:scale-105 transition-all duration-300"
                         />
                     </div>
                     <div className="relative w-full max-w-md mx-auto">
                         <div className="relative w-full">
                             <Input
                                 type="text"
-                                placeholder="ENTER AN INGREDIENT ....."
-                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 font-terminal"
+                                placeholder="Enter an ingredient ....."
+                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300"
                                 value={inputString}
                                 onChange={handleInputChange}
-                                onKeyPress={(e) => e.key === "Enter" && handleAddIngredient()}
+                                onKeyPress={handleKeyPress}
                             />
                             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-[#ce7c1c]/20 p-2 rounded-full">
                                 <Search className="h-4 w-4 text-[#ce7c1c]" />
@@ -928,7 +835,12 @@ const UserInput = () => {
                         <span className="text-accent">RECIPES</span>
                     </h2>
                     <div className="border-2 border-gray-700 rounded-3xl p-6 mb-4 bg-gray-900/50 flex flex-col flex-grow min-h-[400px] md:min-h-[600px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                        {ingredients.length === 0 ? (
+                        {isSearching ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                <Sparkles className="h-16 w-16 mb-6 text-[#ce7c1c] animate-pulse" />
+                                <div className="text-xl font-terminal text-[#ce7c1c]">{loadingText || "SEARCHING..."}</div>
+                            </div>
+                        ) : ingredients.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 font-terminal">
                                 <img
                                     src={MealForgerLogo || "/placeholder.svg"}
@@ -962,7 +874,7 @@ const UserInput = () => {
                             </div>
                         ) : (
                             <div className="flex-grow overflow-auto recipe-scroll">
-                                {allRecipes.map((recipe) => (
+                                {currentRecipes.map((recipe) => (
                                     <div
                                         key={recipe.id || recipe.idMeal || recipe.idDrink}
                                         className="mb-4 bg-[#1e1e1e] rounded-2xl overflow-hidden cursor-pointer transform hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
@@ -996,13 +908,25 @@ const UserInput = () => {
                                 ))}
                             </div>
                         )}
+
+                        {allRecipes.length > recipesPerPage && (
+                            <div className="mt-4">
+                                <Pagination
+                                    recipesPerPage={recipesPerPage}
+                                    totalRecipes={allRecipes.length}
+                                    paginate={paginate}
+                                    currentPage={currentPage}
+                                />
+                            </div>
+                        )}
+
                         <div className="mt-6">
                             <Button
                                 className="border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-8 py-4 font-terminal rounded-full cursor-pointer w-full text-xl font-bold shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300"
                                 onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
                                 disabled={isSearching || ingredients.length === 0}
                             >
-                                {isSearching ? "GENERATING..." : "GENERATE"}
+                                {isSearching ? "Generating..." : "Generate"}
                             </Button>
                         </div>
                     </div>
@@ -1033,6 +957,42 @@ const UserInput = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Popular Recipes Section - Only shown for first-time users */}
+            {randomRecipes.length > 0 && (
+                <div className="w-full max-w-7xl mx-auto px-6 py-8">
+                    <h2 className="text-3xl font-title mb-6 text-center">
+                        <span className="text-[#ce7c1c]">POPULAR</span> RECIPES
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {randomRecipes.slice(0, 6).map((recipe) => (
+                            <Card
+                                key={recipe.idMeal}
+                                className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-xl"
+                                onClick={() => handleRandomRecipeClick(recipe)}
+                            >
+                                <CardContent className="p-0">
+                                    <div className="relative">
+                                        <img
+                                            src={recipe.strMealThumb || "/placeholder.svg"}
+                                            alt={recipe.strMeal}
+                                            className="w-full h-48 object-cover"
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                            <h3 className="text-white font-terminal text-lg">{recipe.strMeal}</h3>
+                                            <div className="flex items-center mt-1">
+                                                <span className="text-sm text-gray-300 font-terminal">{recipe.strCategory}</span>
+                                                <span className="mx-2 text-gray-500">•</span>
+                                                <span className="text-sm text-gray-300 font-terminal">{recipe.strArea}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>

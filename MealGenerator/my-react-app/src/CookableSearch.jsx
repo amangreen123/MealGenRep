@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -19,10 +21,10 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
     }
 
     return (
-        <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-4 mb-4 space-y-4">
+        <div className="bg-gray-800/50 border-2 border-gray-700 rounded-3xl p-6 mb-6 space-y-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-2">
-                <ChefHat className="h-5 w-5" />
-                <h3 className="text-lg font-machine">Search Options</h3>
+                <ChefHat className="h-5 w-5 text-[#ce7c1c]" />
+                <h3 className="text-lg font-title">Search Options</h3>
             </div>
 
             {/* Cookable Only Toggle */}
@@ -38,7 +40,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                 <Switch
                     checked={cookableOnly}
                     onCheckedChange={setCookableOnly}
-                    className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c] border border-white"
+                    className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c]"
                 />
             </div>
 
@@ -57,7 +59,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                     <Switch
                         checked={strictMode}
                         onCheckedChange={setStrictMode}
-                        className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c] border border-white"
+                        className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c]"
                     />
                 </div>
             )}
@@ -77,7 +79,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                     <Switch
                         checked={focusSearch}
                         onCheckedChange={setFocusSearch}
-                        className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c] border border-white"
+                        className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c]"
                     />
                 </div>
             )}
@@ -85,7 +87,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
             {/* Search Button */}
             <Button
                 onClick={handleSearchClick}
-                className="w-full text-white font-terminal py-2 px-4 rounded-2xl bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 border border-[#ce7c1c]"
+                className="w-full text-white font-terminal py-2 px-4 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 border-2 border-[#ce7c1c] mt-4 transform hover:scale-[1.02] transition-all duration-300"
                 disabled={ingredients.length === 0 || isSearching}
                 size="lg"
             >
