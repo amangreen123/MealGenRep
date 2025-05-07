@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Meal Forger App">
+  <meta name="description" content="Meal Forger - Generate ingredient-based meals and recipes easily!">
   <title>Meal Forger</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="80x80" href="/Meal_Forger.png" />
-
-  <!-- Apple Touch Icon (for iPhones/iPads) -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/Meal_Forger.png" />
-
-  <!-- General icon for web apps -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/Meal_Forger.png" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#ce7c1c">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&display=swap" rel="stylesheet">
@@ -21,13 +20,46 @@
   <!-- Open Graph for social + SEO -->
   <meta property="og:title" content="Meal Forger" />
   <meta property="og:description" content="Generate ingredient-based meals and recipes easily!" />
-  <meta property="og:image" content="/MealForger_Logo.png" />
+  <meta property="og:image" content="/android-chrome-512x512.png" />
   <meta property="og:url" content="https://mealforger.org" />
   <meta name="twitter:card" content="summary_large_image" />
-  
+
+  <style>
+    html, body, #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #131415;
+      overflow-x: hidden;
+    }
+
+    #root {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Footer styles */
+    .footer {
+      width: 100%;
+      background-color: #131415;
+      color: #666;
+      text-align: center;
+      padding: 1rem 0;
+      border-top: 1px solid #2d2d2d;
+      font-family: monospace;
+      margin-top: auto;
+    }
+  </style>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<body>
+<div id="root"></div>
+
+<!-- Fixed footer that will always be at the bottom -->
+<!--<footer class="footer">-->
+<!--  Meal Forger • Find recipes with ingredients you already have-->
+<!--</footer>-->
+
+<script type="module" src="/src/main.jsx"></script>
+</body>
 </html>

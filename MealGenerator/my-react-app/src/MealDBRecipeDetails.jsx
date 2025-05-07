@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Home, Utensils, Globe, ChefHat, Flag } from "lucide-react"
+import { Home, ChefHat, Flag, Clock, Users } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import getMealDBRecipeDetails from "./GetMealDBRecipeDetails"
@@ -111,6 +111,17 @@ const MealDBRecipeDetails = () => {
         .filter((step) => step.trim())
         .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
 
+    // Get unique feature for this recipe
+    const getUniqueFeature = () => {
+        if (recipeDetails.strTags) {
+            const tags = recipeDetails.strTags.split(",")
+            return tags[0]
+        }
+        return recipeDetails.strArea || "Traditional"
+    }
+
+    const uniqueFeature = getUniqueFeature()
+
     return (
         <div className="min-h-screen bg-[#131415] text-[#f5efe4] p-6 md:p-8">
             <div className="max-w-7xl mx-auto">
@@ -191,7 +202,7 @@ const MealDBRecipeDetails = () => {
                             {recipeDetails.strMeal.split(" ").slice(1).join(" ")}
                             <div className="absolute -top-4 -right-4">
                                 <Badge className="bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 text-xs font-bold">
-                                    <Flag className="w-3 h-3 mr-1" /> {recipeDetails.strArea || "International"}
+                                    <Flag className="w-3 h-3 mr-1" /> {uniqueFeature}
                                 </Badge>
                             </div>
                         </h1>
@@ -208,20 +219,20 @@ const MealDBRecipeDetails = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex items-center gap-2">
                                     <div className="bg-[#ce7c1c]/20 p-2 rounded-full">
-                                        <Utensils className="w-5 h-5 text-[#ce7c1c]" />
+                                        <Clock className="w-5 h-5 text-[#ce7c1c]" />
                                     </div>
                                     <div className="font-terminal">
-                                        <div className="text-sm text-gray-400">CATEGORY</div>
-                                        <div>{recipeDetails.strCategory || "Main"}</div>
+                                        <div className="text-sm text-gray-400">COOK TIME</div>
+                                        <div>30 minutes</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="bg-[#ce7c1c]/20 p-2 rounded-full">
-                                        <Globe className="w-5 h-5 text-[#ce7c1c]" />
+                                        <Users className="w-5 h-5 text-[#ce7c1c]" />
                                     </div>
                                     <div className="font-terminal">
-                                        <div className="text-sm text-gray-400">CUISINE</div>
-                                        <div>{recipeDetails.strArea || "International"}</div>
+                                        <div className="text-sm text-gray-400">SERVINGS</div>
+                                        <div>4</div>
                                     </div>
                                 </div>
                             </div>

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Home, GlassWater, Globe, Wine, Sparkles } from "lucide-react"
+import { Home, GlassWater, Wine, Clock, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import getDrinkDetails from "./getDrinkDetails.jsx"
 import RecipeNavigator from "./RecipeNavigator.jsx"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const DrinkDetails = () => {
     const { id } = useParams()
@@ -74,7 +76,7 @@ const DrinkDetails = () => {
     }, [drinkId])
 
     const handleHomeClick = () => {
-        navigate("/")
+        navigate(previousPath)
     }
 
     if (loading) {
@@ -117,6 +119,17 @@ const DrinkDetails = () => {
 
     // Fix for alcoholic/non-alcoholic display
     const isAlcoholic = drinkDetails.strAlcoholic && !drinkDetails.strAlcoholic.toLowerCase().includes("non")
+
+    // Get unique feature for this drink
+    const getUniqueFeature = () => {
+        if (drinkDetails.strTags) {
+            const tags = drinkDetails.strTags.split(",")
+            return tags[0]
+        }
+        return isAlcoholic ? "Alcoholic" : "Non-Alcoholic"
+    }
+
+    const uniqueFeature = getUniqueFeature()
 
     return (
         <div className="min-h-screen bg-[#131415] text-[#f5efe4] p-6 md:p-8">
@@ -197,15 +210,8 @@ const DrinkDetails = () => {
                             <span className="text-[#ce7c1c]">{drinkDetails.strDrink.split(" ")[0]}</span>{" "}
                             {drinkDetails.strDrink.split(" ").slice(1).join(" ")}
                             <div className="absolute -top-4 -right-4">
-                                <Badge
-                                    className={`${isAlcoholic ? "bg-purple-600 hover:bg-purple-700" : "bg-green-600 hover:bg-green-700"} rounded-full px-3 py-1 text-xs font-bold`}
-                                >
-                                    {isAlcoholic ? (
-                                        <Wine className="w-3 h-3 mr-1 inline" />
-                                    ) : (
-                                        <Sparkles className="w-3 h-3 mr-1 inline" />
-                                    )}
-                                    {isAlcoholic ? "Alcoholic" : "Non-Alcoholic"}
+                                <Badge className="bg-purple-600 hover:bg-purple-700 rounded-full px-3 py-1 text-xs font-bold">
+                                    <Wine className="w-3 h-3 mr-1" /> {uniqueFeature}
                                 </Badge>
                             </div>
                         </h1>
@@ -222,20 +228,20 @@ const DrinkDetails = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex items-center gap-2">
                                     <div className="bg-[#ce7c1c]/20 p-2 rounded-full">
-                                        <GlassWater className="w-5 h-5 text-[#ce7c1c]" />
+                                        <Clock className="w-5 h-5 text-[#ce7c1c]" />
                                     </div>
                                     <div className="font-terminal">
-                                        <div className="text-sm text-gray-400">TYPE</div>
-                                        <div>{isAlcoholic ? "Alcoholic" : "Non-Alcoholic"}</div>
+                                        <div className="text-sm text-gray-400">PREP TIME</div>
+                                        <div>5 minutes</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="bg-[#ce7c1c]/20 p-2 rounded-full">
-                                        <Globe className="w-5 h-5 text-[#ce7c1c]" />
+                                        <Users className="w-5 h-5 text-[#ce7c1c]" />
                                     </div>
                                     <div className="font-terminal">
-                                        <div className="text-sm text-gray-400">CATEGORY</div>
-                                        <div>{drinkDetails.strCategory || "Cocktail"}</div>
+                                        <div className="text-sm text-gray-400">SERVINGS</div>
+                                        <div>1</div>
                                     </div>
                                 </div>
                             </div>
@@ -261,24 +267,6 @@ const DrinkDetails = () => {
                                 <div className="text-2xl font-title text-[#ce7c1c] mt-2">CALORIES</div>
                             </div>
 
-                            {totalNutrition.protein > 0 && (
-                                <div className="text-center transform hover:scale-105 transition-all duration-300">
-                                    <div className="text-6xl font-title">
-                                        {totalNutrition.protein} <span className="text-5xl">G</span>
-                                    </div>
-                                    <div className="text-2xl font-title text-[#ce7c1c] mt-2">PROTEIN</div>
-                                </div>
-                            )}
-
-                            {totalNutrition.fat > 0 && (
-                                <div className="text-center transform hover:scale-105 transition-all duration-300">
-                                    <div className="text-6xl font-title">
-                                        {totalNutrition.fat} <span className="text-5xl">G</span>
-                                    </div>
-                                    <div className="text-2xl font-title text-[#ce7c1c] mt-2">FAT</div>
-                                </div>
-                            )}
-
                             <div className="text-center transform hover:scale-105 transition-all duration-300">
                                 <div className="text-6xl font-title">
                                     {totalNutrition.carbs} <span className="text-5xl">G</span>
@@ -303,24 +291,27 @@ const DrinkDetails = () => {
                         <RecipeNavigator allRecipes={location.state?.allRecipes || []} currentRecipe={drinkDetails} />
                     </div>
                 )}
-                {/* Instructions Section */}
-                {showInstructions && (
-                    <div className="mt-12">
-                        <h2 className="text-4xl mb-6 font-title text-center">
-                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span>
-                        </h2>
-                        <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                            <ol className="list-decimal list-inside space-y-5 font-terminal text-lg px-4">
-                                {instructionSteps.map((step, index) => (
-                                    <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
-                                        {step}
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Instructions Dialog */}
+            <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
+                <DialogContent className="bg-[#1e1e1e] border-2 border-[#ce7c1c] text-[#f5efe4] max-w-3xl rounded-3xl shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-title text-center">
+                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span> - {drinkDetails.strDrink}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="h-[60vh] mt-6">
+                        <ol className="list-decimal list-inside space-y-5 font-terminal text-lg px-4">
+                            {instructionSteps.map((step, index) => (
+                                <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
+                                    {step}
+                                </li>
+                            ))}
+                        </ol>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

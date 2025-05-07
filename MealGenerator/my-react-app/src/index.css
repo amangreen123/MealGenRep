@@ -20,6 +20,18 @@
 }
 
 :root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --border: #e5e7eb;
+  --accent: #4f46e5;
+  --text: #1a1a1a;
+}
+
+.dark {
   --background: #131415;
   --foreground: #f5efe4;
   --primary: #ce7c1c;
@@ -160,7 +172,7 @@ body {
 
 .card-hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(206, 124, 28, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.3);
 }
 
 .input-enhanced {
@@ -169,7 +181,7 @@ body {
 }
 
 .input-enhanced:focus {
-  box-shadow: 0 0 0 2px rgba(206, 124, 28, 0.5);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
   border-color: var(--accent);
 }
 
@@ -237,9 +249,106 @@ body {
 
 /* Shadows */
 .shadow-accent {
-  box-shadow: 0 4px 14px -4px rgba(206, 124, 28, 0.5);
+  box-shadow: 0 4px 14px -4px rgba(79, 70, 229, 0.5);
 }
 
 .shadow-accent-hover:hover {
-  box-shadow: 0 8px 20px -4px rgba(206, 124, 28, 0.6);
+  box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.6);
 }
+
+/* Responsive spacing utilities */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .card-spacing {
+    margin-bottom: 16px;
+  }
+
+  .section-spacing {
+    margin-bottom: 24px;
+  }
+}
+
+@media (min-width: 769px) {
+  .container-fluid {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .card-spacing {
+    margin-bottom: 24px;
+  }
+
+  .section-spacing {
+    margin-bottom: 32px;
+  }
+}
+
+/* Improved mobile layout */
+@media (max-width: 640px) {
+  .diet-button {
+    padding: 0.75rem 1rem !important;
+    font-size: 1.25rem !important;
+  }
+
+  .recipe-card-mobile {
+    flex-direction: column;
+  }
+
+  .recipe-card-mobile > div:first-child {
+    width: 100% !important;
+    height: 120px;
+  }
+
+  .recipe-card-mobile > div:last-child {
+    width: 100% !important;
+    padding-top: 0.75rem;
+  }
+}
+
+/* Add these styles to ensure the page fills the entire viewport and eliminates white space */
+
+html,
+body,
+#root,
+#__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #131415;
+}
+
+#root,
+#__next {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Ensure the main content area grows to fill available space */
+main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure footer stays at bottom */
+footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 100%;
+  background-color: #131415;
+  border-top: 1px solid #2d2d2d;
+}
+
+
