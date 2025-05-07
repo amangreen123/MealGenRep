@@ -342,13 +342,6 @@ main {
   flex-direction: column;
 }
 
-/* Ensure footer stays at bottom */
-footer {
-  flex-shrink: 0;
-  margin-top: auto;
-  width: 100%;
-  background-color: #131415;
-  border-top: 1px solid #2d2d2d;
-}
+
 
 

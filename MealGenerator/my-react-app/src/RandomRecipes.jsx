@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles } from 'lucide-react'
+import { Sparkles } from "lucide-react"
 import { slugify } from "./utils/slugify"
 
 const RandomRecipes = () => {
@@ -20,7 +20,7 @@ const RandomRecipes = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch(`https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`)
+        const response = await fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
         const data = await response.json()
         if (data.categories) {
           setCategories(data.categories)
@@ -37,39 +37,39 @@ const RandomRecipes = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        setLoading(true);
+        setLoading(true)
 
-        const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"; // Use environment variable or default to free API
-        let url = `https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`;
+        const apiKey = import.meta.env.VITE_MEALDB_KEY || "1" // Use environment variable or default to free API
+        let url = `https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`
 
         // If a category is selected, fetch recipes from that category
         if (selectedCategory) {
-          url = `https://www.themealdb.com/api/json/v1/1/filter.php?c=${selectedCategory}`;
+          url = `https://www.themealdb.com/api/json/v1/1/filter.php?c=${selectedCategory}`
         }
 
-        const response = await fetch(url);
-        const data = await response.json();
+        const response = await fetch(url)
+        const data = await response.json()
 
         if (data.meals) {
           // Add slugs to each recipe
           const recipesWithSlugs = data.meals.map((meal) => ({
             ...meal,
             slug: slugify(meal.strMeal),
-          }));
-          setRecipes(recipesWithSlugs);
+          }))
+          setRecipes(recipesWithSlugs)
         } else {
-          setError("No recipes found");
+          setError("No recipes found")
         }
       } catch (err) {
-        setError("Failed to fetch recipes");
-        console.error(err);
+        setError("Failed to fetch recipes")
+        console.error(err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchRecipes();
-  }, [selectedCategory]);
+    fetchRecipes()
+  }, [selectedCategory])
 
   const handleRecipeClick = (recipe) => {
     navigate(`/mealdb-recipe/${recipe.slug}`, {
@@ -141,7 +141,7 @@ const RandomRecipes = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mx-auto">
           {recipes.map((recipe) => (
               <Card
                   key={recipe.idMeal}
@@ -178,8 +178,8 @@ const RandomRecipes = () => {
             <div className="flex justify-center mt-8">
               <Button
                   onClick={() => {
-                    setLoading(true);
-                    const apiKey = import.meta.env.VITE_MEALDB_KEY || "1";
+                    setLoading(true)
+                    const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"
                     fetch(`https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`)
                         .then((res) => res.json())
                         .then((data) => {
@@ -187,16 +187,16 @@ const RandomRecipes = () => {
                             const recipesWithSlugs = data.meals.map((meal) => ({
                               ...meal,
                               slug: slugify(meal.strMeal),
-                            }));
-                            setRecipes(recipesWithSlugs);
+                            }))
+                            setRecipes(recipesWithSlugs)
                           }
                         })
                         .catch((err) => console.error(err))
-                        .finally(() => setLoading(false));
+                        .finally(() => setLoading(false))
                   }}
-                  className="bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 text-white rounded-full px-6 py-3 flex items-center gap-2"
+                  className="border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-6 py-3 font-terminal rounded-full cursor-pointer text-base font-bold shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300"
               >
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-4 w-4 mr-2" />
                 Discover More Recipes
               </Button>
             </div>

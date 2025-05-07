@@ -32,6 +32,7 @@ import MealForgerLogo from "./Images/Meal_Forger.png"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import CookableSearch from "./CookableSearch.jsx"
+import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 
 const categoryIngredients = {
     Dessert: {
@@ -130,6 +131,7 @@ const UserInput = () => {
     const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
     const [showFilters, setShowFilters] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
+    const [isFirstTimeUser, setIsFirstTimeUser] = useState(true)
 
     // Fetch random recipes on initial load
     useEffect(() => {
@@ -196,6 +198,17 @@ const UserInput = () => {
             ...cocktailDBRecipesArray.map(addSlug),
         ])
     }, [MealDBRecipes, CocktailDBDrinks, recipes])
+
+    // Check if user is a first-time visitor
+    useEffect(() => {
+        const firstTimeUser = localStorage.getItem("mealForgerFirstTimeUser")
+        if (firstTimeUser === "false") {
+            setIsFirstTimeUser(false)
+        } else {
+            localStorage.setItem("mealForgerFirstTimeUser", "true")
+            setIsFirstTimeUser(true)
+        }
+    }, [])
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -594,146 +607,164 @@ const UserInput = () => {
         <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">
             {/* Header */}
             <header className="py-4 md:py-6">
-                <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
-                    <img src={MealForgerLogo || "/placeholder.svg"} alt="Meal Forger" className="h-20 mb-6" />
-
-                    <div className="relative w-full max-w-2xl mb-6">
-                        <Input
-                            type="text"
-                            placeholder="Enter an ingredient ....."
-                            className="w-full bg-transparent border-2 border-gray-600 rounded-full py-4 px-5 text-white pl-14 pr-14 focus:border-[#ce7c1c] transition-all duration-300 text-lg"
-                            value={inputString}
-                            onChange={handleInputChange}
-                            onKeyPress={handleKeyPress}
+                <div className="max-w-6xl mx-auto px-4 md:px-6">
+                    {/* Logo row - centered with larger size */}
+                    <div className="flex justify-center mb-4 md:mb-6">
+                        <img
+                            src={MealForgerLogo || "/placeholder.svg"}
+                            alt="Meal Forger"
+                            className="h-24 md:h-32 w-auto object-contain"
                         />
-                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 bg-[#ce7c1c]/20 p-2 rounded-full">
-                            <Search className="h-5 w-5 text-[#ce7c1c]" />
-                        </div>
-                        <Button
-                            className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 text-lg font-medium grid place-items-center transition-all duration-300 transform hover:scale-110"
-                            onClick={handleAddIngredient}
-                        >
-                            <Plus className="h-5 w-5" />
-                        </Button>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 px-8 py-3 rounded-full font-bold transition-all duration-300 transform hover:scale-105 mb-6"
-                        onClick={() => setShowFilters(!showFilters)}
-                    >
-                        FILTERS
-                    </Button>
-
-                    {showFilters && (
-                        <div className="w-full max-w-2xl mb-6">
-                            <CookableSearch
-                                onSearch={handleSearch}
-                                ingredients={ingredients}
-                                selectedDiet={selectedDiet}
-                                isSearching={isSearching}
-                                focusIngredient={focusIngredient}
+                    {/* Search and filter row - centered */}
+                    <div className="flex flex-col items-center w-full space-y-3">
+                        {/* Search bar - larger and centered */}
+                        <div className="relative w-full max-w-2xl">
+                            <Input
+                                type="text"
+                                placeholder="Enter an ingredient ....."
+                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 text-base md:text-lg font-terminal"
+                                value={inputString}
+                                onChange={handleInputChange}
+                                onKeyPress={handleKeyPress}
                             />
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-[#ce7c1c]/20 p-2 rounded-full">
+                                <Search className="h-4 w-4 md:h-5 md:w-5 text-[#ce7c1c]" />
+                            </div>
+                            <Button
+                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 md:h-10 md:w-10 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 grid place-items-center transition-all duration-300"
+                                onClick={handleAddIngredient}
+                            >
+                                <Plus className="h-4 w-4 md:h-5 md:w-5" />
+                            </Button>
                         </div>
-                    )}
+
+                        {/* Filters button - centered below search */}
+                        <Button
+                            variant="outline"
+                            className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 px-6 py-2 rounded-full font-bold transition-all duration-300 text-sm md:text-base"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            FILTERS
+                        </Button>
+
+                        {/* Cookable search */}
+                        {showFilters && (
+                            <div className="w-full max-w-2xl mt-2">
+                                <CookableSearch
+                                    onSearch={handleSearch}
+                                    ingredients={ingredients}
+                                    selectedDiet={selectedDiet}
+                                    isSearching={isSearching}
+                                    focusIngredient={focusIngredient}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
-            <main className="flex-grow">
-                <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 pb-16">
-                    {" "}
-                    {/* Added pb-16 for extra padding at bottom */}
-                    <h1 className="text-3xl font-bold mb-6 text-center font-title">
+            <main className="flex-grow overflow-x-hidden">
+                <div className="max-w-6xl mx-auto px-2 md:px-6 py-2 md:py-4 pb-8 md:pb-16">
+                    <h1 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center font-title">
                         <span className="text-[#ce7c1c]">Discover</span> Recipes With What You Have
                     </h1>
+
                     {/* Popular Recipes - Horizontal Scrolling */}
-                    {randomRecipes.length > 0 && (
-                        <div className="mb-8">
-                            <div className="flex flex-col items-center mb-4">
-                                <h2 className="text-2xl font-bold font-title text-center mb-2">
-                                    <span className="text-[#ce7c1c]">POPULAR</span> RECIPES
+                    {/* First Time User Experience */}
+                    {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
+
+                    {/* Popular Recipes - Only shown for returning users who have recipes */}
+                    {!isFirstTimeUser && randomRecipes.length > 0 && (
+                        <div className="mb-6 md:mb-8">
+                            <div className="flex flex-col items-center mb-4 md:mb-6">
+                                <h2 className="text-2xl md:text-3xl font-bold font-title text-center">
+                                    <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
                                 </h2>
                             </div>
 
-                            <div
-                                id="popular-recipes-scroll"
-                                className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 -mx-2 px-2 justify-center"
-                                style={{ scrollbarWidth: "thin" }}
-                            >
-                                {randomRecipes.map((recipe) => (
-                                    <Card
-                                        key={recipe.idMeal}
-                                        className="flex-shrink-0 w-[220px] overflow-hidden border-2 border-gray-700 bg-gray-900/50 rounded-2xl hover:shadow-lg hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer"
-                                        onClick={() => handleRandomRecipeClick(recipe)}
-                                    >
-                                        <div className="p-3">
-                                            <div className="mb-2">
-                                                <img
-                                                    src={recipe.strMealThumb || "/placeholder.svg"}
-                                                    alt={recipe.strMeal}
-                                                    className="w-full h-32 object-cover rounded-xl"
-                                                />
+                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                <div
+                                    id="popular-recipes-scroll"
+                                    className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 px-2"
+                                >
+                                    {randomRecipes.map((recipe) => (
+                                        <Card
+                                            key={recipe.idMeal}
+                                            className="flex-shrink-0 w-48 md:w-56 overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer"
+                                            onClick={() => handleRandomRecipeClick(recipe)}
+                                        >
+                                            <div className="p-3">
+                                                <div className="mb-3">
+                                                    <img
+                                                        src={recipe.strMealThumb || "/placeholder.svg"}
+                                                        alt={recipe.strMeal}
+                                                        className="w-full h-32 md:h-36 object-cover rounded-lg"
+                                                        loading="lazy"
+                                                    />
+                                                </div>
+                                                <h3 className="text-lg font-bold mb-2 font-title line-clamp-1">{recipe.strMeal}</h3>
+                                                <div className="flex items-center gap-1 text-sm text-gray-400">
+                                                    {recipe.strCategory && (
+                                                        <div className="flex items-center">
+                                                            <ChefHat className="h-4 w-4 mr-1 text-[#ce7c1c]" />
+                                                            <span className="font-terminal">{recipe.strCategory}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <h3 className="text-sm font-bold mb-1 font-title line-clamp-1 text-center">{recipe.strMeal}</h3>
-                                            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-                                                {recipe.strCategory && (
-                                                    <div className="flex items-center">
-                                                        <ChefHat className="h-3 w-3 mr-1 text-[#ce7c1c]" />
-                                                        <span className="font-terminal text-xs">{recipe.strCategory}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
+                                        </Card>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
                         {/* Left Column - QUICK ADD */}
-                        <div className="col-span-1 md:col-span-3 space-y-6">
+                        <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 order-2 md:order-1">
                             <div className="flex flex-col w-full">
-                                <h3 className="text-2xl font-bold mb-5 font-title text-center">
+                                <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
                                 </h3>
-                                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                <div className="grid grid-cols-4 gap-3">
                                     {popularIngredients.map((item, index) => (
-                                        <Button
+                                        <div
                                             key={index}
-                                            className={`flex flex-col items-center justify-center h-16 bg-transparent border border-white hover:border-[#ce7c1c] hover:bg-gray-800 rounded-xl cursor-pointer group transition-all duration-300 transform hover:scale-105 p-1`}
+                                            className="flex flex-col items-center justify-center cursor-pointer"
                                             onClick={() => handleQuickSearch(item.name)}
                                         >
-                                            <item.icon className={`text-xl ${item.color} mb-1 transition-colors duration-300`} />
-                                            <span className="text-sm font-terminal text-white group-hover:text-[#ce7c1c] transition-colors duration-300">
-                        {item.name}
-                      </span>
-                                        </Button>
+                                            <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl border-2 border-white mb-1 hover:border-[#ce7c1c] transition-all duration-300">
+                                                <item.icon className={`${item.color} text-xl`} />
+                                            </div>
+                                            <span className="text-xs text-center font-terminal">{item.name}</span>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
                         {/* Middle Column - MY PANTRY and RECIPES */}
-                        <div className="col-span-1 md:col-span-6 space-y-6">
+                        <div className="col-span-1 md:col-span-6 space-y-4 md:space-y-6 order-1 md:order-2">
                             {/* MY PANTRY */}
-                            <div className="bg-gray-900/50 rounded-3xl border-2 border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-6">
-                                <h2 className="text-2xl font-bold mb-5 font-title text-center">
+                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
                                 </h2>
-
-                                <div className="flex flex-wrap gap-2 mb-4">
+                                <div className="flex flex-wrap gap-2 mb-2">
                                     {ingredients.length === 0 ? (
-                                        <div className="text-center py-6 w-full">
-                                            <p className="text-gray-400 font-terminal mb-2">No ingredients added yet.</p>
-                                            <p className="text-gray-400 font-terminal">Add ingredients to discover recipes you can make!</p>
+                                        <div className="text-center py-3 w-full">
+                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
+                                                YOU HAVE NOT ADDED ANY INGREDIENTS
+                                            </p>
                                         </div>
                                     ) : (
                                         ingredients.map((item, index) => (
-                                            <div key={index} className="flex items-center bg-gray-800 rounded-full px-3 py-1">
-                                                <span className="mr-2 font-terminal text-sm">{item}</span>
+                                            <div key={index} className="flex items-center bg-gray-800 rounded-full px-2 py-1">
+                                                <span className="mr-1 font-terminal text-xs md:text-sm">{item}</span>
                                                 <button
                                                     onClick={() => handleRemoveIngredient(item)}
-                                                    className="text-[#ce7c1c] hover:text-white bg-gray-700/50 hover:bg-gray-700 rounded-full p-1 transition-all duration-200"
+                                                    className="text-[#ce7c1c] hover:text-white bg-gray-700/50 hover:bg-gray-700 rounded-full p-0.5 transition-all duration-200"
                                                 >
                                                     ✕
                                                 </button>
@@ -744,30 +775,31 @@ const UserInput = () => {
                             </div>
 
                             {/* RECIPES */}
-                            <div className="bg-gray-900/50 rounded-3xl border-2 border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 flex flex-col">
-                                <h2 className="text-2xl font-bold mb-5 font-title text-center">
+                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 flex flex-col">
+                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-[#ce7c1c]">RE</span>
                                     <span className="text-white">CIPES</span>
                                 </h2>
-
                                 {isSearching ? (
-                                    <div className="flex flex-col items-center justify-center py-12 flex-grow">
-                                        <Sparkles className="h-16 w-16 mb-6 text-[#ce7c1c] animate-pulse" />
-                                        <p className="text-gray-400 font-terminal">{loadingText || "Finding recipes..."}</p>
+                                    <div className="flex flex-col items-center justify-center py-6 md:py-8 flex-grow">
+                                        <Sparkles className="h-10 w-10 md:h-12 md:w-12 mb-3 md:mb-4 text-[#ce7c1c] animate-pulse" />
+                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">
+                                            {loadingText || "Finding recipes..."}
+                                        </p>
                                     </div>
                                 ) : ingredients.length === 0 ? (
-                                    <div className="text-center py-12 flex-grow">
-                                        <p className="text-gray-400 font-terminal mb-4">No recipes to display</p>
+                                    <div className="text-center py-6 md:py-8 flex-grow">
+                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">No recipes to display</p>
                                     </div>
                                 ) : allRecipes.length === 0 ? (
-                                    <div className="text-center py-12 flex-grow">
-                                        <p className="text-gray-400 font-terminal">
+                                    <div className="text-center py-6 md:py-8 flex-grow">
+                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">
                                             No recipes found with your ingredients. Try adding more!
                                         </p>
                                     </div>
                                 ) : (
-                                    <ScrollArea className="h-[350px] pr-2 mb-4">
-                                        <div className="grid grid-cols-1 gap-3">
+                                    <ScrollArea className="h-[250px] md:h-[300px] pr-2 mb-3">
+                                        <div className="grid grid-cols-1 gap-2 md:gap-3">
                                             {allRecipes.map((recipe) => {
                                                 const title = recipe.title || recipe.strMeal || recipe.strDrink
                                                 const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
@@ -778,35 +810,38 @@ const UserInput = () => {
                                                 return (
                                                     <Card
                                                         key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                                        className="overflow-hidden border border-gray-700 bg-gray-900/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer mb-3"
+                                                        className="overflow-hidden border border-gray-700 bg-gray-900/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer mb-2"
                                                         onClick={() => clickHandler(recipe)}
                                                     >
-                                                        <div className="p-3 md:p-4">
+                                                        <div className="p-2 md:p-3">
                                                             <div className="flex">
                                                                 <div className="w-1/3">
                                                                     <img
                                                                         src={image || "/placeholder.svg"}
                                                                         alt={title}
-                                                                        className="w-full h-24 object-cover rounded-lg"
+                                                                        className="w-full h-16 md:h-20 object-cover rounded-lg"
+                                                                        width="80"
+                                                                        height="64"
+                                                                        loading="lazy"
                                                                     />
                                                                 </div>
-                                                                <div className="w-2/3 pl-3">
-                                                                    <h3 className="text-sm font-bold mb-1 font-title line-clamp-2">{title}</h3>
-                                                                    <div className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
+                                                                <div className="w-2/3 pl-2 md:pl-3">
+                                                                    <h3 className="text-xs md:text-sm font-bold mb-1 font-title line-clamp-2">{title}</h3>
+                                                                    <div className="flex flex-wrap items-center gap-1 text-[10px] md:text-xs text-gray-400">
                                                                         <div className="flex items-center">
-                                                                            <Clock className="h-3 w-3 mr-1 text-[#ce7c1c]" />
-                                                                            <span className="font-terminal text-xs">{cookTime}</span>
+                                                                            <Clock className="h-2 w-2 mr-0.5 text-[#ce7c1c]" />
+                                                                            <span className="font-terminal">{cookTime}</span>
                                                                         </div>
-                                                                        <span className="mx-1 text-[#ce7c1c]">•</span>
+                                                                        <span className="mx-0.5 text-[#ce7c1c]">•</span>
                                                                         <div className="flex items-center">
-                                                                            <Users className="h-3 w-3 mr-1 text-[#ce7c1c]" />
-                                                                            <span className="font-terminal text-xs">{servings}</span>
+                                                                            <Users className="h-2 w-2 mr-0.5 text-[#ce7c1c]" />
+                                                                            <span className="font-terminal">{servings}</span>
                                                                         </div>
 
                                                                         {uniqueFeature && (
                                                                             <>
-                                                                                <span className="mx-1 text-[#ce7c1c]">•</span>
-                                                                                <span className="font-terminal text-xs bg-[#ce7c1c]/20 px-2 py-0.5 rounded-full">
+                                                                                <span className="mx-0.5 text-[#ce7c1c]">•</span>
+                                                                                <span className="font-terminal bg-[#ce7c1c]/20 px-1.5 py-0.5 rounded-full">
                                           {uniqueFeature}
                                         </span>
                                                                             </>
@@ -824,34 +859,36 @@ const UserInput = () => {
 
                                 {/* Generate Button inside the recipes section */}
                                 <Button
-                                    className="w-full border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-6 py-3 font-terminal rounded-full cursor-pointer text-lg font-bold shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
+                                    className="w-full border border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
                                     onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
                                     disabled={isSearching || ingredients.length === 0}
                                 >
                                     {isSearching ? "Generating..." : "Generate Recipes"}
                                 </Button>
 
-                                {errorMessage && <div className="text-red-500 text-center mt-4 font-terminal">{errorMessage}</div>}
+                                {errorMessage && (
+                                    <div className="text-red-500 text-center mt-2 font-terminal text-xs md:text-sm">{errorMessage}</div>
+                                )}
                             </div>
                         </div>
 
                         {/* Right Column - MY DIET */}
-                        <div className="col-span-1 md:col-span-3 space-y-6">
+                        <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 order-3">
                             <div className="flex flex-col w-full">
-                                <h2 className="text-2xl font-bold mb-5 font-title text-center">
+                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
                                 </h2>
-                                <div className="flex flex-col space-y-3 md:space-y-4">
+                                <div className="flex flex-col space-y-2 md:space-y-3">
                                     {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
                                         const dietValue = diet.toLowerCase().replace(" ", "-")
                                         return (
                                             <Button
                                                 key={index}
-                                                className={`py-3 font-title diet-button border-2 ${
+                                                className={`py-2 font-title diet-button border border-[#ce7c1c] ${
                                                     selectedDiet === dietValue
-                                                        ? "bg-[#ce7c1c] text-white font-bold shadow-lg shadow-[#ce7c1c]/30"
-                                                        : "border-[#ce7c1c] bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
-                                                } rounded-3xl cursor-pointer text-lg transform hover:scale-[1.02] transition-all duration-300`}
+                                                        ? "bg-[#ce7c1c] text-white font-bold shadow-md shadow-[#ce7c1c]/30"
+                                                        : "bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
+                                                } rounded-2xl md:rounded-3xl cursor-pointer text-sm md:text-base transform hover:scale-[1.02] transition-all duration-300`}
                                                 onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
                                             >
                                                 {diet}
@@ -867,20 +904,20 @@ const UserInput = () => {
 
             {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                <DialogContent className="bg-[#1e1e1e] border-2 border-[#ce7c1c] text-white max-w-md rounded-3xl shadow-2xl">
-                    <DialogTitle className="text-center text-xl font-title mb-2 text-[#ce7c1c]">
+                <DialogContent className="bg-[#1e1e1e] border border-[#ce7c1c] text-white max-w-[90vw] md:max-w-md rounded-2xl md:rounded-3xl shadow-2xl mx-auto">
+                    <DialogTitle className="text-center text-base md:text-lg font-title mb-2 text-[#ce7c1c]">
                         {selectedCategory} Recipes
                     </DialogTitle>
-                    <DialogDescription className="text-center text-gray-300 mb-6 font-terminal">
+                    <DialogDescription className="text-center text-gray-300 mb-4 font-terminal text-xs md:text-sm">
                         Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                     </DialogDescription>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3 md:space-y-4">
                         {/* Surprise Me Button */}
                         <Button
                             variant="default"
                             onClick={() => handleCategorySearch(selectedCategory)}
-                            className="w-full py-6 text-lg font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 rounded-full transform hover:scale-105 transition-all duration-300"
+                            className="w-full py-2 md:py-3 text-sm md:text-base font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 rounded-full transform hover:scale-105 transition-all duration-300"
                         >
                             Surprise Me
                         </Button>
@@ -891,13 +928,13 @@ const UserInput = () => {
                                 <span className="w-full border-t border-gray-700" />
                             </div>
                             <div className="relative flex justify-center">
-                                <span className="px-3 bg-[#1e1e1e] text-sm text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
+                                <span className="px-2 bg-[#1e1e1e] text-xs text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
                             </div>
                         </div>
 
                         {/* Ingredient Grid */}
                         {selectedCategory && categoryIngredients[selectedCategory] && (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2">
                                 {[
                                     ...categoryIngredients[selectedCategory].mealDB,
                                     ...categoryIngredients[selectedCategory].spoonacular,
@@ -906,7 +943,7 @@ const UserInput = () => {
                                         key={ingredient}
                                         variant="outline"
                                         onClick={() => handleCategorySearch(ingredient)}
-                                        className="py-4 font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white rounded-xl transform hover:scale-105 transition-all duration-300"
+                                        className="py-2 text-xs md:text-sm font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white rounded-xl transform hover:scale-105 transition-all duration-300"
                                     >
                                         {ingredient}
                                     </Button>
@@ -919,10 +956,10 @@ const UserInput = () => {
 
             {/* Error Message */}
             {errorMessage && (
-                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-md">
                     <Alert className="bg-red-950 border-red-800 text-white rounded-xl shadow-lg">
-                        <InfoIcon className="h-4 w-4 text-red-300" />
-                        <AlertDescription className="font-medium font-terminal">{errorMessage}</AlertDescription>
+                        <InfoIcon className="h-3 w-3 md:h-4 md:w-4 text-red-300 flex-shrink-0" />
+                        <AlertDescription className="font-medium font-terminal text-xs md:text-sm">{errorMessage}</AlertDescription>
                     </Alert>
                 </div>
             )}

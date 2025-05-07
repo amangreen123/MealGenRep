@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Meal Forger - Generate ingredient-based meals and recipes easily!">
   <title>Meal Forger</title>
 
@@ -31,12 +31,23 @@
       padding: 0;
       background-color: #131415;
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
     }
 
     #root {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
+    /* Prevent layout shifts */
+    img {
+      display: block;
+      height: auto;
     }
 
     /* Footer styles */
@@ -45,20 +56,39 @@
       background-color: #131415;
       color: #666;
       text-align: center;
-      padding: 1rem 0;
+      padding: 0.5rem 0;
       border-top: 1px solid #2d2d2d;
       font-family: monospace;
-      margin-top: auto;
+      position: relative;
+      z-index: 10;
+      font-size: 0.75rem;
+    }
+
+    /* Prevent content from overflowing */
+    * {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    /* Ensure content doesn't cause horizontal overflow */
+    .overflow-x-hidden {
+      overflow-x: hidden;
+    }
+
+    /* Preload critical fonts to prevent layout shifts */
+    @font-face {
+      font-family: 'Share Tech Mono';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: local('Share Tech Mono'), local('ShareTechMono-Regular'), url(https://fonts.gstatic.com/s/sharetechmono/v10/J7aHnp1uDWRBEqV98dVQztYldFcLowEF.woff2) format('woff2');
     }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
-<!-- Fixed footer that will always be at the bottom -->
-<!--<footer class="footer">-->
-<!--  Meal Forger • Find recipes with ingredients you already have-->
-<!--</footer>-->
+
 
 <script type="module" src="/src/main.jsx"></script>
 </body>
