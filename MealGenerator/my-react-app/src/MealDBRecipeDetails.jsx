@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Home, ChefHat, Flag, Clock, Users } from "lucide-react"
+import { Home, Flag, Clock, Users } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import getMealDBRecipeDetails from "./GetMealDBRecipeDetails"
 import RecipeNavigator from "./RecipeNavigator.jsx"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import RecommendedRecipes from "./RecommendedRecipes.jsx"
 
 const MealDBRecipeDetails = () => {
     const { id } = useParams()
@@ -143,7 +143,7 @@ const MealDBRecipeDetails = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                     {/* Left Column - MY PANTRY and SHOPPING LIST */}
                     <div className="space-y-8">
                         {/* MY PANTRY */}
@@ -237,16 +237,6 @@ const MealDBRecipeDetails = () => {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="mt-auto pt-8 flex justify-center">
-                            <Button
-                                onClick={() => setShowInstructions(true)}
-                                className="border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#f5efe4] text-xl font-title rounded-full px-10 py-6 w-full max-w-xs shadow-lg shadow-[#ce7c1c]/20 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-                            >
-                                <ChefHat className="w-6 h-6" />
-                                INSTRUCTIONS
-                            </Button>
-                        </div>
                     </div>
 
                     {/* Right Column - NUTRITION INFO */}
@@ -280,6 +270,24 @@ const MealDBRecipeDetails = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Instructions */}
+                    <div className="col-span-1 md:col-span-3 mt-8 md:mt-0">
+                        <h2 className="text-4xl mb-6 font-title text-center">
+                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span>
+                        </h2>
+                        <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                            <ScrollArea className="h-[300px] pr-4">
+                                <ol className="list-decimal list-inside space-y-5 font-terminal text-lg">
+                                    {instructionSteps.map((step, index) => (
+                                        <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
+                                            {step}
+                                        </li>
+                                    ))}
+                                </ol>
+                            </ScrollArea>
+                        </div>
+                    </div>
                 </div>
 
                 {allRecipes.length > 1 && (
@@ -287,27 +295,15 @@ const MealDBRecipeDetails = () => {
                         <RecipeNavigator allRecipes={allRecipes} currentRecipe={recipeDetails} />
                     </div>
                 )}
-            </div>
 
-            {/* Instructions Dialog */}
-            <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
-                <DialogContent className="bg-[#1e1e1e] border-2 border-[#ce7c1c] text-[#f5efe4] max-w-3xl rounded-3xl shadow-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-title text-center">
-                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span> - {recipeDetails.strMeal}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <ScrollArea className="h-[60vh] mt-6">
-                        <ol className="list-decimal list-inside space-y-5 font-terminal text-lg px-4">
-                            {instructionSteps.map((step, index) => (
-                                <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
-                                    {step}
-                                </li>
-                            ))}
-                        </ol>
-                    </ScrollArea>
-                </DialogContent>
-            </Dialog>
+                {/* Recommended Recipes Section */}
+                <RecommendedRecipes
+                    recipeType="meal"
+                    userIngredients={userIngredients}
+                    currentRecipeId={recipeId}
+                    allRecipes={allRecipes}
+                />
+            </div>
         </div>
     )
 }

@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import getInstructions from "./GetInstructions.jsx"
 import RecipeNavigator from "./RecipeNavigator.jsx"
+import RecommendedRecipes from "./RecommendedRecipes.jsx"
 
 const RecipeDetails = () => {
     const navigate = useNavigate()
@@ -264,6 +265,14 @@ const RecipeDetails = () => {
                         <RecipeNavigator allRecipes={state?.allRecipes || []} currentRecipe={recipe} />
                     </div>
                 )}
+
+                {/* Recommended Recipes Section */}
+                <RecommendedRecipes
+                    recipeType="meal"
+                    userIngredients={userIngredients}
+                    currentRecipeId={recipe.id}
+                    allRecipes={state?.allRecipes || []}
+                />
             </div>
         </div>
     )

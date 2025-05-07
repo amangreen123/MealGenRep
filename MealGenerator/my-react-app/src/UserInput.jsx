@@ -676,65 +676,65 @@ const UserInput = () => {
                     {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
 
                     {/* Popular Recipes - Only shown for returning users who have recipes */}
-                    {!isFirstTimeUser && randomRecipes.length > 0 && (
-                        <div className="mb-6 md:mb-8">
-                            <div className="flex flex-col items-center mb-4 md:mb-6">
-                                <h2 className="text-2xl md:text-3xl font-bold font-title text-center">
-                                    <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
-                                </h2>
-                            </div>
+                    {/* {!isFirstTimeUser && randomRecipes.length > 0 && (
+            <div className="mb-6 md:mb-8">
+              <div className="flex flex-col items-center mb-4 md:mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold font-title text-center">
+                  <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
+                </h2>
+              </div>
 
-                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                <div
-                                    id="popular-recipes-scroll"
-                                    className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 px-2"
-                                >
-                                    {randomRecipes.map((recipe) => (
-                                        <Card
-                                            key={recipe.idMeal}
-                                            className="flex-shrink-0 w-48 md:w-56 overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer"
-                                            onClick={() => handleRandomRecipeClick(recipe)}
-                                        >
-                                            <div className="p-3">
-                                                <div className="mb-3">
-                                                    <img
-                                                        src={recipe.strMealThumb || "/placeholder.svg"}
-                                                        alt={recipe.strMeal}
-                                                        className="w-full h-32 md:h-36 object-cover rounded-lg"
-                                                        loading="lazy"
-                                                    />
-                                                </div>
-                                                <h3 className="text-lg font-bold mb-2 font-title line-clamp-1">{recipe.strMeal}</h3>
-                                                <div className="flex items-center gap-1 text-sm text-gray-400">
-                                                    {recipe.strCategory && (
-                                                        <div className="flex items-center">
-                                                            <ChefHat className="h-4 w-4 mr-1 text-[#ce7c1c]" />
-                                                            <span className="font-terminal">{recipe.strCategory}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
+              <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                <div
+                  id="popular-recipes-scroll"
+                  className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 px-2"
+                >
+                  {randomRecipes.map((recipe) => (
+                    <Card
+                      key={recipe.idMeal}
+                      className="flex-shrink-0 w-48 md:w-56 overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer"
+                      onClick={() => handleRandomRecipeClick(recipe)}
+                    >
+                      <div className="p-3">
+                        <div className="mb-3">
+                          <img
+                            src={recipe.strMealThumb || "/placeholder.svg"}
+                            alt={recipe.strMeal}
+                            className="w-full h-32 md:h-36 object-cover rounded-lg"
+                            loading="lazy"
+                          />
                         </div>
-                    )}
+                        <h3 className="text-lg font-bold mb-2 font-title line-clamp-1">{recipe.strMeal}</h3>
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
+                          {recipe.strCategory && (
+                            <div className="flex items-center">
+                              <ChefHat className="h-4 w-4 mr-1 text-[#ce7c1c]" />
+                              <span className="font-terminal">{recipe.strCategory}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )} */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
-                        {/* Left Column - QUICK ADD */}
+                        {/* Left Column - QUICK ADD and POPULAR RECIPES */}
                         <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 order-2 md:order-1">
                             <div className="flex flex-col w-full">
                                 <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
                                 </h3>
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-4 gap-2 sm:gap-3">
                                     {popularIngredients.map((item, index) => (
                                         <div
                                             key={index}
                                             className="flex flex-col items-center justify-center cursor-pointer"
                                             onClick={() => handleQuickSearch(item.name)}
                                         >
-                                            <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl border-2 border-white mb-1 hover:border-[#ce7c1c] transition-all duration-300">
+                                            <div className="relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-white mb-1 hover:border-[#ce7c1c] transition-all duration-300">
                                                 <item.icon className={`${item.color} text-xl`} />
                                             </div>
                                             <span className="text-xs text-center font-terminal">{item.name}</span>
@@ -742,6 +742,7 @@ const UserInput = () => {
                                     ))}
                                 </div>
                             </div>
+                            {/* Popular Recipes - Vertical Scrolling */}
                         </div>
 
                         {/* Middle Column - MY PANTRY and RECIPES */}
@@ -899,6 +900,46 @@ const UserInput = () => {
                             </div>
                         </div>
                     </div>
+                    {/* Popular Recipes - Below Main Content */}
+                    {randomRecipes.length > 0 && !isFirstTimeUser && (
+                        <div className="mt-8 md:mt-12 max-w-5xl mx-auto">
+                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                    <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
+                                </h3>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                                    {randomRecipes.slice(0, 8).map((recipe) => (
+                                        <Card
+                                            key={recipe.idMeal}
+                                            className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer"
+                                            onClick={() => handleRandomRecipeClick(recipe)}
+                                        >
+                                            <div className="p-2 md:p-3">
+                                                <div className="mb-2">
+                                                    <img
+                                                        src={recipe.strMealThumb || "/placeholder.svg"}
+                                                        alt={recipe.strMeal}
+                                                        className="w-full h-24 md:h-32 object-cover rounded-lg"
+                                                        loading="lazy"
+                                                    />
+                                                </div>
+                                                <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2">{recipe.strMeal}</h3>
+                                                {recipe.strCategory && (
+                                                    <div className="flex items-center mt-1 text-[10px] md:text-xs text-gray-400">
+                                                        <ChefHat className="h-3 w-3 mr-1 text-[#ce7c1c]" />
+                                                        <span className="font-terminal">{recipe.strCategory}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                                <div className="mt-4 text-center">
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
 
