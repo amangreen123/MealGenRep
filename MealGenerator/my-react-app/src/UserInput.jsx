@@ -13,7 +13,7 @@ import useFetchMeals from "./GetMeals.jsx"
 import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx"
 
-import { InfoIcon, Search, Plus, Clock, Users, ChefHat, Sparkles } from "lucide-react"
+import { InfoIcon, Search, Plus, Clock, Users, ChefHat, Sparkles, X } from "lucide-react"
 
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
@@ -30,7 +30,6 @@ import {
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import CookableSearch from "./CookableSearch.jsx"
 import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 
@@ -671,174 +670,142 @@ const UserInput = () => {
                         <span className="text-[#ce7c1c]">Discover</span> Recipes With What You Have
                     </h1>
 
-                    {/* Popular Recipes - Horizontal Scrolling */}
                     {/* First Time User Experience */}
                     {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
 
-                    {/* Popular Recipes - Only shown for returning users who have recipes */}
-                    {/* {!isFirstTimeUser && randomRecipes.length > 0 && (
-            <div className="mb-6 md:mb-8">
-              <div className="flex flex-col items-center mb-4 md:mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold font-title text-center">
-                  <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
-                </h2>
-              </div>
-
-              <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                <div
-                  id="popular-recipes-scroll"
-                  className="flex overflow-x-auto pb-4 space-x-4 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 px-2"
-                >
-                  {randomRecipes.map((recipe) => (
-                    <Card
-                      key={recipe.idMeal}
-                      className="flex-shrink-0 w-48 md:w-56 overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer"
-                      onClick={() => handleRandomRecipeClick(recipe)}
-                    >
-                      <div className="p-3">
-                        <div className="mb-3">
-                          <img
-                            src={recipe.strMealThumb || "/placeholder.svg"}
-                            alt={recipe.strMeal}
-                            className="w-full h-32 md:h-36 object-cover rounded-lg"
-                            loading="lazy"
-                          />
-                        </div>
-                        <h3 className="text-lg font-bold mb-2 font-title line-clamp-1">{recipe.strMeal}</h3>
-                        <div className="flex items-center gap-1 text-sm text-gray-400">
-                          {recipe.strCategory && (
-                            <div className="flex items-center">
-                              <ChefHat className="h-4 w-4 mr-1 text-[#ce7c1c]" />
-                              <span className="font-terminal">{recipe.strCategory}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )} */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
-                        {/* Left Column - QUICK ADD and POPULAR RECIPES */}
-                        <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 order-2 md:order-1">
-                            <div className="flex flex-col w-full">
-                                <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
-                                    <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
-                                </h3>
-                                <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                                    {popularIngredients.map((item, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex flex-col items-center justify-center cursor-pointer"
-                                            onClick={() => handleQuickSearch(item.name)}
-                                        >
-                                            <div className="relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-white mb-1 hover:border-[#ce7c1c] transition-all duration-300">
-                                                <item.icon className={`${item.color} text-xl`} />
-                                            </div>
-                                            <span className="text-xs text-center font-terminal">{item.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            {/* Popular Recipes - Vertical Scrolling */}
-                        </div>
-
-                        {/* Middle Column - MY PANTRY and RECIPES */}
-                        <div className="col-span-1 md:col-span-6 space-y-4 md:space-y-6 order-1 md:order-2">
-                            {/* MY PANTRY */}
-                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
-                                    <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
-                                </h2>
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                    {ingredients.length === 0 ? (
-                                        <div className="text-center py-3 w-full">
-                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                                YOU HAVE NOT ADDED ANY INGREDIENTS
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        ingredients.map((item, index) => (
-                                            <div key={index} className="flex items-center bg-gray-800 rounded-full px-2 py-1">
-                                                <span className="mr-1 font-terminal text-xs md:text-sm">{item}</span>
-                                                <button
-                                                    onClick={() => handleRemoveIngredient(item)}
-                                                    className="text-[#ce7c1c] hover:text-white bg-gray-700/50 hover:bg-gray-700 rounded-full p-0.5 transition-all duration-200"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* RECIPES */}
-                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 flex flex-col">
-                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
-                                    <span className="text-[#ce7c1c]">RE</span>
-                                    <span className="text-white">CIPES</span>
-                                </h2>
-                                {isSearching ? (
-                                    <div className="flex flex-col items-center justify-center py-6 md:py-8 flex-grow">
-                                        <Sparkles className="h-10 w-10 md:h-12 md:w-12 mb-3 md:mb-4 text-[#ce7c1c] animate-pulse" />
-                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                            {loadingText || "Finding recipes..."}
+                    {/* Main Content Area - New Layout */}
+                    <div className="mt-4 md:mt-6">
+                        {/* MY PANTRY - Full Width at Top */}
+                        <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-4 md:mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
+                            </h2>
+                            <div className="min-h-[120px] flex flex-wrap gap-2 mb-2">
+                                {ingredients.length === 0 ? (
+                                    <div className="text-center py-4 w-full">
+                                        <p className="text-gray-400 font-terminal text-sm md:text-base">
+                                            YOU HAVE NOT ADDED ANY INGREDIENTS
                                         </p>
-                                    </div>
-                                ) : ingredients.length === 0 ? (
-                                    <div className="text-center py-6 md:py-8 flex-grow">
-                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">No recipes to display</p>
-                                    </div>
-                                ) : allRecipes.length === 0 ? (
-                                    <div className="text-center py-6 md:py-8 flex-grow">
-                                        <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                            No recipes found with your ingredients. Try adding more!
+                                        <p className="text-gray-500 font-terminal text-xs mt-2">
+                                            Add ingredients using the search bar above or quick add buttons
                                         </p>
                                     </div>
                                 ) : (
-                                    <ScrollArea className="h-[250px] md:h-[300px] pr-2 mb-3">
-                                        <div className="grid grid-cols-1 gap-2 md:gap-3">
-                                            {allRecipes.map((recipe) => {
-                                                const title = recipe.title || recipe.strMeal || recipe.strDrink
-                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
-                                                const cookTime = getCookingTime(recipe)
-                                                const servings = getServings(recipe)
-                                                const uniqueFeature = getUniqueFeature(recipe)
+                                    ingredients.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center bg-[#1e2124] rounded-full py-1 pl-3 pr-1 hover:bg-gray-700 transition-colors"
+                                        >
+                                            <span className="font-terminal text-sm">{item}</span>
+                                            <button
+                                                onClick={() => handleRemoveIngredient(item)}
+                                                className="ml-2 text-orange-500 hover:text-white rounded-full p-0.5 transition-all duration-200 flex items-center justify-center"
+                                                aria-label={`Remove ${item}`}
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
 
-                                                return (
-                                                    <Card
-                                                        key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                                        className="overflow-hidden border border-gray-700 bg-gray-900/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 cursor-pointer mb-2"
-                                                        onClick={() => clickHandler(recipe)}
-                                                    >
-                                                        <div className="p-2 md:p-3">
-                                                            <div className="flex">
-                                                                <div className="w-1/3">
-                                                                    <img
-                                                                        src={image || "/placeholder.svg"}
-                                                                        alt={title}
-                                                                        className="w-full h-16 md:h-20 object-cover rounded-lg"
-                                                                        width="80"
-                                                                        height="64"
-                                                                        loading="lazy"
-                                                                    />
-                                                                </div>
-                                                                <div className="w-2/3 pl-2 md:pl-3">
-                                                                    <h3 className="text-xs md:text-sm font-bold mb-1 font-title line-clamp-2">{title}</h3>
-                                                                    <div className="flex flex-wrap items-center gap-1 text-[10px] md:text-xs text-gray-400">
+                    {/* RECIPES Section with Quick Add and My Diet on sides */}
+                    {!isFirstTimeUser && (
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
+                            {/* Left Column - QUICK ADD */}
+                            <div className="md:col-span-3 order-1">
+                                <div className="p-4 h-full flex flex-col">
+                                    <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                        <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
+                                    </h3>
+
+                                    {/* Quick Add Grid - Icon-only buttons */}
+                                    <div className="grid grid-rows-2 grid-cols-4 gap-3 mx-auto w-full">
+                                        {popularIngredients.map((item, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => handleQuickSearch(item.name)}
+                                                className="flex items-center justify-center h-16 w-16 bg-gray-900/70 border-2 border-white hover:border-[#ce7c1c] rounded-full cursor-pointer group transition-all duration-300 transform hover:scale-110 hover:bg-gray-800/80 relative mx-auto"
+                                                aria-label={`Quick add ${item.name}`}
+                                                title={item.name}
+                                            >
+                                                <item.icon className={`w-8 h-8 ${item.color} transition-all duration-300`} />
+                                                <span className="sr-only">{item.name}</span>
+                                                <div className="absolute -bottom-1 opacity-0 group-hover:opacity-100 group-hover:bottom-1 transition-all duration-300 text-[10px] font-terminal text-white bg-gray-900/90 px-2 py-0.5 rounded-full">
+                                                    {item.name}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Middle Column - RECIPES - Now Scrollable */}
+                            <div className="md:col-span-6 order-2">
+                                <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 h-full flex flex-col">
+                                    <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                        <span className="text-[#ce7c1c]">RE</span>
+                                        <span className="text-white">CIPES</span>
+                                    </h2>
+
+                                    {isSearching ? (
+                                        <div className="flex flex-col items-center justify-center py-6 md:py-8 flex-grow min-h-[300px]">
+                                            <Sparkles className="h-10 w-10 md:h-12 md:w-12 mb-3 md:mb-4 text-[#ce7c1c] animate-pulse" />
+                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
+                                                {loadingText || "Finding recipes..."}
+                                            </p>
+                                        </div>
+                                    ) : ingredients.length === 0 ? (
+                                        <div className="text-center py-6 md:py-8 flex-grow min-h-[300px]">
+                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
+                                                Add ingredients to discover recipes
+                                            </p>
+                                        </div>
+                                    ) : allRecipes.length === 0 ? (
+                                        <div className="text-center py-6 md:py-8 flex-grow min-h-[300px]">
+                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
+                                                No recipes found with your ingredients. Try adding more!
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="mb-4 flex-grow overflow-hidden">
+                                            <div className="h-[350px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800">
+                                                <div className="grid grid-cols-2 gap-3 md:gap-4 pb-2">
+                                                    {allRecipes.map((recipe) => {
+                                                        const title = recipe.title || recipe.strMeal || recipe.strDrink
+                                                        const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
+                                                        const cookTime = getCookingTime(recipe)
+                                                        const servings = getServings(recipe)
+                                                        const uniqueFeature = getUniqueFeature(recipe)
+
+                                                        return (
+                                                            <Card
+                                                                key={recipe.id || recipe.idMeal || recipe.idDrink}
+                                                                className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer transform hover:scale-[1.03]"
+                                                                onClick={() => clickHandler(recipe)}
+                                                            >
+                                                                <div className="p-2 md:p-3">
+                                                                    <div className="mb-2">
+                                                                        <img
+                                                                            src={image || "/placeholder.svg"}
+                                                                            alt={title}
+                                                                            className="w-full h-24 md:h-32 object-cover rounded-lg"
+                                                                            loading="lazy"
+                                                                        />
+                                                                    </div>
+                                                                    <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2">{title}</h3>
+                                                                    <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px] md:text-xs text-gray-400">
                                                                         <div className="flex items-center">
-                                                                            <Clock className="h-2 w-2 mr-0.5 text-[#ce7c1c]" />
+                                                                            <Clock className="h-3 w-3 mr-0.5 text-[#ce7c1c]" />
                                                                             <span className="font-terminal">{cookTime}</span>
                                                                         </div>
                                                                         <span className="mx-0.5 text-[#ce7c1c]">•</span>
                                                                         <div className="flex items-center">
-                                                                            <Users className="h-2 w-2 mr-0.5 text-[#ce7c1c]" />
+                                                                            <Users className="h-3 w-3 mr-0.5 text-[#ce7c1c]" />
                                                                             <span className="font-terminal">{servings}</span>
                                                                         </div>
-
                                                                         {uniqueFeature && (
                                                                             <>
                                                                                 <span className="mx-0.5 text-[#ce7c1c]">•</span>
@@ -849,60 +816,61 @@ const UserInput = () => {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    </Card>
-                                                )
-                                            })}
+                                                            </Card>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </ScrollArea>
-                                )}
+                                    )}
 
-                                {/* Generate Button inside the recipes section */}
-                                <Button
-                                    className="w-full border border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
-                                    onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
-                                    disabled={isSearching || ingredients.length === 0}
-                                >
-                                    {isSearching ? "Generating..." : "Generate Recipes"}
-                                </Button>
+                                    {/* Generate Button */}
+                                    <Button
+                                        className="w-full border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
+                                        onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
+                                        disabled={isSearching || ingredients.length === 0}
+                                    >
+                                        {isSearching ? "Generating..." : "Generate Recipes"}
+                                    </Button>
 
-                                {errorMessage && (
-                                    <div className="text-red-500 text-center mt-2 font-terminal text-xs md:text-sm">{errorMessage}</div>
-                                )}
+                                    {errorMessage && (
+                                        <div className="text-red-500 text-center mt-2 font-terminal text-xs md:text-sm">{errorMessage}</div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Right Column - MY DIET */}
-                        <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 order-3">
-                            <div className="flex flex-col w-full">
-                                <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
-                                    <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
-                                </h2>
-                                <div className="flex flex-col space-y-2 md:space-y-3">
-                                    {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
-                                        const dietValue = diet.toLowerCase().replace(" ", "-")
-                                        return (
-                                            <Button
-                                                key={index}
-                                                className={`py-2 font-title diet-button border border-[#ce7c1c] ${
-                                                    selectedDiet === dietValue
-                                                        ? "bg-[#ce7c1c] text-white font-bold shadow-md shadow-[#ce7c1c]/30"
-                                                        : "bg-transparent hover:bg-[#ce7c1c]/20 text-white font-bold"
-                                                } rounded-2xl md:rounded-3xl cursor-pointer text-sm md:text-base transform hover:scale-[1.02] transition-all duration-300`}
-                                                onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
-                                            >
-                                                {diet}
-                                            </Button>
-                                        )
-                                    })}
+                            {/* Right Column - MY DIET */}
+                            <div className="md:col-span-3 order-3">
+                                <div className="p-4 h-full flex flex-col">
+                                    <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                        <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
+                                    </h2>
+                                    <div className="flex flex-col space-y-2 md:space-y-3 flex-grow">
+                                        {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
+                                            const dietValue = diet.toLowerCase().replace(" ", "-")
+                                            return (
+                                                <Button
+                                                    key={index}
+                                                    className={`py-2 font-title diet-button border-2 ${
+                                                        selectedDiet === dietValue
+                                                            ? "bg-[#ce7c1c] text-white border-[#ce7c1c] font-bold shadow-md shadow-[#ce7c1c]/30"
+                                                            : "bg-transparent hover:bg-[#ce7c1c]/20 text-white border-[#ce7c1c] font-bold"
+                                                    } rounded-2xl md:rounded-3xl cursor-pointer text-sm md:text-base transform hover:scale-[1.02] transition-all duration-300`}
+                                                    onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
+                                                >
+                                                    {diet}
+                                                </Button>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
+
                     {/* Popular Recipes - Below Main Content */}
                     {randomRecipes.length > 0 && !isFirstTimeUser && (
-                        <div className="mt-8 md:mt-12 max-w-5xl mx-auto">
+                        <div className="mt-6 md:mt-8">
                             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
                                 <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
                                     <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
@@ -912,7 +880,7 @@ const UserInput = () => {
                                     {randomRecipes.slice(0, 8).map((recipe) => (
                                         <Card
                                             key={recipe.idMeal}
-                                            className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer"
+                                            className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer transform hover:scale-[1.03]"
                                             onClick={() => handleRandomRecipeClick(recipe)}
                                         >
                                             <div className="p-2 md:p-3">
@@ -935,7 +903,15 @@ const UserInput = () => {
                                         </Card>
                                     ))}
                                 </div>
+
                                 <div className="mt-4 text-center">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => navigate("/discover")}
+                                        className="text-[#ce7c1c] hover:bg-[#ce7c1c]/10 text-sm font-terminal"
+                                    >
+                                        See More Recipes
+                                    </Button>
                                 </div>
                             </div>
                         </div>
