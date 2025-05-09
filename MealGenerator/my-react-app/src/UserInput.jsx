@@ -905,13 +905,7 @@ const UserInput = () => {
                                 </div>
 
                                 <div className="mt-4 text-center">
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => navigate("/discover")}
-                                        className="text-[#ce7c1c] hover:bg-[#ce7c1c]/10 text-sm font-terminal"
-                                    >
-                                        See More Recipes
-                                    </Button>
+                                    
                                 </div>
                             </div>
                         </div>

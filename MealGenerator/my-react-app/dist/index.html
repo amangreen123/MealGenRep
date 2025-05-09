@@ -1,15 +1,96 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Meal Forger App">
-    <title>Meal Forger</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Bz7kahUd.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Lzm9M71g.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Meal Forger - Generate ingredient-based meals and recipes easily!">
+  <title>Meal Forger</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="/image/Meal_Forger.png" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/image/Meal_Forger.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/image/Meal_Forger.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/image/Meal_Forger.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#ce7c1c">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&display=swap" rel="stylesheet">
+
+  <!-- Open Graph for social + SEO -->
+  <meta property="og:title" content="Meal Forger" />
+  <meta property="og:description" content="Generate ingredient-based meals and recipes easily!" />
+  <meta property="og:image" content="/android-chrome-512x512.png" />
+  <meta property="og:url" content="https://mealforger.org" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <style>
+    html, body, #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #131415;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+
+    #root {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
+    /* Prevent layout shifts */
+    img {
+      display: block;
+      height: auto;
+    }
+
+    /* Footer styles */
+    .footer {
+      width: 100%;
+      background-color: #131415;
+      color: #666;
+      text-align: center;
+      padding: 0.5rem 0;
+      border-top: 1px solid #2d2d2d;
+      font-family: monospace;
+      position: relative;
+      z-index: 10;
+      font-size: 0.75rem;
+    }
+
+    /* Prevent content from overflowing */
+    * {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    /* Ensure content doesn't cause horizontal overflow */
+    .overflow-x-hidden {
+      overflow-x: hidden;
+    }
+
+    /* Preload critical fonts to prevent layout shifts */
+    @font-face {
+      font-family: 'Share Tech Mono';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: local('Share Tech Mono'), local('ShareTechMono-Regular'), url(https://fonts.gstatic.com/s/sharetechmono/v10/J7aHnp1uDWRBEqV98dVQztYldFcLowEF.woff2) format('woff2');
+    }
+  </style>
+  <script type="module" crossorigin src="/image/index-Dc_FheVc.js"></script>
+  <link rel="stylesheet" crossorigin href="/image/index-CHBSBATE.css">
+</head>
+<body>
+<div id="root"></div>
+
+
+
+</body>
 </html>

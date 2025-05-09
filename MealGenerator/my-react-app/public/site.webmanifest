@@ -1,19 +1,22 @@
 {
   "name": "Meal Forger",
   "short_name": "MealForger",
+  "start_url": "/",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+    "src": "image/Meal_Forger.png",
+            "sizes": "192x192",
+            "type": "image/png"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "image/Meal_Forger.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "theme_color": "#ce7c1c",
   "background_color": "#131415",
-  "display": "standalone"
+  "display": "standalone",
+  "scope": "/"
 }

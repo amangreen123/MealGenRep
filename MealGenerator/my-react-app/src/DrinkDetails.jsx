@@ -151,60 +151,9 @@ const DrinkDetails = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-                    {/* Left Column - MY PANTRY and SHOPPING LIST */}
-                    <div className="space-y-8">
-                        {/* MY PANTRY */}
-                        <div>
-                            <h2 className="text-4xl mb-6 font-title text-center">
-                                <span className="text-[#ce7c1c]">MY</span> PANTRY
-                            </h2>
-                            <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 min-h-[150px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                {pantryItems.length === 0 ? (
-                                    <div className="flex items-center justify-center h-full">
-                                        <div className="text-center text-gray-500 font-terminal">NO MATCHING INGREDIENTS</div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {pantryItems.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="text-xl font-terminal p-2 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-200"
-                                            >
-                                                {item.ingredient.toUpperCase()}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* SHOPPING LIST */}
-                        <div>
-                            <h2 className="text-4xl mb-6 font-title text-center">SHOPPING LIST</h2>
-                            <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 min-h-[250px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                {shoppingListItems.length === 0 ? (
-                                    <div className="flex items-center justify-center h-full">
-                                        <div className="text-center text-gray-500 font-terminal">YOU HAVE ALL INGREDIENTS</div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {shoppingListItems.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="text-xl font-terminal p-2 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-200"
-                                            >
-                                                {item.ingredient.toUpperCase()}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Middle Column - Drink Image */}
-                    <div className="md:col-span-1 flex flex-col">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Left Column - Drink Image and Info */}
+                    <div className="flex flex-col">
                         <h1 className="text-4xl font-title text-center mb-6 relative">
                             <span className="text-[#ce7c1c]">{drinkDetails.strDrink.split(" ")[0]}</span>{" "}
                             {drinkDetails.strDrink.split(" ").slice(1).join(" ")}
@@ -245,50 +194,106 @@ const DrinkDetails = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Right Column - NUTRITION INFO */}
-                    <div>
-                        <h2 className="text-4xl mb-6 font-title text-center">NUTRITION INFO</h2>
-                        <div className="border-2 border-gray-700 rounded-3xl p-8 bg-gray-900/50 space-y-8 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                            <div className="text-center transform hover:scale-105 transition-all duration-300">
-                                <div className="text-6xl font-title">{totalNutrition.calories}</div>
-                                <div className="text-2xl font-title text-[#ce7c1c] mt-2">CALORIES</div>
-                            </div>
-
-                            <div className="text-center transform hover:scale-105 transition-all duration-300">
-                                <div className="text-6xl font-title">
-                                    {totalNutrition.carbs} <span className="text-5xl">G</span>
-                                </div>
-                                <div className="text-2xl font-title text-[#ce7c1c] mt-2">CARBS</div>
-                            </div>
-
-                            {totalNutrition.alcohol > 0 && isAlcoholic && (
+                        {/* Nutrition Info */}
+                        <div className="mt-6">
+                            <h2 className="text-3xl mb-4 font-title text-center">NUTRITION INFO</h2>
+                            <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 grid grid-cols-2 gap-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
                                 <div className="text-center transform hover:scale-105 transition-all duration-300">
-                                    <div className="text-6xl font-title">
-                                        {totalNutrition.alcohol} <span className="text-5xl">G</span>
-                                    </div>
-                                    <div className="text-2xl font-title text-[#ce7c1c] mt-2">ALCOHOL</div>
+                                    <div className="text-4xl font-title">{totalNutrition.calories}</div>
+                                    <div className="text-xl font-title text-[#ce7c1c] mt-2">CALORIES</div>
                                 </div>
-                            )}
+
+                                <div className="text-center transform hover:scale-105 transition-all duration-300">
+                                    <div className="text-4xl font-title">
+                                        {totalNutrition.carbs} <span className="text-3xl">G</span>
+                                    </div>
+                                    <div className="text-xl font-title text-[#ce7c1c] mt-2">CARBS</div>
+                                </div>
+
+                                {totalNutrition.alcohol > 0 && isAlcoholic && (
+                                    <div className="text-center transform hover:scale-105 transition-all duration-300 col-span-2">
+                                        <div className="text-4xl font-title">
+                                            {totalNutrition.alcohol} <span className="text-3xl">G</span>
+                                        </div>
+                                        <div className="text-xl font-title text-[#ce7c1c] mt-2">ALCOHOL</div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Instructions */}
-                    <div className="col-span-1 md:col-span-3 mt-8 md:mt-0">
-                        <h2 className="text-4xl mb-6 font-title text-center">
-                            <span className="text-[#ce7c1c]">INSTRUCTIONS</span>
-                        </h2>
-                        <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                            <ScrollArea className="h-[300px] pr-4">
-                                <ol className="list-decimal list-inside space-y-5 font-terminal text-lg">
-                                    {instructionSteps.map((step, index) => (
-                                        <li key={index} className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200">
-                                            {step}
-                                        </li>
-                                    ))}
-                                </ol>
-                            </ScrollArea>
+                    {/* Right Column - Ingredients and Instructions */}
+                    <div className="flex flex-col space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* MY PANTRY */}
+                            <div>
+                                <h2 className="text-3xl mb-4 font-title text-center">
+                                    <span className="text-[#ce7c1c]">MY</span> PANTRY
+                                </h2>
+                                <div className="border-2 border-gray-700 rounded-3xl p-4 bg-gray-900/50 min-h-[150px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                    {pantryItems.length === 0 ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center text-gray-500 font-terminal">NO MATCHING INGREDIENTS</div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {pantryItems.map((item, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="text-lg font-terminal p-2 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-200"
+                                                >
+                                                    {item.ingredient.toUpperCase()}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* SHOPPING LIST */}
+                            <div>
+                                <h2 className="text-3xl mb-4 font-title text-center">SHOPPING LIST</h2>
+                                <div className="border-2 border-gray-700 rounded-3xl p-4 bg-gray-900/50 min-h-[150px] shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                    {shoppingListItems.length === 0 ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center text-gray-500 font-terminal">YOU HAVE ALL INGREDIENTS</div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {shoppingListItems.map((item, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="text-lg font-terminal p-2 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-200"
+                                                >
+                                                    {item.ingredient.toUpperCase()}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Instructions */}
+                        <div>
+                            <h2 className="text-3xl mb-4 font-title text-center">
+                                <span className="text-[#ce7c1c]">INSTRUCTIONS</span>
+                            </h2>
+                            <div className="border-2 border-gray-700 rounded-3xl p-6 bg-gray-900/50 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
+                                <ScrollArea className="h-[400px] pr-4">
+                                    <ol className="list-decimal list-inside space-y-5 font-terminal text-lg">
+                                        {instructionSteps.map((step, index) => (
+                                            <li
+                                                key={index}
+                                                className="pl-2 p-3 rounded-xl hover:bg-gray-800/50 transition-colors duration-200"
+                                            >
+                                                {step}
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </ScrollArea>
+                            </div>
                         </div>
                     </div>
                 </div>
