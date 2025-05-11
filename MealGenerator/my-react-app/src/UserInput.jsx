@@ -36,7 +36,7 @@ import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 const categoryIngredients = {
     Dessert: {
         mealDB: ["Chocolate", "Honey", "Vanilla"],
-        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"],
+        spoonacular: ["Cocoa Powder", "Whipped Cream"],
     },
     Bread: {
         mealDB: ["Baguette", "Ciabatta", "Pita"],
@@ -47,7 +47,7 @@ const categoryIngredients = {
         spoonacular: ["Spinach", "Kale", "Bell Pepper"],
     },
     Beef: {
-        mealDB: ["Beef", "Beef Brisket", "Beef Fillet"],
+        mealDB: ["Beef Brisket", "Beef Fillet"],
         spoonacular: ["Ground Beef", "Sirloin Steak", "Beef Ribs"],
     },
     Fish: {
@@ -55,16 +55,16 @@ const categoryIngredients = {
         spoonacular: ["Haddock", "Mackerel", "Tilapia"],
     },
     Cheese: {
-        mealDB: ["Cheddar Cheese", "Mozzarella Cheese", "Feta Cheese"],
-        spoonacular: ["Parmesan Cheese", "Gorgonzola Cheese", "Goat Cheese"],
+        mealDB: ["Cheddar", "Mozzarella", "Feta"],
+        spoonacular: ["Parmesan", "Gorgonzola", "Goat Cheese"],
     },
     Fruit: {
-        mealDB: ["Apple", "Banana", "Strawberries"],
+        mealDB: ["Apple", "Banana", "Strawberry"],
         spoonacular: ["Mango", "Peach", "Pineapple"],
     },
     Chicken: {
-        mealDB: ["Chicken", "Chicken Breast", "Chicken Thighs"],
-        spoonacular: ["Chicken Wings", "Rotisserie Chicken", "Chicken Drumsticks"],
+        mealDB: ["Chicken Breast", "Chicken Thigh", "Chicken"],
+        spoonacular: ["Chicken Wing", "Rotisserie Chicken", "Chicken Drumstick"],
     },
 }
 
@@ -722,7 +722,7 @@ const UserInput = () => {
                             <div className="md:col-span-3 order-1">
                                 <div className="p-4 h-full flex flex-col">
                                     <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                                        <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
+                                        <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">SEARCH</span>
                                     </h3>
 
                                     {/* Quick Add Grid - Icon-only buttons */}
