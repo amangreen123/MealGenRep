@@ -36,7 +36,7 @@ import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 const categoryIngredients = {
     Dessert: {
         mealDB: ["Chocolate", "Honey", "Vanilla"],
-        spoonacular: ["Cocoa Powder", "Whipped Cream"],
+        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"],
     },
     Bread: {
         mealDB: ["Baguette", "Ciabatta", "Pita"],
@@ -47,7 +47,7 @@ const categoryIngredients = {
         spoonacular: ["Spinach", "Kale", "Bell Pepper"],
     },
     Beef: {
-        mealDB: ["Beef Brisket", "Beef Fillet"],
+        mealDB: ["Beef", "Beef Brisket", "Beef Fillet"],
         spoonacular: ["Ground Beef", "Sirloin Steak", "Beef Ribs"],
     },
     Fish: {
@@ -55,16 +55,16 @@ const categoryIngredients = {
         spoonacular: ["Haddock", "Mackerel", "Tilapia"],
     },
     Cheese: {
-        mealDB: ["Cheddar", "Mozzarella", "Feta"],
-        spoonacular: ["Parmesan", "Gorgonzola", "Goat Cheese"],
+        mealDB: ["Cheddar Cheese", "Mozzarella Cheese", "Feta Cheese"],
+        spoonacular: ["Parmesan Cheese", "Gorgonzola Cheese", "Goat Cheese"],
     },
     Fruit: {
-        mealDB: ["Apple", "Banana", "Strawberry"],
+        mealDB: ["Apple", "Banana", "Strawberries"],
         spoonacular: ["Mango", "Peach", "Pineapple"],
     },
     Chicken: {
-        mealDB: ["Chicken Breast", "Chicken Thigh", "Chicken"],
-        spoonacular: ["Chicken Wing", "Rotisserie Chicken", "Chicken Drumstick"],
+        mealDB: ["Chicken", "Chicken Breast", "Chicken Thighs"],
+        spoonacular: ["Chicken Wings", "Rotisserie Chicken", "Chicken Drumsticks"],
     },
 }
 
@@ -410,74 +410,123 @@ const UserInput = () => {
     }
 
     const handleCategorySearch = async (specificIngredient) => {
+        // Close dialog and set loading state immediately
         setCategoryDialogOpen(false)
+
+        // If already searching, prevent duplicate requests
+        if (isSearching) {
+            return
+        }
+
         setIsSearching(true)
         setApiLimitReached(false)
         setErrorMessage("")
         setLoadingText("SEARCHING...")
 
+        // Clear existing recipes to indicate a new search is happening
+        setAllRecipes([])
+
         let searchQuery = specificIngredient || selectedCategory
 
+        // Improved random selection logic
         if (!specificIngredient && categoryIngredients[selectedCategory]) {
-            const chosenFood = Math.random() < 0.5
-            if (chosenFood && categoryIngredients[selectedCategory].mealDB.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].mealDB.length)
-                searchQuery = categoryIngredients[selectedCategory].mealDB[randomIndex]
-            } else if (categoryIngredients[selectedCategory].spoonacular.length > 0) {
-                const randomIndex = Math.floor(Math.random() * categoryIngredients[selectedCategory].spoonacular.length)
-                searchQuery = categoryIngredients[selectedCategory].spoonacular[randomIndex]
-            }
+            // Create a combined array of all ingredients for this category
+            const allCategoryIngredients = [
+                ...categoryIngredients[selectedCategory].mealDB,
+                ...categoryIngredients[selectedCategory].spoonacular,
+            ]
+
+            // Select a truly random ingredient
+            const randomIndex = Math.floor(Math.random() * allCategoryIngredients.length)
+            searchQuery = allCategoryIngredients[randomIndex]
         }
 
+        // Update ingredients state and localStorage
         setIngredients([searchQuery])
-
-        // Save to localStorage
         localStorage.setItem("mealForgerIngredients", JSON.stringify([searchQuery]))
 
         try {
+            // Create request tracking variables
+            let requestsCompleted = 0
+            const totalRequests = apiLimitReached ? 2 : 3 // Spoonacular, MealDB, CocktailDB (if not limited)
             let mealDBRecipes = []
             let spoonacularRecipes = []
             let cocktailResults = []
+            let hasError = false
 
-            // Only try Spoonacular if not limited
-            if (!apiLimitReached) {
-                try {
-                    spoonacularRecipes = await getRecipes([searchQuery], selectedDiet)
-                } catch (error) {
-                    const errorMsg = String(error)
-                    if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
-                        setApiLimitReached(true)
+            // Function to update results when all requests complete
+            const updateResults = () => {
+                requestsCompleted++
+
+                // Only process results when all requests are done
+                if (requestsCompleted === totalRequests) {
+                    const combinedRecipes = [
+                        ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
+                        ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
+                        ...(Array.isArray(cocktailResults) ? cocktailResults : []),
+                    ]
+
+                    // Add slugs to all recipes
+                    const recipesWithSlugs = combinedRecipes.map((recipe) => ({
+                        ...recipe,
+                        slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
+                    }))
+
+                    setAllRecipes(recipesWithSlugs)
+                    setIsSearching(false)
+                    setLoadingText("")
+
+                    // Show error message if no results found
+                    if (combinedRecipes.length === 0 && hasError) {
+                        setErrorMessage("No recipes found. Please try a different ingredient.")
                     }
                 }
             }
 
-            // Always try MealDB and CocktailDB
-            try {
-                ;[mealDBRecipes, cocktailResults] = await Promise.all([
-                    getMealDBRecipes([searchQuery]),
-                    getCocktailDBDrinks([searchQuery]),
-                ])
-            } catch (error) {
-                console.error("API error:", error)
+            // 1. MealDB API call - always try this
+            getMealDBRecipes([searchQuery])
+                .then((results) => {
+                    mealDBRecipes = Array.isArray(results) ? results : []
+                })
+                .catch((error) => {
+                    console.error("MealDB error:", error)
+                    hasError = true
+                })
+                .finally(updateResults)
+
+            // 2. CocktailDB API call - always try this
+            getCocktailDBDrinks([searchQuery])
+                .then((results) => {
+                    cocktailResults = Array.isArray(results) ? results : []
+                })
+                .catch((error) => {
+                    console.error("CocktailDB error:", error)
+                    hasError = true
+                })
+                .finally(updateResults)
+
+            // 3. Spoonacular API call - only if not limited
+            if (!apiLimitReached) {
+                getRecipes([searchQuery], selectedDiet)
+                    .then((results) => {
+                        spoonacularRecipes = Array.isArray(results) ? results : []
+                    })
+                    .catch((error) => {
+                        console.error("Spoonacular error:", error)
+                        hasError = true
+                        const errorMsg = String(error)
+                        if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
+                            setApiLimitReached(true)
+                        }
+                    })
+                    .finally(updateResults)
+            } else {
+                // If API is limited, still increment the counter
+                updateResults()
             }
-
-            const combinedRecipes = [
-                ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
-                ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
-                ...(Array.isArray(cocktailResults) ? cocktailResults : []),
-            ]
-
-            // Add slugs to all recipes
-            const recipesWithSlugs = combinedRecipes.map((recipe) => ({
-                ...recipe,
-                slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
-            }))
-
-            setAllRecipes(recipesWithSlugs)
         } catch (error) {
             console.error("Error during quick search:", error)
             setErrorMessage("An unexpected error occurred.")
-        } finally {
             setIsSearching(false)
             setLoadingText("")
         }
