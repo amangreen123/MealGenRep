@@ -623,19 +623,21 @@ const UserInput = () => {
                             <Input
                                 type="text"
                                 placeholder="Enter an ingredient ....."
-                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 px-5 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 text-base md:text-lg font-terminal"
+                                className="w-full bg-transparent border-2 border-gray-600 rounded-full py-3 text-white pl-12 pr-12 focus:border-[#ce7c1c] transition-all duration-300 text-base md:text-lg font-terminal"
                                 value={inputString}
                                 onChange={handleInputChange}
                                 onKeyPress={handleKeyPress}
                             />
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-[#ce7c1c]/20 p-2 rounded-full">
-                                <Search className="h-4 w-4 md:h-5 md:w-5 text-[#ce7c1c]" />
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                <div className="bg-[#ce7c1c]/20 p-2 rounded-full flex items-center justify-center">
+                                    <Search className="h-4 w-4 md:h-5 md:w-5 text-[#ce7c1c]" />
+                                </div>
                             </div>
                             <Button
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 md:h-10 md:w-10 rounded-full bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white p-0 grid place-items-center transition-all duration-300"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 rounded-full p-0 w-9 h-9 md:w-10 md:h-10 flex items-center justify-center transition-all duration-300"
                                 onClick={handleAddIngredient}
                             >
-                                <Plus className="h-4 w-4 md:h-5 md:w-5" />
+                                <Plus className="h-4 w-4 md:h-5 md:w-5 text-white" />
                             </Button>
                         </div>
 
@@ -666,9 +668,11 @@ const UserInput = () => {
 
             <main className="flex-grow overflow-x-hidden">
                 <div className="max-w-6xl mx-auto px-2 md:px-6 py-2 md:py-4 pb-8 md:pb-16">
-                    <h1 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center font-title">
-                        <span className="text-[#ce7c1c]">Discover</span> Recipes With What You Have
-                    </h1>
+                    {!isFirstTimeUser && (
+                        <h1 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-center font-title">
+                            <span className="text-[#ce7c1c]">Discover</span> Recipes With What You Have
+                        </h1>
+                    )}
 
                     {/* First Time User Experience */}
                     {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
@@ -677,7 +681,7 @@ const UserInput = () => {
                     <div className="mt-4 md:mt-6">
                         {/* MY PANTRY - Full Width at Top */}
                         <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-4 md:mb-6">
-                            <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                            <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                 <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
                             </h2>
                             <div className="min-h-[120px] flex flex-wrap gap-2 mb-2">
@@ -717,7 +721,7 @@ const UserInput = () => {
                             {/* Left Column - QUICK ADD */}
                             <div className="md:col-span-3 order-1">
                                 <div className="p-4 h-full flex flex-col">
-                                    <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                    <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                         <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
                                     </h3>
 
@@ -745,7 +749,7 @@ const UserInput = () => {
                             {/* Middle Column - RECIPES - Now Scrollable */}
                             <div className="md:col-span-6 order-2">
                                 <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 h-full flex flex-col">
-                                    <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                         <span className="text-[#ce7c1c]">RE</span>
                                         <span className="text-white">CIPES</span>
                                     </h2>
@@ -842,7 +846,7 @@ const UserInput = () => {
                             {/* Right Column - MY DIET */}
                             <div className="md:col-span-3 order-3">
                                 <div className="p-4 h-full flex flex-col">
-                                    <h2 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                         <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
                                     </h2>
                                     <div className="flex flex-col space-y-2 md:space-y-3 flex-grow">
@@ -872,7 +876,7 @@ const UserInput = () => {
                     {randomRecipes.length > 0 && !isFirstTimeUser && (
                         <div className="mt-6 md:mt-8">
                             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                <h3 className="text-xl md:text-2xl font-bold mb-4 font-title text-center">
+                                <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                     <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
                                 </h3>
 
@@ -904,9 +908,7 @@ const UserInput = () => {
                                     ))}
                                 </div>
 
-                                <div className="mt-4 text-center">
-                                    
-                                </div>
+                                <div className="mt-4 text-center"></div>
                             </div>
                         </div>
                     )}
