@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
@@ -131,6 +129,15 @@ const UserInput = () => {
     const [showFilters, setShowFilters] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
     const [isFirstTimeUser, setIsFirstTimeUser] = useState(true)
+
+    const {
+        isSearching,
+        loadingText,
+        errorMessage,
+        allRecipes,
+        searchRecipes,
+        categorySearch
+    } = useRecipeSearch({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify })
 
     // Fetch random recipes on initial load
     useEffect(() => {
@@ -289,7 +296,6 @@ const UserInput = () => {
             setLoadingText("") // Clear loading text when done
         }
     }
-
     const handleRemoveIngredient = (ingredientToRemove) => {
         const updatedIngredients = ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
         setIngredients(updatedIngredients)
@@ -308,8 +314,7 @@ const UserInput = () => {
                                     cookableOnly = false,
                                     strictMode = false,
                                     focusSearch = false,
-                                    focusIngredient = null,
-                                }) => {
+                                    focusIngredient = null}) => {
         if (ingredients.length === 0) return
 
         setIsSearching(true)
@@ -608,48 +613,6 @@ const UserInput = () => {
             }
         }
     }, [])
-
-    const getDifficultyLevel = (recipe) => {
-        if (recipe.readyInMinutes) {
-            if (recipe.readyInMinutes <= 20) return "Easy"
-            if (recipe.readyInMinutes <= 40) return "Medium"
-            return "Hard"
-        }
-
-        // Default to medium if no time information
-        return "Medium"
-    }
-
-    const getServings = (recipe) => {
-        if (recipe.servings) return recipe.servings
-        if (recipe.strYield) return recipe.strYield
-        return recipe.isDrink ? 1 : 4 // Default values
-    }
-
-    const getCookingTime = (recipe) => {
-        if (recipe.readyInMinutes) return `${recipe.readyInMinutes} min`
-        if (recipe.strCategory?.toLowerCase().includes("dessert")) return "30 min"
-        if (recipe.isDrink) return "5 min"
-        return "25 min" // Default value
-    }
-
-    // Get unique feature for recipe
-    const getUniqueFeature = (recipe) => {
-        if (recipe.isDrink) {
-            return recipe.strAlcoholic === "Non alcoholic" ? "Non-Alcoholic" : "Alcoholic"
-        } else if (recipe.strArea) {
-            return recipe.strArea
-        } else if (recipe.diets && recipe.diets.length > 0) {
-            return recipe.diets[0]
-        } else if (recipe.veryHealthy) {
-            return "Healthy"
-        } else if (recipe.cheap) {
-            return "Budget-Friendly"
-        } else if (recipe.veryPopular) {
-            return "Popular"
-        }
-        return null
-    }
 
     return (
         <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">
