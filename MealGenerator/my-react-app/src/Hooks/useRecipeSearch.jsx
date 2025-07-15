@@ -7,21 +7,17 @@ const [loadingText, setLoadingText] = useState("")
 const [errorMessage, setErrorMessage] = useState("")
 const [apiLimitReached, setApiLimitReached] = useState(false)
 const [allRecipes, setAllRecipes] = useState([])
-const [showFilters, setShowFilters] = useState(false)
-const [focusIngredient, setFocusIngredient] = useState("")
-const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+
 
 const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify}) => {
     
-    const searchRecipes = async ({cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null}) => {
+    const searchRecipes = async ({ingredients, selectedDiet,cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null}) => {
         
         if(ingredients.length === 0) return
         
         setIsSearching(true)
         setLoadingText("SEARCHING...")
         setErrorMessage("")
-        setFocusIngredient(focusIngredient || '')
-        setShowFilters(false)
         
         setAllRecipes([])
         
@@ -96,9 +92,7 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
     }
     
     
-    const categorySearch = async (category) => {
-
-        setCategoryDialogOpen(false)
+    const categorySearch = async ({selectedCategory, categoryIngredients, specificIngredient }) => {
         
         if(isSearching){
             return
@@ -211,13 +205,14 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
         }
         
     }
+
+    return {
+        isSearching,
+        loadingText,
+        errorMessage,
+        allRecipes,
+        searchRecipes,  // renamed from handleSearch
+        categorySearch  // renamed from handleCategorySearch
+    }
 }
 
-return {
-    isSearching,
-    loadingText,
-    errorMessage,
-    allRecipes,
-    searchRecipes,  // renamed from handleSearch
-    categorySearch  // renamed from handleCategorySearch
-}
