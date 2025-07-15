@@ -2,16 +2,16 @@
 import {slugify} from "@/utils/slugify.js";
 
 
-const [isSearching, setIsSearching] = useState(false)
-const [loadingText, setLoadingText] = useState("")
-const [errorMessage, setErrorMessage] = useState("")
-const [apiLimitReached, setApiLimitReached] = useState(false)
-const [allRecipes, setAllRecipes] = useState([])
 
 
 const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify}) => {
-    
-    const searchRecipes = async ({ingredients, selectedDiet,cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null}) => {
+
+    const [isSearching, setIsSearching] = useState(false)
+    const [loadingText, setLoadingText] = useState("")
+    const [errorMessage, setErrorMessage] = useState("")
+    const [apiLimitReached, setApiLimitReached] = useState(false)
+    const [allRecipes, setAllRecipes] = useState([])
+    const searchRecipes = async ({ingredients, selectedDiet, cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null}) => {
         
         if(ingredients.length === 0) return
         
@@ -81,6 +81,8 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
             slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
         }))
         
+        setAllRecipes(addSlugstoRecipes)
+        
         if(spoonacularError && apiLimitReached && (mealDBResults.length > 0 || cocktailDBResults.length > 0)){
             setErrorMessage("Using fallback recipes (Spoonacular limit reached)")
         } else if (spoonacularError && otherAPIError && allResults.length === 0){
@@ -92,7 +94,7 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
     }
     
     
-    const categorySearch = async ({selectedCategory, categoryIngredients, specificIngredient }) => {
+    const categorySearch = async ({selectedCategory, categoryIngredients, specificIngredient, setIngredients }) => {
         
         if(isSearching){
             return
@@ -135,9 +137,9 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
                 requestsCompleted++
                 
                 if(requestsCompleted === totalRequests){
-                    
+
                     const combinedRecipes = [
-                        ...(Array.isArray(mealDBRecipes)) ? mealDBRecipes : []),
+                        ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
                         ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
                         ...(Array.isArray(cocktailResults) ? cocktailResults : []),
                     ]
