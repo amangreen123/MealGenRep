@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -12,7 +11,6 @@ import useTheMealDB from "./getTheMealDB.jsx"
 import useTheCocktailDB from "./GetCocktailDB.jsx"
 
 import { InfoIcon, Search, Plus, Clock, Users, ChefHat, Sparkles, X } from "lucide-react"
-
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
 
 import {
@@ -28,12 +26,15 @@ import {
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+
 import CookableSearch from "./CookableSearch.jsx"
 import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 import PantryList from "@/components/PantryList.jsx";
 import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
 import RecipeGrid from "@/components/RecipeGrid.jsx";
 import DietSelector from "@/components/DietSelector.jsx";
+import FirstTimeUser from "@/components/FirstTimeUser.jsx";
+import RandomRecipes from "@/components/RandomRecipes.jsx";
 
 const categoryIngredients = {
     Dessert: {
@@ -124,11 +125,9 @@ const UserInput = () => {
     const navigate = useNavigate()
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState(null)
-    const [randomRecipes, setRandomRecipes] = useState([])
-    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
     const [showFilters, setShowFilters] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
-    const [isFirstTimeUser, setIsFirstTimeUser] = useState(true)
+    
     
     const {
         isSearching,
@@ -144,34 +143,13 @@ const UserInput = () => {
         getCocktailDBDrinks,
         slugify,
     })
-
-    // Fetch random recipes on initial load
-    useEffect(() => {
-        const fetchRandomRecipes = async () => {
-            try {
-                setLoadingRandomRecipes(true)
-                const apiKey = import.meta.env.VITE_MEALDB_KEY || "1" // Use environment variable or default to free API
-                const response = await fetch(`https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`)
-                const data = await response.json()
-
-                if (data && data.meals) {
-                    // Add slugs to the random recipes
-                    const recipesWithSlugs = data.meals.map((recipe) => ({
-                        ...recipe,
-                        slug: slugify(recipe.strMeal),
-                        idMeal: recipe.idMeal,
-                    }))
-                    setRandomRecipes(recipesWithSlugs)
-                }
-            } catch (error) {
-                console.error("Error fetching random recipes:", error)
-            } finally {
-                setLoadingRandomRecipes(false)
-            }
+    
+    const {isFirstTimeUser, markAsReturningUser} = FirstTimeUser({
+        onFirstTimeStatusChange: (isFirstTimeUser) => {
+            console.log('First time user status changed:', isFirstTimeUser);
         }
-        fetchRandomRecipes()
-    }, [])
-
+    })
+    
     useEffect(() => {
         apiLimitReached
     }, [])
@@ -205,16 +183,7 @@ const UserInput = () => {
         //allRecipes
     }, [MealDBRecipes, CocktailDBDrinks, recipes])
 
-    // Check if user is a first-time visitor
-    useEffect(() => {
-        const firstTimeUser = localStorage.getItem("mealForgerFirstTimeUser")
-        if (firstTimeUser === "false") {
-            setIsFirstTimeUser(false)
-        } else {
-            localStorage.setItem("mealForgerFirstTimeUser", "true")
-            setIsFirstTimeUser(true)
-        }
-    }, [])
+    
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -462,13 +431,14 @@ const UserInput = () => {
                         </h1>
                     )}
                     {/* First Time User Experience */}
-                    {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
-                    
+                    {isFirstTimeUser && (
+                        <FirstTimeUserRecipes onDismiss={markAsReturningUser} />
+                    )}
                     {/* Main Content Area - New Layout */}
                         <div className="mt-4 md:mt-6"></div>
-                        
                     {/* MY PANTRY - Full Width at Top */}
                     <PantryList ingredients={ingredients} onRemove={handleRemoveIngredient}/>
+                  
                     
                     {/* RECIPES Section with Quick Add and My Diet on sides */}
                     {!isFirstTimeUser && (
@@ -513,49 +483,11 @@ const UserInput = () => {
                             <DietSelector selectedDiet={selectedDiet} setSelectedDiet={setSelectedDiet}/>
                         </div>
                     )}
-                    
                     {/* Popular Recipes - Below Main Content */}
-                    {randomRecipes.length > 0 && !isFirstTimeUser && (
-                        <div className="mt-6 md:mt-8">
-                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300">
-                                <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                                    <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
-                                </h3>
-
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                    {randomRecipes.slice(0, 8).map((recipe) => (
-                                        <Card
-                                            key={recipe.idMeal}
-                                            className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer transform hover:scale-[1.03]"
-                                            onClick={() => handleRandomRecipeClick(recipe)}
-                                        >
-                                            <div className="p-2 md:p-3">
-                                                <div className="mb-2">
-                                                    <img
-                                                        src={recipe.strMealThumb || "/placeholder.svg"}
-                                                        alt={recipe.strMeal}
-                                                        className="w-full h-24 md:h-32 object-cover rounded-lg"
-                                                        loading="lazy"
-                                                    />
-                                                </div>
-                                                <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2">{recipe.strMeal}</h3>
-                                                {recipe.strCategory && (
-                                                    <div className="flex items-center mt-1 text-[10px] md:text-xs text-gray-400">
-                                                        <ChefHat className="h-3 w-3 mr-1 text-[#ce7c1c]" />
-                                                        <span className="font-terminal">{recipe.strCategory}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                                <div className="mt-4 text-center"></div>
-                            </div>
-                        </div>
-                    )}
+                    {!isFirstTimeUser && (<RandomRecipes onRecipeClick={handleRandomRecipeClick} /> )}
                 </div>
             </main>
-
+            
             {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                 <DialogContent className="bg-[#1e1e1e] border border-[#ce7c1c] text-white max-w-[90vw] md:max-w-md rounded-2xl md:rounded-3xl shadow-2xl mx-auto">
