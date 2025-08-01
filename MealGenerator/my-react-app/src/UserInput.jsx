@@ -33,6 +33,7 @@ import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 import PantryList from "@/components/PantryList.jsx";
 import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
 import RecipeGrid from "@/components/RecipeGrid.jsx";
+import DietSelector from "@/components/DietSelector.jsx";
 
 const categoryIngredients = {
     Dessert: {
@@ -467,8 +468,7 @@ const UserInput = () => {
                         <div className="mt-4 md:mt-6"></div>
                         
                     {/* MY PANTRY - Full Width at Top */}
-                        <PantryList ingredients={ingredients} onRemove={handleRemoveIngredient}/>
-                    
+                    <PantryList ingredients={ingredients} onRemove={handleRemoveIngredient}/>
                     
                     {/* RECIPES Section with Quick Add and My Diet on sides */}
                     {!isFirstTimeUser && (
@@ -479,7 +479,7 @@ const UserInput = () => {
                                     <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                                         <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">SEARCH</span>
                                     </h3>
-
+                                    
                                     {/* Quick Add Grid - Icon-only buttons */}
                                     <div className="grid grid-rows-2 grid-cols-4 gap-3 mx-auto w-full">
                                         {popularIngredients.map((item, index) => (
@@ -500,48 +500,20 @@ const UserInput = () => {
                                     </div>
                                 </div>
                             </div>
-
-
                             
                             {/* Middle Column RECIPES */}
                             <RecipeGrid ingredients={ingredients}
                                         allRecipes={allRecipes}
                                         isSearching={isSearching}
-                                        onRecipeClick={recipes}
+                                        onRecipeClick={clickHandler}
                                         loadingText={loadingText}
                             ></RecipeGrid>
                             
-                           
-                            
-
                             {/* Right Column - MY DIET */}
-                            <div className="md:col-span-3 order-3">
-                                <div className="p-4 h-full flex flex-col">
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                                        <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
-                                    </h2>
-                                    <div className="flex flex-col space-y-2 md:space-y-3 flex-grow">
-                                        {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
-                                            const dietValue = diet.toLowerCase().replace(" ", "-")
-                                            return (
-                                                <Button
-                                                    key={index}
-                                                    className={`py-2 font-title diet-button border-2 ${
-                                                        selectedDiet === dietValue
-                                                            ? "bg-[#ce7c1c] text-white border-[#ce7c1c] font-bold shadow-md shadow-[#ce7c1c]/30"
-                                                            : "bg-transparent hover:bg-[#ce7c1c]/20 text-white border-[#ce7c1c] font-bold"
-                                                    } rounded-2xl md:rounded-3xl cursor-pointer text-sm md:text-base transform hover:scale-[1.02] transition-all duration-300`}
-                                                    onClick={() => setSelectedDiet(selectedDiet === dietValue ? null : dietValue)}
-                                                >
-                                                    {diet}
-                                                </Button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
+                            <DietSelector selectedDiet={selectedDiet} setSelectedDiet={setSelectedDiet}/>
                         </div>
                     )}
+                    
                     {/* Popular Recipes - Below Main Content */}
                     {randomRecipes.length > 0 && !isFirstTimeUser && (
                         <div className="mt-6 md:mt-8">
@@ -577,7 +549,6 @@ const UserInput = () => {
                                         </Card>
                                     ))}
                                 </div>
-
                                 <div className="mt-4 text-center"></div>
                             </div>
                         </div>

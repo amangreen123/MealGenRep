@@ -1,7 +1,6 @@
 ﻿
 export default function PantryList({ingredients, onRemove}) {
     
-    
     return (
         <div
             className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-4 md:mb-6">
