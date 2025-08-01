@@ -30,6 +30,9 @@ import MealForgerLogo from "./Images/Meal_Forger.png"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import CookableSearch from "./CookableSearch.jsx"
 import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
+import PantryList from "@/components/PantryList.jsx";
+import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
+import RecipeGrid from "@/components/RecipeGrid.jsx";
 
 const categoryIngredients = {
     Dessert: {
@@ -110,34 +113,36 @@ const popularIngredients = [
 ]
 
 const UserInput = () => {
+    
     const [inputString, setInputString] = useState("")
     const [ingredients, setIngredients] = useState([])
-    const [isSearching, setIsSearching] = useState(false)
     const [selectedDiet, setSelectedDiet] = useState(null)
-    const [errorMessage, setErrorMessage] = useState("")
     const { recipes, error, getRecipes } = useFetchMeals()
-    const [apiLimitReached, setApiLimitReached] = useState(false)
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
     const { CocktailDBDrinks, getCocktailDBDrinks } = useTheCocktailDB()
-    const [allRecipes, setAllRecipes] = useState([])
     const navigate = useNavigate()
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState(null)
-    const [loadingText, setLoadingText] = useState("")
     const [randomRecipes, setRandomRecipes] = useState([])
     const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
     const [showFilters, setShowFilters] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
     const [isFirstTimeUser, setIsFirstTimeUser] = useState(true)
-
+    
     const {
         isSearching,
         loadingText,
         errorMessage,
         allRecipes,
         searchRecipes,
-        categorySearch
-    } = useRecipeSearch({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify })
+        categorySearch,
+        apiLimitReached
+    } = useRecipeSearch({
+        getRecipes,
+        getMealDBRecipes,
+        getCocktailDBDrinks,
+        slugify,
+    })
 
     // Fetch random recipes on initial load
     useEffect(() => {
@@ -163,12 +168,11 @@ const UserInput = () => {
                 setLoadingRandomRecipes(false)
             }
         }
-
         fetchRandomRecipes()
     }, [])
 
     useEffect(() => {
-        setApiLimitReached(false)
+        apiLimitReached
     }, [])
 
     useEffect(() => {
@@ -176,7 +180,7 @@ const UserInput = () => {
             error &&
             (error.includes("API limit") || error.includes("quota") || error.includes("402") || error.includes("429"))
         ) {
-            setApiLimitReached(true)
+            apiLimitReached
         }
     }, [error])
 
@@ -197,12 +201,7 @@ const UserInput = () => {
             ...recipe,
             slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
         })
-
-        setAllRecipes([
-            ...spoonacularRecipesArray.map(addSlug),
-            ...mealDBRecipesArray.map(addSlug),
-            ...cocktailDBRecipesArray.map(addSlug),
-        ])
+        //allRecipes
     }, [MealDBRecipes, CocktailDBDrinks, recipes])
 
     // Check if user is a first-time visitor
@@ -222,7 +221,7 @@ const UserInput = () => {
 
     const handleAddIngredient = async () => {
         if (inputString.trim() === "") {
-            setErrorMessage("Please enter valid ingredients.")
+            errorMessage
             return
         }
 
@@ -236,9 +235,9 @@ const UserInput = () => {
         const isMultipleIngredients = ingredientsArray.length > 1
         const loadingMessage = isMultipleIngredients ? "ADDING INGREDIENTS..." : "ADDING INGREDIENT..."
 
-        setIsSearching(true)
-        setErrorMessage("")
-        setLoadingText(loadingMessage) // Store loading message in state
+        isSearching
+        errorMessage
+        loadingText// Store loading message in state
 
         try {
             const duplicates = []
@@ -286,16 +285,17 @@ const UserInput = () => {
             }
 
             if (errorParts.length > 0) {
-                setErrorMessage(errorParts.join(". "))
+                errorParts.join(". ")
             }
         } catch (error) {
-            setErrorMessage("Failed to validate ingredients. Please try again.")
+            errorMessage
         } finally {
-            setIsSearching(false)
+            isSearching
             setInputString("")
-            setLoadingText("") // Clear loading text when done
+            loadingText
         }
     }
+
     const handleRemoveIngredient = (ingredientToRemove) => {
         const updatedIngredients = ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
         setIngredients(updatedIngredients)
@@ -303,240 +303,16 @@ const UserInput = () => {
         // Update localStorage
         localStorage.setItem("mealForgerIngredients", JSON.stringify(updatedIngredients))
     }
-
+    
     const handleKeyPress = (e) => {
         if (e.key === "Enter") {
             handleAddIngredient()
         }
     }
-
-    const handleSearch = async ({
-                                    cookableOnly = false,
-                                    strictMode = false,
-                                    focusSearch = false,
-                                    focusIngredient = null}) => {
-        if (ingredients.length === 0) return
-
-        setIsSearching(true)
-        setLoadingText("GENERATING...") // Set the loading text to GENERATING
-        setErrorMessage("") // Clear previous errors
-        setFocusIngredient(focusIngredient || "")
-        setShowFilters(false) // Hide filters after search
-
-        // Clear existing recipes to prevent the flicker effect
-        setAllRecipes([])
-
-        // Track all our results
-        let spoonacularResults = []
-        let mealDBResults = []
-        let cocktailResults = []
-        let spoonacularError = false
-        let otherAPIError = false
-
-        // Try all APIs in parallel but handle errors individually
-        await Promise.all([
-            // 1. Spoonacular API call with explicit error handling
-            (async () => {
-                if (!apiLimitReached) {
-                    try {
-                        const results = await getRecipes(ingredients, selectedDiet, {
-                            cookableOnly,
-                            strictMode,
-                            focusIngredient,
-                        })
-                        spoonacularResults = Array.isArray(results) ? results : []
-                    } catch (error) {
-                        console.error("Spoonacular error:", error)
-                        spoonacularError = true
-                        // Mark API as limited if rate limit error
-                        if (
-                            error.response?.status === 402 ||
-                            error.response?.status === 429 ||
-                            String(error).includes("quota") ||
-                            String(error).includes("API limit")
-                        ) {
-                            setApiLimitReached(true)
-                        }
-                    }
-                }
-            })(),
-
-            // 2. MealDB API call
-            (async () => {
-                try {
-                    const results = await getMealDBRecipes(ingredients)
-                    mealDBResults = Array.isArray(results) ? results : []
-                } catch (error) {
-                    console.error("MealDB error:", error)
-                    otherAPIError = true
-                }
-            })(),
-
-            // 3. CocktailDB API call
-            (async () => {
-                try {
-                    const results = await getCocktailDBDrinks(ingredients)
-                    cocktailResults = Array.isArray(results) ? results : []
-                } catch (error) {
-                    console.error("CocktailDB error:", error)
-                    otherAPIError = true
-                }
-            })(),
-        ])
-
-        // Combine all results, ensuring each array is valid
-        const allResults = [...spoonacularResults, ...mealDBResults, ...cocktailResults]
-
-        // Add slugs to all recipes
-        const resultsWithSlugs = allResults.map((recipe) => ({
-            ...recipe,
-            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
-        }))
-
-        // Set state with all valid results
-        setAllRecipes(resultsWithSlugs)
-
-        // Handle error messages but don't block displaying results
-        if (spoonacularError && apiLimitReached && (mealDBResults.length > 0 || cocktailResults.length > 0)) {
-            // Spoonacular failed but we have fallback results
-            setErrorMessage("Using fallback recipes (Spoonacular limit reached)")
-        } else if (spoonacularError && otherAPIError && allResults.length === 0) {
-            // All APIs failed and we have no results
-            setErrorMessage("Failed to fetch recipes from all sources. Please try again.")
-        }
-
-        setIsSearching(false)
-        setLoadingText("") // Clear loading text when done
-    }
-
     const handleQuickSearch = (category) => {
         setSelectedCategory(category)
         setCategoryDialogOpen(true)
     }
-
-    const handleCategorySearch = async (specificIngredient) => {
-        // Close dialog and set loading state immediately
-        setCategoryDialogOpen(false)
-
-        // If already searching, prevent duplicate requests
-        if (isSearching) {
-            return
-        }
-
-        setIsSearching(true)
-        setApiLimitReached(false)
-        setErrorMessage("")
-        setLoadingText("SEARCHING...")
-
-        // Clear existing recipes to indicate a new search is happening
-        setAllRecipes([])
-
-        let searchQuery = specificIngredient || selectedCategory
-
-        // Improved random selection logic
-        if (!specificIngredient && categoryIngredients[selectedCategory]) {
-            // Create a combined array of all ingredients for this category
-            const allCategoryIngredients = [
-                ...categoryIngredients[selectedCategory].mealDB,
-                ...categoryIngredients[selectedCategory].spoonacular,
-            ]
-
-            // Select a truly random ingredient
-            const randomIndex = Math.floor(Math.random() * allCategoryIngredients.length)
-            searchQuery = allCategoryIngredients[randomIndex]
-        }
-
-        // Update ingredients state and localStorage
-        setIngredients([searchQuery])
-        localStorage.setItem("mealForgerIngredients", JSON.stringify([searchQuery]))
-
-        try {
-            // Create request tracking variables
-            let requestsCompleted = 0
-            const totalRequests = apiLimitReached ? 2 : 3 // Spoonacular, MealDB, CocktailDB (if not limited)
-            let mealDBRecipes = []
-            let spoonacularRecipes = []
-            let cocktailResults = []
-            let hasError = false
-
-            // Function to update results when all requests complete
-            const updateResults = () => {
-                requestsCompleted++
-
-                // Only process results when all requests are done
-                if (requestsCompleted === totalRequests) {
-                    const combinedRecipes = [
-                        ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
-                        ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
-                        ...(Array.isArray(cocktailResults) ? cocktailResults : []),
-                    ]
-
-                    // Add slugs to all recipes
-                    const recipesWithSlugs = combinedRecipes.map((recipe) => ({
-                        ...recipe,
-                        slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
-                    }))
-
-                    setAllRecipes(recipesWithSlugs)
-                    setIsSearching(false)
-                    setLoadingText("")
-
-                    // Show error message if no results found
-                    if (combinedRecipes.length === 0 && hasError) {
-                        setErrorMessage("No recipes found. Please try a different ingredient.")
-                    }
-                }
-            }
-
-            // 1. MealDB API call - always try this
-            getMealDBRecipes([searchQuery])
-                .then((results) => {
-                    mealDBRecipes = Array.isArray(results) ? results : []
-                })
-                .catch((error) => {
-                    console.error("MealDB error:", error)
-                    hasError = true
-                })
-                .finally(updateResults)
-
-            // 2. CocktailDB API call - always try this
-            getCocktailDBDrinks([searchQuery])
-                .then((results) => {
-                    cocktailResults = Array.isArray(results) ? results : []
-                })
-                .catch((error) => {
-                    console.error("CocktailDB error:", error)
-                    hasError = true
-                })
-                .finally(updateResults)
-
-            // 3. Spoonacular API call - only if not limited
-            if (!apiLimitReached) {
-                getRecipes([searchQuery], selectedDiet)
-                    .then((results) => {
-                        spoonacularRecipes = Array.isArray(results) ? results : []
-                    })
-                    .catch((error) => {
-                        console.error("Spoonacular error:", error)
-                        hasError = true
-                        const errorMsg = String(error)
-                        if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
-                            setApiLimitReached(true)
-                        }
-                    })
-                    .finally(updateResults)
-            } else {
-                // If API is limited, still increment the counter
-                updateResults()
-            }
-        } catch (error) {
-            console.error("Error during quick search:", error)
-            setErrorMessage("An unexpected error occurred.")
-            setIsSearching(false)
-            setLoadingText("")
-        }
-    }
-
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || "recipe"
@@ -578,7 +354,6 @@ const UserInput = () => {
             })
         }
     }
-
     const handleRandomRecipeClick = (recipe) => {
         const currentPath = window.location.pathname
         const recipeSlug = recipe.slug || slugify(recipe.strMeal)
@@ -605,7 +380,7 @@ const UserInput = () => {
                     setIngredients(parsedIngredients)
                     // Automatically search for recipes with the loaded ingredients
                     setTimeout(() => {
-                        handleSearch({ cookableOnly: false, strictMode: false })
+                       searchRecipes({ingredients,selectedDiet})
                     }, 500)
                 }
             } catch (error) {
@@ -666,7 +441,7 @@ const UserInput = () => {
                         {showFilters && (
                             <div className="w-full max-w-2xl mt-2">
                                 <CookableSearch
-                                    onSearch={handleSearch}
+                                    onSearch={searchRecipes({ingredients,selectedDiet})}
                                     ingredients={ingredients}
                                     selectedDiet={selectedDiet}
                                     isSearching={isSearching}
@@ -685,48 +460,16 @@ const UserInput = () => {
                             <span className="text-[#ce7c1c]">Discover</span> Recipes With What You Have
                         </h1>
                     )}
-
                     {/* First Time User Experience */}
                     {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={() => setIsFirstTimeUser(false)} />}
-
+                    
                     {/* Main Content Area - New Layout */}
-                    <div className="mt-4 md:mt-6">
-                        {/* MY PANTRY - Full Width at Top */}
-                        <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-4 md:mb-6">
-                            <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                                <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
-                            </h2>
-                            <div className="min-h-[120px] flex flex-wrap gap-2 mb-2">
-                                {ingredients.length === 0 ? (
-                                    <div className="text-center py-4 w-full">
-                                        <p className="text-gray-400 font-terminal text-sm md:text-base">
-                                            YOU HAVE NOT ADDED ANY INGREDIENTS
-                                        </p>
-                                        <p className="text-gray-500 font-terminal text-xs mt-2">
-                                            Add ingredients using the search bar above or quick add buttons
-                                        </p>
-                                    </div>
-                                ) : (
-                                    ingredients.map((item, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center bg-[#1e2124] rounded-full py-1 pl-3 pr-1 hover:bg-gray-700 transition-colors"
-                                        >
-                                            <span className="font-terminal text-sm">{item}</span>
-                                            <button
-                                                onClick={() => handleRemoveIngredient(item)}
-                                                className="ml-2 text-orange-500 hover:text-white rounded-full p-0.5 transition-all duration-200 flex items-center justify-center"
-                                                aria-label={`Remove ${item}`}
-                                            >
-                                                <X className="h-3.5 w-3.5" />
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
+                        <div className="mt-4 md:mt-6"></div>
+                        
+                    {/* MY PANTRY - Full Width at Top */}
+                        <PantryList ingredients={ingredients} onRemove={handleRemoveIngredient}/>
+                    
+                    
                     {/* RECIPES Section with Quick Add and My Diet on sides */}
                     {!isFirstTimeUser && (
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
@@ -758,102 +501,18 @@ const UserInput = () => {
                                 </div>
                             </div>
 
-                            {/* Middle Column - RECIPES - Now Scrollable */}
-                            <div className="md:col-span-6 order-2">
-                                <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 h-full flex flex-col">
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                                        <span className="text-[#ce7c1c]">RE</span>
-                                        <span className="text-white">CIPES</span>
-                                    </h2>
 
-                                    {isSearching ? (
-                                        <div className="flex flex-col items-center justify-center py-6 md:py-8 flex-grow min-h-[300px]">
-                                            <Sparkles className="h-10 w-10 md:h-12 md:w-12 mb-3 md:mb-4 text-[#ce7c1c] animate-pulse" />
-                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                                {loadingText || "Finding recipes..."}
-                                            </p>
-                                        </div>
-                                    ) : ingredients.length === 0 ? (
-                                        <div className="text-center py-6 md:py-8 flex-grow min-h-[300px]">
-                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                                Add ingredients to discover recipes
-                                            </p>
-                                        </div>
-                                    ) : allRecipes.length === 0 ? (
-                                        <div className="text-center py-6 md:py-8 flex-grow min-h-[300px]">
-                                            <p className="text-gray-400 font-terminal text-xs md:text-sm">
-                                                No recipes found with your ingredients. Try adding more!
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="mb-4 flex-grow overflow-hidden">
-                                            <div className="h-[350px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800">
-                                                <div className="grid grid-cols-2 gap-3 md:gap-4 pb-2">
-                                                    {allRecipes.map((recipe) => {
-                                                        const title = recipe.title || recipe.strMeal || recipe.strDrink
-                                                        const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
-                                                        const cookTime = getCookingTime(recipe)
-                                                        const servings = getServings(recipe)
-                                                        const uniqueFeature = getUniqueFeature(recipe)
-
-                                                        return (
-                                                            <Card
-                                                                key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                                                className="overflow-hidden border border-gray-700 bg-gray-800/50 rounded-xl hover:shadow-md hover:shadow-[#ce7c1c]/20 active:bg-gray-700/70 transition-all duration-300 cursor-pointer transform hover:scale-[1.03]"
-                                                                onClick={() => clickHandler(recipe)}
-                                                            >
-                                                                <div className="p-2 md:p-3">
-                                                                    <div className="mb-2">
-                                                                        <img
-                                                                            src={image || "/placeholder.svg"}
-                                                                            alt={title}
-                                                                            className="w-full h-24 md:h-32 object-cover rounded-lg"
-                                                                            loading="lazy"
-                                                                        />
-                                                                    </div>
-                                                                    <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2">{title}</h3>
-                                                                    <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px] md:text-xs text-gray-400">
-                                                                        <div className="flex items-center">
-                                                                            <Clock className="h-3 w-3 mr-0.5 text-[#ce7c1c]" />
-                                                                            <span className="font-terminal">{cookTime}</span>
-                                                                        </div>
-                                                                        <span className="mx-0.5 text-[#ce7c1c]">•</span>
-                                                                        <div className="flex items-center">
-                                                                            <Users className="h-3 w-3 mr-0.5 text-[#ce7c1c]" />
-                                                                            <span className="font-terminal">{servings}</span>
-                                                                        </div>
-                                                                        {uniqueFeature && (
-                                                                            <>
-                                                                                <span className="mx-0.5 text-[#ce7c1c]">•</span>
-                                                                                <span className="font-terminal bg-[#ce7c1c]/20 px-1.5 py-0.5 rounded-full">
-                                          {uniqueFeature}
-                                        </span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </Card>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Generate Button */}
-                                    <Button
-                                        className="w-full border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
-                                        onClick={() => handleSearch({ cookableOnly: false, strictMode: false })}
-                                        disabled={isSearching || ingredients.length === 0}
-                                    >
-                                        {isSearching ? "Generating..." : "Generate Recipes"}
-                                    </Button>
-
-                                    {errorMessage && (
-                                        <div className="text-red-500 text-center mt-2 font-terminal text-xs md:text-sm">{errorMessage}</div>
-                                    )}
-                                </div>
-                            </div>
+                            
+                            {/* Middle Column RECIPES */}
+                            <RecipeGrid ingredients={ingredients}
+                                        allRecipes={allRecipes}
+                                        isSearching={isSearching}
+                                        onRecipeClick={recipes}
+                                        loadingText={loadingText}
+                            ></RecipeGrid>
+                            
+                           
+                            
 
                             {/* Right Column - MY DIET */}
                             <div className="md:col-span-3 order-3">
@@ -883,7 +542,6 @@ const UserInput = () => {
                             </div>
                         </div>
                     )}
-
                     {/* Popular Recipes - Below Main Content */}
                     {randomRecipes.length > 0 && !isFirstTimeUser && (
                         <div className="mt-6 md:mt-8">
@@ -936,17 +594,15 @@ const UserInput = () => {
                     <DialogDescription className="text-center text-gray-300 mb-4 font-terminal text-xs md:text-sm">
                         Would you like to search for a specific {selectedCategory} ingredient or let us choose for you?
                     </DialogDescription>
-
                     <div className="space-y-3 md:space-y-4">
                         {/* Surprise Me Button */}
                         <Button
                             variant="default"
-                            onClick={() => handleCategorySearch(selectedCategory)}
+                            onClick={() => categorySearch({selectedCategory,categoryIngredients,specificIngredient,setIngredients})}
                             className="w-full py-2 md:py-3 text-sm md:text-base font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 rounded-full transform hover:scale-105 transition-all duration-300"
                         >
                             Surprise Me
                         </Button>
-
                         {/* Divider */}
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
@@ -956,7 +612,6 @@ const UserInput = () => {
                                 <span className="px-2 bg-[#1e1e1e] text-xs text-gray-400 uppercase">OR CHOOSE SPECIFIC</span>
                             </div>
                         </div>
-
                         {/* Ingredient Grid */}
                         {selectedCategory && categoryIngredients[selectedCategory] && (
                             <div className="grid grid-cols-2 gap-2">
@@ -967,7 +622,7 @@ const UserInput = () => {
                                     <Button
                                         key={ingredient}
                                         variant="outline"
-                                        onClick={() => handleCategorySearch(ingredient)}
+                                        onClick={() => categorySearch({selectedCategory,categoryIngredients,specificIngredient,setIngredients})}
                                         className="py-2 text-xs md:text-sm font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white rounded-xl transform hover:scale-105 transition-all duration-300"
                                     >
                                         {ingredient}
@@ -978,6 +633,18 @@ const UserInput = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <Button
+                className="w-full border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
+                onClick={() => searchRecipes({ingredients, selectedDiet})}
+                disabled={isSearching || ingredients.length === 0}
+            >
+                {isSearching ? "Generating..." : "Generate Recipes"}
+            </Button>
+
+            {errorMessage && (
+                <div className="text-red-500 text-center mt-2 font-terminal text-xs md:text-sm">{errorMessage}</div>
+            )}
 
             {/* Error Message */}
             {errorMessage && (

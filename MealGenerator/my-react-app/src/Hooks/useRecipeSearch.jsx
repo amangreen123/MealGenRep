@@ -1,9 +1,6 @@
 ﻿import { useEffect, useState } from "react"
 import {slugify} from "@/utils/slugify.js";
 
-
-
-
 const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify}) => {
 
     const [isSearching, setIsSearching] = useState(false)
@@ -214,7 +211,10 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
         errorMessage,
         allRecipes,
         searchRecipes,  // renamed from handleSearch
-        categorySearch  // renamed from handleCategorySearch
+        categorySearch,  // renamed from handleCategorySearch
+        apiLimitReached
     }
+    
 }
 
+export default useRecipeSearch
