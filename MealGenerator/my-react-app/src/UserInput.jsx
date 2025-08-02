@@ -30,11 +30,14 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import CookableSearch from "./CookableSearch.jsx"
 import FirstTimeUserRecipes from "./FirstTimeUserRecipes.jsx"
 import PantryList from "@/components/PantryList.jsx";
-import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
 import RecipeGrid from "@/components/RecipeGrid.jsx";
 import DietSelector from "@/components/DietSelector.jsx";
 import FirstTimeUser from "@/components/FirstTimeUser.jsx";
 import RandomRecipes from "@/components/RandomRecipes.jsx";
+
+import UseLocalStorageState from "@/Hooks/useLocalStorageState.jsx";
+import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
+import useIngredientManager from "@/Hooks/useIngredientManager.jsx";
 
 const categoryIngredients = {
     Dessert: {
@@ -117,7 +120,6 @@ const popularIngredients = [
 const UserInput = () => {
     
     const [inputString, setInputString] = useState("")
-    const [ingredients, setIngredients] = useState([])
     const [selectedDiet, setSelectedDiet] = useState(null)
     const { recipes, error, getRecipes } = useFetchMeals()
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
@@ -143,6 +145,13 @@ const UserInput = () => {
         getCocktailDBDrinks,
         slugify,
     })
+
+    const {
+        ingredients,
+        addIngredients,
+        removeIngredient,
+        clearIngredients,
+    } = useIngredientManager();
     
     const {isFirstTimeUser, markAsReturningUser} = FirstTimeUser({
         onFirstTimeStatusChange: (isFirstTimeUser) => {
@@ -190,89 +199,13 @@ const UserInput = () => {
     }
 
     const handleAddIngredient = async () => {
-        if (inputString.trim() === "") {
-            errorMessage
-            return
-        }
-
-        // Parse ingredients first to determine singular or plural message
-        const ingredientsArray = inputString
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean)
-
-        // Set custom loading message based on number of ingredients
-        const isMultipleIngredients = ingredientsArray.length > 1
-        const loadingMessage = isMultipleIngredients ? "ADDING INGREDIENTS..." : "ADDING INGREDIENT..."
-
-        isSearching
-        errorMessage
-        loadingText// Store loading message in state
-
-        try {
-            const duplicates = []
-            const validationErrors = []
-            const newIngredients = []
-
-            const existingLower = ingredients.map((i) => i.toLowerCase())
-            const uniqueInputs = [...new Set(ingredientsArray)]
-
-            for (const ingredient of uniqueInputs) {
-                const lowerIngredient = ingredient.toLowerCase()
-
-                if (existingLower.includes(lowerIngredient)) {
-                    duplicates.push(ingredient)
-                    continue
-                }
-
-                const result = await getGaladrielResponse(ingredient, "validate")
-
-                if (result.startsWith("Error:")) {
-                    validationErrors.push(result)
-                } else {
-                    if (!existingLower.includes(result.toLowerCase())) {
-                        newIngredients.push(result)
-                    } else {
-                        duplicates.push(ingredient)
-                    }
-                }
-            }
-
-            if (newIngredients.length > 0) {
-                setIngredients((prev) => [...prev, ...newIngredients])
-
-                // Save ingredients to localStorage for returning users
-                const updatedIngredients = [...ingredients, ...newIngredients]
-                localStorage.setItem("mealForgerIngredients", JSON.stringify(updatedIngredients))
-            }
-
-            const errorParts = []
-            if (duplicates.length > 0) {
-                errorParts.push(`Already added: ${duplicates.join(", ")}`)
-            }
-            if (validationErrors.length > 0) {
-                errorParts.push(`Invalid: ${validationErrors.join(", ")}`)
-            }
-
-            if (errorParts.length > 0) {
-                errorParts.join(". ")
-            }
-        } catch (error) {
-            errorMessage
-        } finally {
-            isSearching
-            setInputString("")
-            loadingText
-        }
+        addIngredients(inputString);
+        setInputString("");
     }
 
-    const handleRemoveIngredient = (ingredientToRemove) => {
-        const updatedIngredients = ingredients.filter((ingredient) => ingredient !== ingredientToRemove)
-        setIngredients(updatedIngredients)
-
-        // Update localStorage
-        localStorage.setItem("mealForgerIngredients", JSON.stringify(updatedIngredients))
-    }
+    const handleRemoveIngredient = (ingredient) => {
+        removeIngredient(ingredient);
+    };
     
     const handleKeyPress = (e) => {
         if (e.key === "Enter") {
@@ -339,25 +272,6 @@ const UserInput = () => {
             },
         })
     }
-
-    // Load saved ingredients from localStorage on component mount
-    useEffect(() => {
-        const savedIngredients = localStorage.getItem("mealForgerIngredients")
-        if (savedIngredients) {
-            try {
-                const parsedIngredients = JSON.parse(savedIngredients)
-                if (Array.isArray(parsedIngredients) && parsedIngredients.length > 0) {
-                    setIngredients(parsedIngredients)
-                    // Automatically search for recipes with the loaded ingredients
-                    setTimeout(() => {
-                       searchRecipes({ingredients,selectedDiet})
-                    }, 500)
-                }
-            } catch (error) {
-                console.error("Error parsing saved ingredients:", error)
-            }
-        }
-    }, [])
 
     return (
         <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">

@@ -8,6 +8,7 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
     const [errorMessage, setErrorMessage] = useState("")
     const [apiLimitReached, setApiLimitReached] = useState(false)
     const [allRecipes, setAllRecipes] = useState([])
+    
     const searchRecipes = async ({ingredients, selectedDiet, cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null}) => {
         
         if(ingredients.length === 0) return
