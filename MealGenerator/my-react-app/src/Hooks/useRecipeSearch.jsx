@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react"
 import {slugify} from "@/utils/slugify.js";
+import { categorySearch as runCategorySearch } from "@/utils/categorySearch";
 
 const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify}) => {
 
@@ -92,118 +93,87 @@ const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slu
     }
     
     
-    const categorySearch = async ({selectedCategory, categoryIngredients, specificIngredient, setIngredients }) => {
-        
-        if(isSearching){
-            return
-        }
-        
+    const categorySearch = async ({ingredient}) => {
+
+        if (!ingredient || isSearching) return;
+
         setIsSearching(true)
         setApiLimitReached(false)
         setErrorMessage("")
         setLoadingText("SEARCHING...")
-        
-        
         setAllRecipes([])
 
-        let searchQuery = specificIngredient || selectedCategory
+        let mealDBResults = [];
+        let cocktailResults = [];
+        let spoonacularResults = [];
+        let requestsCompleted = 0;
+        let hasError = false;
         
-        if(!specificIngredient && categoryIngredients[selectedCategory]) {
+        const updateResults = () => {
+            requestsCompleted++
             
-            const allCategoryIngredients = [
-                ...allCategoryIngredients[selectedCategory].mealDB,
-                ...categoryIngredients[selectedCategory].spoonacular
-            ]
-            
-            const randomIndex = Math.floor(Math.random() * allCategoryIngredients.length)
-            searchQuery = allCategoryIngredients[randomIndex]
-        }
-
-        setIngredients([searchQuery])
-        localStorage.setItem("mealForgerIngredients", JSON.stringify([searchQuery]))
-        
-        try {
-            let requestsCompleted = 0
-            const totalRequests = apiLimitReached ? 2 : 3 // Spoonacular, MealDB, CocktailDB (if not limited)
-            let mealDBRecipes = []
-            let spoonacularRecipes = []
-            let cocktailResults = []
-            let hasError = false
-
-            
-            const updateResults = () => {
-                requestsCompleted++
+            if(requestsCompleted === (apiLimitReached ? 2: 3)){
                 
-                if(requestsCompleted === totalRequests){
+                const combinedrecipes = [
+                    ...spoonacularResults,
+                    ...mealDBResults,
+                    ...cocktailResults,
+                ];
+                
+                const recipesWithSlugs = combinedrecipes.map((recipe) => ({
+                   ...recipe,
+                    slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
+                }));
+                
+                setAllRecipes(recipesWithSlugs);
+                setIsSearching(false);
+                setLoadingText("");
 
-                    const combinedRecipes = [
-                        ...(Array.isArray(mealDBRecipes) ? mealDBRecipes : []),
-                        ...(Array.isArray(spoonacularRecipes) ? spoonacularRecipes : []),
-                        ...(Array.isArray(cocktailResults) ? cocktailResults : []),
-                    ]
-                    
-                    const recipesWithSlugs = combinedRecipes.map((recipes) => ({
-                        ...recipes,
-                            slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
-
-                    }))
-                    
-                    setAllRecipes(recipesWithSlugs)
-                    setIsSearching(false)
-                    setLoadingText("")
-                    
-                    if(combinedRecipes.length === 0 && hasError) {
-                        setErrorMessage("No recipes found. Please try a different ingredient.")
-                    }
+                if (recipesWithSlugs.length === 0 && hasError) {
+                    setErrorMessage("No recipes found. Please try a different ingredient.");
                 }
             }
-            
-            getMealDBRecipes([searchQuery])
-                .then((results) => {
-                    mealDBRecipes = Array.isArray(results) ? results : []
-                })
-                .catch((error)=>{
-                    console.error("MealDB error:", error)
-                    hasError = true
-                })
-                .finally(updateResults)
+        };
 
-            getCocktailDBDrinks([searchQuery])
+        getMealDBRecipes([ingredient])
+            .then((results) => {
+                mealDBResults = Array.isArray(results) ? results : [];
+            })
+            .catch((error) => {
+                console.error("MealDB error:", error);
+                hasError = true;
+            })
+            .finally(updateResults);
+
+        getCocktailDBDrinks([ingredient])
+            .then((results) => {
+                cocktailResults = Array.isArray(results) ? results : [];
+            })
+            .catch((error) => {
+                console.error("CocktailDB error:", error);
+                hasError = true;
+            })
+            .finally(updateResults);
+
+        if (!apiLimitReached) {
+            getRecipes([ingredient])
                 .then((results) => {
-                    cocktailResults = Array.isArray(results) ? results : []
+                    spoonacularResults = Array.isArray(results) ? results : [];
                 })
                 .catch((error) => {
-                    console.error("CocktailDB error:", error)
-                    hasError = true
+                    console.error("Spoonacular error:", error);
+                    hasError = true;
+                    const msg = String(error);
+                    if (msg.includes("402") || msg.includes("429") || msg.includes("quota")) {
+                        setApiLimitReached(true);
+                    }
                 })
-                .finally(updateResults)
-
-            // 3. Spoonacular API call - only if not limited
-            if (!apiLimitReached) {
-                getRecipes([searchQuery], selectedDiet)
-                    .then((results) => {
-                        spoonacularRecipes = Array.isArray(results) ? results : []
-                    })
-                    .catch((error) => {
-                        console.error("Spoonacular error:", error)
-                        hasError = true
-                        const errorMsg = String(error)
-                        if (errorMsg.includes("402") || errorMsg.includes("429") || errorMsg.includes("quota")) {
-                            setApiLimitReached(true)
-                        }
-                    })
-                    .finally(updateResults)
-            } else {
-                // If API is limited, still increment the counter
-                updateResults()
-            }
-        } catch (error) {
-            console.error("Error during quick search:", error)
-            setErrorMessage("An unexpected error occurred.")
-            setIsSearching(false)
-            setLoadingText("")
+                .finally(updateResults);
+        } else {
+            updateResults(); // simulate third request completed
         }
         
+
     }
 
     return {

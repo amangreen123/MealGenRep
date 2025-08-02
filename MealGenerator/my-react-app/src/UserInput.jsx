@@ -39,7 +39,7 @@ import UseLocalStorageState from "@/Hooks/useLocalStorageState.jsx";
 import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
 import useIngredientManager from "@/Hooks/useIngredientManager.jsx";
 
-const categoryIngredients = {
+const QuickSearchFood = {
     Dessert: {
         mealDB: ["Chocolate", "Honey", "Vanilla"],
         spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"],
@@ -216,6 +216,20 @@ const UserInput = () => {
         setSelectedCategory(category)
         setCategoryDialogOpen(true)
     }
+
+    const triggerCategorySearch = (category) => {
+        const categoryIngredients = QuickSearchFood[category] 
+        
+        const combinedIngredients = [
+            ...categoryIngredients.mealDB,
+            ...categoryIngredients.spoonacular
+        ]
+        const randomIndex = Math.floor(Math.random() * combinedIngredients.length)
+        const randomIngredient = combinedIngredients[randomIndex]
+
+        categorySearch({ ingredient: randomIngredient })
+    }
+    
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || "recipe"
@@ -414,9 +428,11 @@ const UserInput = () => {
                     <div className="space-y-3 md:space-y-4">
                         {/* Surprise Me Button */}
                         <Button
-                            variant="default"
-                            onClick={() => categorySearch({selectedCategory,categoryIngredients,specificIngredient,setIngredients})}
-                            className="w-full py-2 md:py-3 text-sm md:text-base font-terminal font-bold bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 rounded-full transform hover:scale-105 transition-all duration-300"
+                            onClick={() => {
+                                triggerCategorySearch(selectedCategory)
+                                setCategoryDialogOpen(false)
+                            }}
+                            disabled={isSearching}
                         >
                             Surprise Me
                         </Button>
@@ -430,16 +446,20 @@ const UserInput = () => {
                             </div>
                         </div>
                         {/* Ingredient Grid */}
-                        {selectedCategory && categoryIngredients[selectedCategory] && (
+                        {selectedCategory && QuickSearchFood[selectedCategory] && (
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    ...categoryIngredients[selectedCategory].mealDB,
-                                    ...categoryIngredients[selectedCategory].spoonacular,
+                                    ...QuickSearchFood[selectedCategory].mealDB,
+                                    ...QuickSearchFood[selectedCategory].spoonacular,
                                 ].map((ingredient) => (
                                     <Button
                                         key={ingredient}
                                         variant="outline"
-                                        onClick={() => categorySearch({selectedCategory,categoryIngredients,specificIngredient,setIngredients})}
+                                        onClick={() => {
+                                            triggerCategorySearch(selectedCategory)
+                                            setCategoryDialogOpen(false)
+                                        }}
+                                        disabled={isSearching}
                                         className="py-2 text-xs md:text-sm font-terminal hover:bg-[#ce7c1c]/20 border-[#ce7c1c] text-white rounded-xl transform hover:scale-105 transition-all duration-300"
                                     >
                                         {ingredient}
