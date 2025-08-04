@@ -3,10 +3,10 @@ import {slugify} from "@/utils/slugify.js"
 import {Card} from "@/components/ui/card.tsx";
 import {ChefHat} from "lucide-react";
 
-export default function RandomRecipes({onRecipeClick}) {
+export default function RandomSelectionRecipes({onRecipeClick, setRandomRecipes}) {
 
-    const [randomRecipes, setRandomRecipes] = useState([])
-    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
+    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true);
+    const [localRecipes, setLocalRecipes] = useState([]); 
     
     // Fetch random recipes on initial load
     useEffect(() => {
@@ -25,6 +25,7 @@ export default function RandomRecipes({onRecipeClick}) {
                         idMeal: recipe.idMeal,
                     }))
                     setRandomRecipes(recipesWithSlugs)
+                    setLocalRecipes(recipesWithSlugs);
                 }
             } catch (error) {
                 console.error("Error fetching random recipes:", error)
@@ -43,7 +44,7 @@ export default function RandomRecipes({onRecipeClick}) {
                 </h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {randomRecipes.slice(0, 8).map((recipe) => (
+                    {localRecipes.slice(0, 8).map((recipe) => (
                         <Card
                             key={recipe.idMeal}
                             onClick={() => onRecipeClick(recipe)}

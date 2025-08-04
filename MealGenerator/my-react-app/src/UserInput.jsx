@@ -33,11 +33,13 @@ import PantryList from "@/components/PantryList.jsx";
 import RecipeGrid from "@/components/RecipeGrid.jsx";
 import DietSelector from "@/components/DietSelector.jsx";
 import FirstTimeUser from "@/components/FirstTimeUser.jsx";
-import RandomRecipes from "@/components/RandomRecipes.jsx";
 
 import UseLocalStorageState from "@/Hooks/useLocalStorageState.jsx";
 import useRecipeSearch from "@/Hooks/useRecipeSearch.jsx"
 import useIngredientManager from "@/Hooks/useIngredientManager.jsx";
+
+import {getCategoryIngredient} from "@/utils/categorySearch.js";
+import RandomSelectionRecipes from "@/components/RandomSelectionRecipes.jsx";
 
 const QuickSearchFood = {
     Dessert: {
@@ -129,8 +131,10 @@ const UserInput = () => {
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [showFilters, setShowFilters] = useState(false)
     const [focusIngredient, setFocusIngredient] = useState("")
-    
-    
+    const [randomRecipes, setRandomRecipes] = useState([]);
+
+
+
     const {
         isSearching,
         loadingText,
@@ -218,16 +222,10 @@ const UserInput = () => {
     }
 
     const triggerCategorySearch = (category) => {
-        const categoryIngredients = QuickSearchFood[category] 
         
-        const combinedIngredients = [
-            ...categoryIngredients.mealDB,
-            ...categoryIngredients.spoonacular
-        ]
-        const randomIndex = Math.floor(Math.random() * combinedIngredients.length)
-        const randomIngredient = combinedIngredients[randomIndex]
+        const selectedIngredient = getCategoryIngredient(QuickSearchFood, selectedCategory,category)
 
-        categorySearch({ ingredient: randomIngredient })
+        categorySearch({ingredient: selectedIngredient})
     }
     
     const clickHandler = (recipe) => {
@@ -279,7 +277,7 @@ const UserInput = () => {
             state: {
                 meal: recipe,
                 userIngredients: ingredients,
-                allRecipes: randomRecipes,
+                allRecipes:randomRecipes,
                 previousPath: currentPath,
                 // Store the ID explicitly
                 recipeId: recipe.idMeal,
@@ -339,7 +337,7 @@ const UserInput = () => {
                         {showFilters && (
                             <div className="w-full max-w-2xl mt-2">
                                 <CookableSearch
-                                    onSearch={searchRecipes({ingredients,selectedDiet})}
+                                    onSearch={() => searchRecipes({ ingredients, selectedDiet })}
                                     ingredients={ingredients}
                                     selectedDiet={selectedDiet}
                                     isSearching={isSearching}
@@ -412,7 +410,7 @@ const UserInput = () => {
                         </div>
                     )}
                     {/* Popular Recipes - Below Main Content */}
-                    {!isFirstTimeUser && (<RandomRecipes onRecipeClick={handleRandomRecipeClick} /> )}
+                    {!isFirstTimeUser && (<RandomSelectionRecipes onRecipeClick={handleRandomRecipeClick} setRandomRecipes={setRandomRecipes}/> )}
                 </div>
             </main>
             
@@ -472,8 +470,7 @@ const UserInput = () => {
             </Dialog>
 
             <Button
-                className="w-full border-2 border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-2 font-terminal rounded-full cursor-pointer text-sm md:text-base font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-105 transition-all duration-300 mt-auto"
-                onClick={() => searchRecipes({ingredients, selectedDiet})}
+                onClick={() => searchRecipes({ ingredients, selectedDiet })}
                 disabled={isSearching || ingredients.length === 0}
             >
                 {isSearching ? "Generating..." : "Generate Recipes"}

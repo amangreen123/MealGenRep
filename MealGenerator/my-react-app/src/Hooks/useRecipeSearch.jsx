@@ -1,6 +1,5 @@
-﻿import { useEffect, useState } from "react"
-import {slugify} from "@/utils/slugify.js";
-import { categorySearch as runCategorySearch } from "@/utils/categorySearch";
+﻿import {useState } from "react"
+
 
 const useRecipeSearch = ({getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify}) => {
 

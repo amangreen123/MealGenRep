@@ -1,21 +1,13 @@
-﻿export async function categorySearch({
-                                         selectedCategory,
-                                         categoryIngredients,
-                                         specificIngredient,
-                                         setIngredients,
-                                         getMealDBRecipes,
-                                         getCocktailDBDrinks,
-                                         getRecipes,
-                                         slugify,
-                                         setApiLimitReached,
-                                         setAllRecipes,
-                                         setIsSearching,
-                                         setErrorMessage,
-                                         setLoadingText,
-                                     }) {
-
-    const allCategoryIngredients = [
-        ...allCategoryIngredients[selectedCategory].mealDB,
-        ...categoryIngredients[selectedCategory].spoonacular
-    ]
+﻿export function getCategoryIngredient(categoryIngredients, selectedCategory, specificIngredient = null ){
+    
+    if(!selectedCategory || !categoryIngredients[selectedCategory]) return null;
+    
+    const {mealDB = [], spoonacular = []} = categoryIngredients[selectedCategory];
+    const allCategoryIngredients = [...mealDB, ...spoonacular];
+    
+    if(specificIngredient) return specificIngredient;
+    
+    const randomIndex = Math.floor(Math.random() * allCategoryIngredients.length);
+    
+    return allCategoryIngredients[randomIndex] || null;
 }
