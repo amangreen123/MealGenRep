@@ -15,17 +15,17 @@ export default function useIngredientManager() {
             setErrorMessage("Ingredient input is empty");
             return;
         }
-
+        
         const ingredientsArray = input
             .split(",")
-            .map((item) => item.trim)
+            .map((item) => item.trim())
             .filter(Boolean);
 
         const isMultiple = ingredientsArray.length > 1;
         setLoadingText(isMultiple ? "ADDING INGREDIENTS..." : "ADDING INGREDIENT...");
         setIsSearching(true);
         setErrorMessage("");
-
+        
         try {
             const duplicates = [];
             const validationErrors = [];
@@ -35,8 +35,10 @@ export default function useIngredientManager() {
             const uniqueInputs = [...new Set(ingredientsArray)]
 
             for (const ingredient of uniqueInputs) {
-                const lower = ingredient.toLowerCase();
-
+                
+                console.log("Ingredient received:", ingredient, typeof ingredient);
+                const lower = typeof ingredient === "string" ? ingredient.toLowerCase() : "";
+                
                 if (existingLower.includes(lower)) {
                     duplicates.push(ingredient)
                     continue;
@@ -56,9 +58,7 @@ export default function useIngredientManager() {
                         duplicates.push(ingredient)
                     }
                 }
-                if (newIngredients.length > 0) {
-                    setIngredients((prev) => [...prev, ...newIngredients]);
-                }
+              
 
                 const errorParts = [];
 
@@ -73,6 +73,10 @@ export default function useIngredientManager() {
                 if (errorParts.length > 0) {
                     setErrorMessage(errorParts.join(". "));
                 }
+            }
+
+            if (newIngredients.length > 0) {
+                setIngredients((prev) => [...prev, ...newIngredients]);
             }
             
         } catch (error) {

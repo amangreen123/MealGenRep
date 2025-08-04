@@ -203,7 +203,7 @@ const UserInput = () => {
     }
 
     const handleAddIngredient = async () => {
-        addIngredients(inputString);
+        addIngredients(inputString.trim());
         setInputString("");
     }
 
