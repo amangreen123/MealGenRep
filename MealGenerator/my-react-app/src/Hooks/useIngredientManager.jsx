@@ -89,7 +89,11 @@ export default function useIngredientManager() {
     };
     
     const removeIngredient = (ingredientToRemove) => {
-        setIngredients((prev) => prev.filter((i) => i !== ingredientToRemove));
+        setIngredients((prev) =>
+            prev.filter(
+                (ingredient) => ingredient.toLowerCase() !== ingredientToRemove.toLowerCase()
+            )
+        );    
     }
     
     const clearIngredients = () => {

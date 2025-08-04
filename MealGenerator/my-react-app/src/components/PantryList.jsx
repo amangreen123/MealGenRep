@@ -1,4 +1,6 @@
-﻿
+﻿import { X } from "lucide-react";
+
+
 export default function PantryList({ingredients, onRemove}) {
     
     return (
@@ -29,13 +31,15 @@ export default function PantryList({ingredients, onRemove}) {
                                 className="ml-2 text-orange-500 hover:text-white rounded-full p-0.5 transition-all duration-200 flex items-center justify-center"
                                 aria-label={`Remove ${item}`}
                             >
+                                <X className="w-4 h-4"/>
                             </button>
                         </div>
                     ))
                 )}
             </div>
         </div>
-)}
+    )
+}
 
 
 
