@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+﻿import { useState, useEffect } from "react"
 
 const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify }) => {
     const [isSearching, setIsSearching] = useState(false)
@@ -7,15 +7,23 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
     const [apiLimitReached, setApiLimitReached] = useState(false)
     const [allRecipes, setAllRecipes] = useState([])
 
+    // Debug effect to log when allRecipes changes
+    useEffect(() => {
+        console.log("🎯 allRecipes state updated:", allRecipes);
+    }, [allRecipes]);
+
     const searchRecipes = async ({ ingredients, selectedDiet, cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null }) => {
         console.log("🔍 SEARCH STARTED with:", { ingredients, selectedDiet, cookableOnly, strictMode });
 
-        if (ingredients.length === 0) return
+        if (ingredients.length === 0) {
+            console.log("❌ No ingredients provided, exiting search");
+            return;
+        }
 
         setIsSearching(true)
         setLoadingText("SEARCHING...")
         setErrorMessage("")
-        setAllRecipes([])
+        setAllRecipes([]) // Clear previous results
 
         let spooncularResults = []
         let mealDBResults = []
@@ -24,7 +32,10 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         let otherAPIError = false
 
         try {
+            console.log("🚀 Starting parallel API calls...");
+
             await Promise.all([
+                // Spoonacular API CALL
                 (async () => {
                     if (!apiLimitReached) {
                         try {
@@ -34,18 +45,36 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                                 strictMode,
                                 focusIngredient,
                             })
-                            console.log("✅ Spoonacular raw results:", results);
-                            spooncularResults = Array.isArray(results) ? results : []
-                            console.log("✅ Spoonacular processed results:", spooncularResults);
+                            console.log("✅ Spoonacular raw results TYPE:", typeof results);
+                            console.log("✅ Spoonacular raw results IS_ARRAY:", Array.isArray(results));
+                            console.log("✅ Spoonacular raw results DATA:", results);
+
+                            // Handle different possible return formats
+                            if (Array.isArray(results)) {
+                                spooncularResults = results;
+                            } else if (results && Array.isArray(results.results)) {
+                                spooncularResults = results.results;
+                            } else if (results && results.data && Array.isArray(results.data)) {
+                                spooncularResults = results.data;
+                            } else if (results && results.recipes && Array.isArray(results.recipes)) {
+                                spooncularResults = results.recipes;
+                            } else {
+                                console.log("⚠️ Spoonacular results in unexpected format, treating as empty");
+                                spooncularResults = [];
+                            }
+
+                            console.log("✅ Spoonacular final processed count:", spooncularResults.length);
                         } catch (error) {
                             console.error("❌ Spoonacular error:", error)
                             spoonacularError = true
+                            const errorString = String(error)
                             if (
                                 error.response?.status === 402 ||
                                 error.response?.status === 429 ||
-                                String(error).includes("quota") ||
-                                String(error).includes("API limit")
+                                errorString.includes("quota") ||
+                                errorString.includes("API limit")
                             ) {
+                                console.log("🚫 Setting API limit reached");
                                 setApiLimitReached(true)
                             }
                         }
@@ -59,9 +88,23 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                     try {
                         console.log("📡 Calling MealDB API...");
                         const results = await getMealDBRecipes(ingredients)
-                        console.log("✅ MealDB raw results:", results);
-                        mealDBResults = Array.isArray(results) ? results : []
-                        console.log("✅ MealDB processed results:", mealDBResults);
+                        console.log("✅ MealDB raw results TYPE:", typeof results);
+                        console.log("✅ MealDB raw results IS_ARRAY:", Array.isArray(results));
+                        console.log("✅ MealDB raw results DATA:", results);
+
+                        // Handle different possible return formats
+                        if (Array.isArray(results)) {
+                            mealDBResults = results;
+                        } else if (results && Array.isArray(results.meals)) {
+                            mealDBResults = results.meals;
+                        } else if (results && results.data && Array.isArray(results.data)) {
+                            mealDBResults = results.data;
+                        } else {
+                            console.log("⚠️ MealDB results in unexpected format, treating as empty");
+                            mealDBResults = [];
+                        }
+
+                        console.log("✅ MealDB final processed count:", mealDBResults.length);
                     } catch (error) {
                         console.error("❌ MealDB error:", error)
                         otherAPIError = true
@@ -73,9 +116,23 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                     try {
                         console.log("📡 Calling CocktailDB API...");
                         const results = await getCocktailDBDrinks(ingredients)
-                        console.log("✅ CocktailDB raw results:", results);
-                        cocktailDBResults = Array.isArray(results) ? results : []
-                        console.log("✅ CocktailDB processed results:", cocktailDBResults);
+                        console.log("✅ CocktailDB raw results TYPE:", typeof results);
+                        console.log("✅ CocktailDB raw results IS_ARRAY:", Array.isArray(results));
+                        console.log("✅ CocktailDB raw results DATA:", results);
+
+                        // Handle different possible return formats
+                        if (Array.isArray(results)) {
+                            cocktailDBResults = results;
+                        } else if (results && Array.isArray(results.drinks)) {
+                            cocktailDBResults = results.drinks;
+                        } else if (results && results.data && Array.isArray(results.data)) {
+                            cocktailDBResults = results.data;
+                        } else {
+                            console.log("⚠️ CocktailDB results in unexpected format, treating as empty");
+                            cocktailDBResults = [];
+                        }
+
+                        console.log("✅ CocktailDB final processed count:", cocktailDBResults.length);
                     } catch (error) {
                         console.error("❌ CocktailDB error:", error)
                         otherAPIError = true
@@ -83,47 +140,57 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 })(),
             ])
 
-            console.log("🔄 Combining results...");
-            const allResults = [...spooncularResults, ...mealDBResults, ...cocktailDBResults]
-            console.log("📊 Combined results count:", allResults.length);
-            console.log("📊 Combined results data:", allResults);
-
-            console.log("📦 Detailed breakdown:", {
-                spooncularResults: spooncularResults.length,
-                mealDBResults: mealDBResults.length,
-                cocktailDBResults: cocktailDBResults.length,
-                totalResults: allResults.length,
+            console.log("🔄 All API calls completed, combining results...");
+            console.log("📊 Results breakdown:", {
+                spoonacular: spooncularResults.length,
+                mealDB: mealDBResults.length,
+                cocktailDB: cocktailDBResults.length
             });
 
-            const addSlugstoRecipes = allResults.map((recipe) => ({
+            // Combine all results
+            const allResults = [...spooncularResults, ...mealDBResults, ...cocktailDBResults]
+            console.log("📊 Total combined results:", allResults.length);
+
+            // Add slugs to all recipes
+            const recipesWithSlugs = allResults.map((recipe) => ({
                 ...recipe,
                 slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
             }))
 
-            console.log("🏷️ Recipes with slugs:", addSlugstoRecipes);
-            setAllRecipes(addSlugstoRecipes)
+            console.log("🏷️ Final recipes with slugs:", recipesWithSlugs.length);
 
+            // Set the final results
+            setAllRecipes(recipesWithSlugs)
+
+            // Handle error messages
             if (spoonacularError && apiLimitReached && (mealDBResults.length > 0 || cocktailDBResults.length > 0)) {
                 setErrorMessage("Using fallback recipes (Spoonacular limit reached)")
             } else if (spoonacularError && otherAPIError && allResults.length === 0) {
                 setErrorMessage("Failed to fetch recipes from all sources. Please try again.")
+            } else if (allResults.length === 0) {
+                setErrorMessage("No recipes found. Try adding different ingredients.")
             }
 
         } catch (error) {
-            console.error("❌ Unhandled error in searchRecipes:", error); // Fixed: was 'err', now 'error'
+            console.error("❌ Unhandled error in searchRecipes:", error);
             setErrorMessage("Something went wrong while searching.");
+            setAllRecipes([]); // Ensure we clear results on error
         } finally {
             setIsSearching(false)
             setLoadingText("")
-            console.log("🎯 Search completed. Final allRecipes state should be:", allRecipes);
+            console.log("🏁 Search completed");
         }
-    } // Fixed: Added missing closing brace for searchRecipes function
+    }
 
     const categorySearch = async ({ ingredient }) => {
-        if (!ingredient || isSearching) return;
+        if (!ingredient || isSearching) {
+            console.log("❌ Category search aborted - no ingredient or already searching");
+            return;
+        }
+
+        console.log("🔍 Starting category search for:", ingredient);
 
         setIsSearching(true)
-        setApiLimitReached(false)
         setErrorMessage("")
         setLoadingText("SEARCHING...")
         setAllRecipes([])
@@ -133,18 +200,29 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         let spoonacularResults = [];
         let requestsCompleted = 0;
         let hasError = false;
+        const totalRequests = apiLimitReached ? 2 : 3;
 
         const updateResults = () => {
             requestsCompleted++
+            console.log(`📊 Category search progress: ${requestsCompleted}/${totalRequests}`);
 
-            if (requestsCompleted === (apiLimitReached ? 2 : 3)) {
-                const combinedrecipes = [
+            if (requestsCompleted === totalRequests) {
+                console.log("🔄 All category search requests completed");
+
+                const combinedRecipes = [
                     ...spoonacularResults,
                     ...mealDBResults,
                     ...cocktailResults,
                 ];
 
-                const recipesWithSlugs = combinedrecipes.map((recipe) => ({
+                console.log("📊 Category search results:", {
+                    spoonacular: spoonacularResults.length,
+                    mealDB: mealDBResults.length,
+                    cocktailDB: cocktailResults.length,
+                    total: combinedRecipes.length
+                });
+
+                const recipesWithSlugs = combinedRecipes.map((recipe) => ({
                     ...recipe,
                     slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
                 }));
@@ -153,48 +231,83 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 setIsSearching(false);
                 setLoadingText("");
 
-                if (recipesWithSlugs.length === 0 && hasError) {
-                    setErrorMessage("No recipes found. Please try a different ingredient.");
+                if (recipesWithSlugs.length === 0) {
+                    setErrorMessage(hasError ? "Error fetching recipes. Please try again." : "No recipes found for this ingredient.");
                 }
             }
         };
 
+        // MealDB request
         getMealDBRecipes([ingredient])
             .then((results) => {
-                mealDBResults = Array.isArray(results) ? results : [];
+                console.log("✅ Category MealDB raw results:", results);
+                if (Array.isArray(results)) {
+                    mealDBResults = results;
+                } else if (results && Array.isArray(results.meals)) {
+                    mealDBResults = results.meals;
+                } else if (results && results.data && Array.isArray(results.data)) {
+                    mealDBResults = results.data;
+                } else {
+                    mealDBResults = [];
+                }
+                console.log("✅ Category MealDB processed count:", mealDBResults.length);
             })
             .catch((error) => {
-                console.error("MealDB error:", error);
+                console.error("❌ Category MealDB error:", error);
                 hasError = true;
             })
             .finally(updateResults);
 
+        // CocktailDB request
         getCocktailDBDrinks([ingredient])
             .then((results) => {
-                cocktailResults = Array.isArray(results) ? results : [];
+                console.log("✅ Category CocktailDB raw results:", results);
+                if (Array.isArray(results)) {
+                    cocktailResults = results;
+                } else if (results && Array.isArray(results.drinks)) {
+                    cocktailResults = results.drinks;
+                } else if (results && results.data && Array.isArray(results.data)) {
+                    cocktailResults = results.data;
+                } else {
+                    cocktailResults = [];
+                }
+                console.log("✅ Category CocktailDB processed count:", cocktailResults.length);
             })
             .catch((error) => {
-                console.error("CocktailDB error:", error);
+                console.error("❌ Category CocktailDB error:", error);
                 hasError = true;
             })
             .finally(updateResults);
 
+        // Spoonacular request (if not at limit)
         if (!apiLimitReached) {
             getRecipes([ingredient])
                 .then((results) => {
-                    spoonacularResults = Array.isArray(results) ? results : [];
+                    console.log("✅ Category Spoonacular raw results:", results);
+                    if (Array.isArray(results)) {
+                        spoonacularResults = results;
+                    } else if (results && Array.isArray(results.results)) {
+                        spoonacularResults = results.results;
+                    } else if (results && results.data && Array.isArray(results.data)) {
+                        spoonacularResults = results.data;
+                    } else if (results && results.recipes && Array.isArray(results.recipes)) {
+                        spoonacularResults = results.recipes;
+                    } else {
+                        spoonacularResults = [];
+                    }
+                    console.log("✅ Category Spoonacular processed count:", spoonacularResults.length);
                 })
                 .catch((error) => {
-                    console.error("Spoonacular error:", error);
+                    console.error("❌ Category Spoonacular error:", error);
                     hasError = true;
-                    const msg = String(error);
-                    if (msg.includes("402") || msg.includes("429") || msg.includes("quota")) {
+                    const errorString = String(error);
+                    if (errorString.includes("402") || errorString.includes("429") || errorString.includes("quota")) {
                         setApiLimitReached(true);
                     }
                 })
                 .finally(updateResults);
         } else {
-            updateResults(); // simulate third request completed
+            updateResults(); // Skip spoonacular but still count as completed
         }
     }
 

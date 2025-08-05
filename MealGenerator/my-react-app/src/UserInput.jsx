@@ -286,11 +286,8 @@ const UserInput = () => {
     }
 
     useEffect(() => {
-        if (ingredients.length > 0 && !isSearching) {
-            console.log("Auto-searching with:", ingredients);
-            searchRecipes({ ingredients, selectedDiet });
-        }
-    }, [ingredients]);
+        console.log("🎯 UserInput received allRecipes:", allRecipes);
+    }, [allRecipes]);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">

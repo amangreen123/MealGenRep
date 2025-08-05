@@ -41,8 +41,8 @@ export const useTheMealDB = () => {
                 console.log(newError)
                 setError(newError)
                 setMealDBRecipes([])
-                cache.current[key] = [] // Cache empty results to avoid repeated failed calls
-                return
+                cache.current[key] = [] 
+                return []
             }
 
             const results = response.data.meals
@@ -53,6 +53,8 @@ export const useTheMealDB = () => {
             
             // console.log("MealDB recipes", results)
             // console.log("MealDB recipes found:", results.length)
+            
+            return results
 
         } catch (error) {
             const errorMessage =

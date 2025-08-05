@@ -17,7 +17,7 @@ const useFetchMeals = () => {
 
         if (cache.current[cacheKey]) {
             setRecipes(cache.current[cacheKey])
-            return
+            return cache.current[cacheKey]
         }
 
         setLoading(true)
@@ -80,6 +80,8 @@ const useFetchMeals = () => {
             cache.current[cacheKey] = results
             setRecipes(results)
             setIsSpoonacularLimited(false)
+            
+            return results
 
         } catch (error) {
             if (error.response?.status === 402 || error.response?.status === 429) {
@@ -88,6 +90,7 @@ const useFetchMeals = () => {
             } else {
                 setError(error.message || "Failed to fetch recipes")
             }
+            return []
         } finally {
             setLoading(false)
         }

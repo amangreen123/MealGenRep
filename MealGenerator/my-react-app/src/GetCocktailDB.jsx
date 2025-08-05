@@ -18,7 +18,8 @@ export const useTheCocktailDB = () => {
         if (cache.current[key]) {
             setCocktailDBDrinks(cache.current[key]);
             setLoading(false);
-            return;
+            
+            return cache.current[key]; 
         }
 
         setLoading(true);
@@ -32,7 +33,8 @@ export const useTheCocktailDB = () => {
                 setError(`No drinks found for ${key}`);
                 setCocktailDBDrinks([]);
                 cache.current[key] = [];
-                return;
+                
+                return [];
             }
 
             // Randomly select 5 drinks
@@ -52,6 +54,8 @@ export const useTheCocktailDB = () => {
 
             cache.current[key] = drinksWithDetails;
             setCocktailDBDrinks(drinksWithDetails);
+            
+            return drinksWithDetails;
 
         } catch (error) {
             setError(error.message || "Failed to fetch drinks");
