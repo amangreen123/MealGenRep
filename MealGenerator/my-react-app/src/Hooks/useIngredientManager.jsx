@@ -44,7 +44,7 @@ export default function useIngredientManager() {
                     continue;
                 }
 
-                const result = await getGaladrielResponse(ingredient, "validate");
+                const result = ingredient
                 
                 if (result.startsWith("Error:")) {
                     validationErrors.push(result)
@@ -89,11 +89,7 @@ export default function useIngredientManager() {
     };
     
     const removeIngredient = (ingredientToRemove) => {
-        setIngredients((prev) =>
-            prev.filter(
-                (ingredient) => ingredient.toLowerCase() !== ingredientToRemove.toLowerCase()
-            )
-        );    
+        setIngredients((prev) => prev.filter((i) => i !== ingredientToRemove));
     }
     
     const clearIngredients = () => {

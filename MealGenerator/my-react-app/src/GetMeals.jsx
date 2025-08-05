@@ -10,6 +10,8 @@ const useFetchMeals = () => {
     const apiKey = import.meta.env.VITE_API_KEY
 
     const getRecipes = async (ingredients, diet = "", options = {}) => {
+        console.log("✅ Spoonacular API called with:", ingredients);
+
         const { cookableOnly = false, strictMode = false, focusIngredient = null } = options
         const cacheKey = `${ingredients.join(",").toLowerCase()}_${diet}_${focusIngredient || "all"}`
 
@@ -48,7 +50,7 @@ const useFetchMeals = () => {
             }
 
             const response = await axios.get("https://api.spoonacular.com/recipes/complexSearch", { params })
-            
+            console.log("API Response:", response.data);
             
             // Process results with relevance filtering
             let results = response.data.results

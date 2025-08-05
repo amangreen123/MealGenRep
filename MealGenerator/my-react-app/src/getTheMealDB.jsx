@@ -14,6 +14,8 @@ export const useTheMealDB = () => {
     const getMealDBRecipes = async (ingredients) => {
         const mainIngredient = Array.isArray(ingredients) ? ingredients[0] : ingredients
         const key = mainIngredient.toLowerCase().trim()
+        
+        console.log("✅ MealDB API called with:", key)
 
         // Check cache first
         if (cache.current[key]) {
@@ -44,6 +46,7 @@ export const useTheMealDB = () => {
             }
 
             const results = response.data.meals
+            console.log("MealDB API Response:", results)
             
             cache.current[key] = results
             setMealDBRecipes(results)

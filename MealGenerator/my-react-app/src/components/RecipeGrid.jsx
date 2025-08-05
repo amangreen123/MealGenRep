@@ -5,6 +5,8 @@ import spooncularHelper from "@/API/Spooncular/spooncularHelper.jsx"
 
 export default  function RecipeGrid({ingredients, allRecipes, isSearching, onRecipeClick, loadingText}) {
 
+    console.log("📦 RecipeGrid received:", { allRecipes, ingredients, isSearching });
+
     return(
         <div
             className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 h-full flex flex-col">
