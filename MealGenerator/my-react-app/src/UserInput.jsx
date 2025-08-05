@@ -285,9 +285,9 @@ const UserInput = () => {
         })
     }
 
-    useEffect(() => {
-        console.log("🎯 UserInput received allRecipes:", allRecipes);
-    }, [allRecipes]);
+    // useEffect(() => {
+    //     console.log("🎯 UserInput received allRecipes:", allRecipes);
+    // }, [allRecipes]);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">

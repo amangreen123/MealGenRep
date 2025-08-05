@@ -7,10 +7,10 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
     const [apiLimitReached, setApiLimitReached] = useState(false)
     const [allRecipes, setAllRecipes] = useState([])
 
-    // Debug effect to log when allRecipes changes
-    useEffect(() => {
-        console.log("🎯 allRecipes state updated:", allRecipes);
-    }, [allRecipes]);
+    // // Debug effect to log when allRecipes changes
+    // useEffect(() => {
+    //     console.log("🎯 allRecipes state updated:", allRecipes);
+    // }, [allRecipes]);
 
     const searchRecipes = async ({ ingredients, selectedDiet, cookableOnly = false, strictMode = false, focusSearch = false, focusIngredient = null }) => {
         console.log("🔍 SEARCH STARTED with:", { ingredients, selectedDiet, cookableOnly, strictMode });
@@ -100,13 +100,13 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                         } else if (results && results.data && Array.isArray(results.data)) {
                             mealDBResults = results.data;
                         } else {
-               //             console.log("⚠️ MealDB results in unexpected format, treating as empty");
+               //console.log("⚠️ MealDB results in unexpected format, treating as empty");
                             mealDBResults = [];
                         }
 
-             //           console.log("✅ MealDB final processed count:", mealDBResults.length);
+                         //console.log("✅ MealDB final processed count:", mealDBResults.length);
                     } catch (error) {
-                //        console.error("❌ MealDB error:", error)
+                        //console.error("❌ MealDB error:", error)
                         otherAPIError = true
                     }
                 })(),
