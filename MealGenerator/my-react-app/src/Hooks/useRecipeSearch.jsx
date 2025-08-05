@@ -32,22 +32,22 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         let otherAPIError = false
 
         try {
-            console.log("🚀 Starting parallel API calls...");
+        //    console.log("🚀 Starting parallel API calls...");
 
             await Promise.all([
                 // Spoonacular API CALL
                 (async () => {
                     if (!apiLimitReached) {
                         try {
-                            console.log("📡 Calling Spoonacular API...");
+                  ///          console.log("📡 Calling Spoonacular API...");
                             const results = await getRecipes(ingredients, selectedDiet, {
                                 cookableOnly,
                                 strictMode,
                                 focusIngredient,
                             })
-                            console.log("✅ Spoonacular raw results TYPE:", typeof results);
-                            console.log("✅ Spoonacular raw results IS_ARRAY:", Array.isArray(results));
-                            console.log("✅ Spoonacular raw results DATA:", results);
+                  ///          console.log("✅ Spoonacular raw results TYPE:", typeof results);
+                 ///           console.log("✅ Spoonacular raw results IS_ARRAY:", Array.isArray(results));
+                  ///          console.log("✅ Spoonacular raw results DATA:", results);
 
                             // Handle different possible return formats
                             if (Array.isArray(results)) {
@@ -59,13 +59,13 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                             } else if (results && results.recipes && Array.isArray(results.recipes)) {
                                 spooncularResults = results.recipes;
                             } else {
-                                console.log("⚠️ Spoonacular results in unexpected format, treating as empty");
+                   //             console.log("⚠️ Spoonacular results in unexpected format, treating as empty");
                                 spooncularResults = [];
                             }
 
-                            console.log("✅ Spoonacular final processed count:", spooncularResults.length);
+                  //          console.log("✅ Spoonacular final processed count:", spooncularResults.length);
                         } catch (error) {
-                            console.error("❌ Spoonacular error:", error)
+                    //        console.error("❌ Spoonacular error:", error)
                             spoonacularError = true
                             const errorString = String(error)
                             if (
@@ -74,23 +74,23 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                                 errorString.includes("quota") ||
                                 errorString.includes("API limit")
                             ) {
-                                console.log("🚫 Setting API limit reached");
+                        //        console.log("🚫 Setting API limit reached");
                                 setApiLimitReached(true)
                             }
                         }
                     } else {
-                        console.log("⚠️ Spoonacular API limit reached, skipping");
+                    ///    console.log("⚠️ Spoonacular API limit reached, skipping");
                     }
                 })(),
 
                 // MealDB API CALL
                 (async () => {
                     try {
-                        console.log("📡 Calling MealDB API...");
+                       // console.log("📡 Calling MealDB API...");
                         const results = await getMealDBRecipes(ingredients)
-                        console.log("✅ MealDB raw results TYPE:", typeof results);
-                        console.log("✅ MealDB raw results IS_ARRAY:", Array.isArray(results));
-                        console.log("✅ MealDB raw results DATA:", results);
+                        // console.log("✅ MealDB raw results TYPE:", typeof results);
+                        // console.log("✅ MealDB raw results IS_ARRAY:", Array.isArray(results));
+                        // console.log("✅ MealDB raw results DATA:", results);
 
                         // Handle different possible return formats
                         if (Array.isArray(results)) {
@@ -100,13 +100,13 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                         } else if (results && results.data && Array.isArray(results.data)) {
                             mealDBResults = results.data;
                         } else {
-                            console.log("⚠️ MealDB results in unexpected format, treating as empty");
+               //             console.log("⚠️ MealDB results in unexpected format, treating as empty");
                             mealDBResults = [];
                         }
 
-                        console.log("✅ MealDB final processed count:", mealDBResults.length);
+             //           console.log("✅ MealDB final processed count:", mealDBResults.length);
                     } catch (error) {
-                        console.error("❌ MealDB error:", error)
+                //        console.error("❌ MealDB error:", error)
                         otherAPIError = true
                     }
                 })(),
@@ -114,11 +114,11 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 // Cocktail API CALL
                 (async () => {
                     try {
-                        console.log("📡 Calling CocktailDB API...");
+                       /// console.log("📡 Calling CocktailDB API...");
                         const results = await getCocktailDBDrinks(ingredients)
-                        console.log("✅ CocktailDB raw results TYPE:", typeof results);
-                        console.log("✅ CocktailDB raw results IS_ARRAY:", Array.isArray(results));
-                        console.log("✅ CocktailDB raw results DATA:", results);
+                        // console.log("✅ CocktailDB raw results TYPE:", typeof results);
+                        // console.log("✅ CocktailDB raw results IS_ARRAY:", Array.isArray(results));
+                        // console.log("✅ CocktailDB raw results DATA:", results);
 
                         // Handle different possible return formats
                         if (Array.isArray(results)) {
@@ -128,11 +128,11 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                         } else if (results && results.data && Array.isArray(results.data)) {
                             cocktailDBResults = results.data;
                         } else {
-                            console.log("⚠️ CocktailDB results in unexpected format, treating as empty");
+                   //         console.log("⚠️ CocktailDB results in unexpected format, treating as empty");
                             cocktailDBResults = [];
                         }
 
-                        console.log("✅ CocktailDB final processed count:", cocktailDBResults.length);
+               //         console.log("✅ CocktailDB final processed count:", cocktailDBResults.length);
                     } catch (error) {
                         console.error("❌ CocktailDB error:", error)
                         otherAPIError = true
@@ -140,16 +140,16 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 })(),
             ])
 
-            console.log("🔄 All API calls completed, combining results...");
-            console.log("📊 Results breakdown:", {
-                spoonacular: spooncularResults.length,
-                mealDB: mealDBResults.length,
-                cocktailDB: cocktailDBResults.length
-            });
+        //    console.log("🔄 All API calls completed, combining results...");
+        //     console.log("📊 Results breakdown:", {
+        //         spoonacular: spooncularResults.length,
+        //         mealDB: mealDBResults.length,
+        //         cocktailDB: cocktailDBResults.length
+        //     });
 
             // Combine all results
             const allResults = [...spooncularResults, ...mealDBResults, ...cocktailDBResults]
-            console.log("📊 Total combined results:", allResults.length);
+          //  console.log("📊 Total combined results:", allResults.length);
 
             // Add slugs to all recipes
             const recipesWithSlugs = allResults.map((recipe) => ({
@@ -157,7 +157,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
             }))
 
-            console.log("🏷️ Final recipes with slugs:", recipesWithSlugs.length);
+         //   console.log("🏷️ Final recipes with slugs:", recipesWithSlugs.length);
 
             // Set the final results
             setAllRecipes(recipesWithSlugs)
@@ -188,7 +188,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
             return;
         }
 
-        console.log("🔍 Starting category search for:", ingredient);
+      //  console.log("🔍 Starting category search for:", ingredient);
 
         setIsSearching(true)
         setErrorMessage("")
@@ -204,10 +204,10 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
 
         const updateResults = () => {
             requestsCompleted++
-            console.log(`📊 Category search progress: ${requestsCompleted}/${totalRequests}`);
+       //     console.log(`📊 Category search progress: ${requestsCompleted}/${totalRequests}`);
 
             if (requestsCompleted === totalRequests) {
-                console.log("🔄 All category search requests completed");
+          //      console.log("🔄 All category search requests completed");
 
                 const combinedRecipes = [
                     ...spoonacularResults,
@@ -215,12 +215,12 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                     ...cocktailResults,
                 ];
 
-                console.log("📊 Category search results:", {
-                    spoonacular: spoonacularResults.length,
-                    mealDB: mealDBResults.length,
-                    cocktailDB: cocktailResults.length,
-                    total: combinedRecipes.length
-                });
+          // //      console.log("📊 Category search results:", {
+          //           spoonacular: spoonacularResults.length,
+          //           mealDB: mealDBResults.length,
+          //           cocktailDB: cocktailResults.length,
+          //           total: combinedRecipes.length
+          //       });
 
                 const recipesWithSlugs = combinedRecipes.map((recipe) => ({
                     ...recipe,
@@ -240,7 +240,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         // MealDB request
         getMealDBRecipes([ingredient])
             .then((results) => {
-                console.log("✅ Category MealDB raw results:", results);
+           //     console.log("✅ Category MealDB raw results:", results);
                 if (Array.isArray(results)) {
                     mealDBResults = results;
                 } else if (results && Array.isArray(results.meals)) {
@@ -250,10 +250,10 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 } else {
                     mealDBResults = [];
                 }
-                console.log("✅ Category MealDB processed count:", mealDBResults.length);
+          //      console.log("✅ Category MealDB processed count:", mealDBResults.length);
             })
             .catch((error) => {
-                console.error("❌ Category MealDB error:", error);
+            //    console.error("❌ Category MealDB error:", error);
                 hasError = true;
             })
             .finally(updateResults);
@@ -261,7 +261,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         // CocktailDB request
         getCocktailDBDrinks([ingredient])
             .then((results) => {
-                console.log("✅ Category CocktailDB raw results:", results);
+             //   console.log("✅ Category CocktailDB raw results:", results);
                 if (Array.isArray(results)) {
                     cocktailResults = results;
                 } else if (results && Array.isArray(results.drinks)) {
@@ -271,7 +271,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                 } else {
                     cocktailResults = [];
                 }
-                console.log("✅ Category CocktailDB processed count:", cocktailResults.length);
+               // console.log("✅ Category CocktailDB processed count:", cocktailResults.length);
             })
             .catch((error) => {
                 console.error("❌ Category CocktailDB error:", error);
@@ -283,7 +283,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         if (!apiLimitReached) {
             getRecipes([ingredient])
                 .then((results) => {
-                    console.log("✅ Category Spoonacular raw results:", results);
+                   /// console.log("✅ Category Spoonacular raw results:", results);
                     if (Array.isArray(results)) {
                         spoonacularResults = results;
                     } else if (results && Array.isArray(results.results)) {
@@ -295,7 +295,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                     } else {
                         spoonacularResults = [];
                     }
-                    console.log("✅ Category Spoonacular processed count:", spoonacularResults.length);
+                   // console.log("✅ Category Spoonacular processed count:", spoonacularResults.length);
                 })
                 .catch((error) => {
                     console.error("❌ Category Spoonacular error:", error);
