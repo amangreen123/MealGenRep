@@ -40,7 +40,7 @@ export default function RandomSelectionRecipes({ onRecipeClick, setRandomRecipes
         <div className="mt-6 md:mt-8">
             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
                 <h3 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
-                    <span className="text-[#ce7c1c]">POPULAR</span> <span className="text-white">RECIPES</span>
+                    <span className="text-[#ce7c1c]">Random</span> <span className="text-white">RECIPES</span>
                 </h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

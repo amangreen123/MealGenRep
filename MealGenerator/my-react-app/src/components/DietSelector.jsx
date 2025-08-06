@@ -7,7 +7,7 @@ export default function DietSelector({ selectedDiet, setSelectedDiet }) {
                 <h2 className="text-2xl md:text-3xl font-bold mb-4 font-title text-center">
                     <span className="text-[#ce7c1c]">MY</span> <span className="text-white">DIET</span>
                 </h2>
-                <div className="flex flex-col space-y-2 md:space-y-3 flex-grow">
+                <div className="flex flex-col space-y-2 md:space-y-3 flex-grow ">
                     {["KETOGENIC", "PALEO", "GLUTEN FREE", "VEGAN", "VEGETARIAN"].map((diet, index) => {
                         const dietValue = diet.toLowerCase().replace(" ", "-")
                         return (
