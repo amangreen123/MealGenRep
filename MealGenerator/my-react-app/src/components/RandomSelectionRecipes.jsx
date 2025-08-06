@@ -3,11 +3,11 @@ import {slugify} from "@/utils/slugify.js"
 import {Card} from "@/components/ui/card.tsx";
 import {ChefHat} from "lucide-react";
 
-export default function RandomSelectionRecipes({onRecipeClick, setRandomRecipes}) {
 
-    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true);
-    const [localRecipes, setLocalRecipes] = useState([]); 
-    
+export default function RandomSelectionRecipes({ onRecipeClick, setRandomRecipes }) {
+    const [loadingRandomRecipes, setLoadingRandomRecipes] = useState(true)
+    const [localRecipes, setLocalRecipes] = useState([])
+
     // Fetch random recipes on initial load
     useEffect(() => {
         const fetchRandomRecipes = async () => {
@@ -25,7 +25,7 @@ export default function RandomSelectionRecipes({onRecipeClick, setRandomRecipes}
                         idMeal: recipe.idMeal,
                     }))
                     setRandomRecipes(recipesWithSlugs)
-                    setLocalRecipes(recipesWithSlugs);
+                    setLocalRecipes(recipesWithSlugs)
                 }
             } catch (error) {
                 console.error("Error fetching random recipes:", error)
@@ -35,7 +35,7 @@ export default function RandomSelectionRecipes({onRecipeClick, setRandomRecipes}
         }
         fetchRandomRecipes()
     }, [])
-    
+
     return (
         <div className="mt-6 md:mt-8">
             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
@@ -48,19 +48,21 @@ export default function RandomSelectionRecipes({onRecipeClick, setRandomRecipes}
                         <Card
                             key={recipe.idMeal}
                             onClick={() => onRecipeClick(recipe)}
-                            className="cursor-pointer hover:scale-[1.03] transition-all duration-300"
+                            className="cursor-pointer hover:scale-[1.03] transition-all duration-300 bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden hover:shadow-md hover:shadow-[#ce7c1c]/20"
                         >
                             <div className="p-2 md:p-3">
-                                <img
-                                    src={recipe.strMealThumb}
-                                    alt={recipe.strMeal}
-                                    className="w-full h-24 md:h-32 object-cover rounded-lg"
-                                    loading="lazy"
-                                />
-                                <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2">{recipe.strMeal}</h3>
+                                <div className="mb-2">
+                                    <img
+                                        src={recipe.strMealThumb || "/placeholder.svg"}
+                                        alt={recipe.strMeal}
+                                        className="w-full h-24 md:h-32 object-cover rounded-lg"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <h3 className="text-xs md:text-sm font-bold font-title line-clamp-2 mb-1">{recipe.strMeal}</h3>
                                 {recipe.strCategory && (
                                     <div className="flex items-center mt-1 text-[10px] md:text-xs text-gray-400">
-                                        <ChefHat className="h-3 w-3 mr-1 text-[#ce7c1c]"/>
+                                        <ChefHat className="h-3 w-3 mr-1 text-[#ce7c1c]" />
                                         <span className="font-terminal">{recipe.strCategory}</span>
                                     </div>
                                 )}
