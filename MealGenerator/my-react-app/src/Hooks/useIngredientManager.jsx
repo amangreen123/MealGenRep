@@ -37,7 +37,7 @@ export default function useIngredientManager() {
 
             for (const ingredient of uniqueInputs) {
                 
-                console.log("Ingredient received:", ingredient, typeof ingredient);
+                //console.log("Ingredient received:", ingredient, typeof ingredient);
                 const lower = typeof ingredient === "string" ? ingredient.toLowerCase() : "";
                 
                 if (existingLower.includes(lower)) {

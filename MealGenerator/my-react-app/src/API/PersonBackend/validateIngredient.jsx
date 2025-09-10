@@ -5,8 +5,7 @@
     }
     
     try {
-        
-        const response = await("http://localhost:5261/validate-ingredient", {
+        const response = await fetch("http://localhost:5261/validate-ingredient",  {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -20,7 +19,8 @@
         
         const data = await response.json();
         console.log("Validation response data:", data);
-        return data.validate || `Error: Invalid ingredient "${ingredient}"`;
+        
+        return data || `Error: "${ingredient}" is not a valid ingredient.`;
         
     } catch (error) {
         return `Error: ${error.message}`;
