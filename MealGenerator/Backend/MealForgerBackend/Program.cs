@@ -1,21 +1,24 @@
+using MealForgerBackend.Models;
+using MealForgerBackend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddHttpClient<DeepSeekService>();
+builder.Services.AddScoped<DeepSeekService>();
 
-// Build the app
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
+app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientRequest request) =>
 {
-    app.UseDeveloperExceptionPage();
-}
-
-app.UseHttpsRedirection();
-app.UseRouting();  // Move UseRouting after UseHttpsRedirection
-app.UseAuthorization();
-
-app.MapControllers();
+    if(string.IsNullOrWhiteSpace(request.Ingredient))
+    {
+        return Results.BadRequest("Ingredient cannot be empty.");
+    }
+    
+    var validated = await deepSeek.ValidateIngredientsAsync(request.Ingredient);
+    return Results.Ok(new { ValidatedIngredient = validated });
+});
 
 app.Run();
+
