@@ -1,5 +1,6 @@
 ﻿using MealForgerBackend.Models;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace MealForgerBackend.Services
 {
@@ -31,7 +32,7 @@ namespace MealForgerBackend.Services
                     new { role = "user", content = ingredients }
                 }
             };
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openrouter.ai/v1/chat/completions")
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
             {
                 Content = JsonContent.Create(payload)
             };
@@ -45,8 +46,10 @@ namespace MealForgerBackend.Services
                 throw new Exception("Failed to validate ingredient.");
             }
             
-            var result = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
-            return result?.choices[0].message.content.Trim() ?? "Error: invalid ingredient";
+            var raw = await response.Content.ReadAsStringAsync();
+            Console.WriteLine("🔍 OpenRouter raw response:\n" + raw);
+            var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
+            return result?.choices?[0]?.message?.content?.Trim() ?? "Error: invalid ingredient";
         }
     }
 }

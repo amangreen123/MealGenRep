@@ -1,6 +1,7 @@
 ﻿import {useState, useEffect} from "react";
 import UseLocalStorageState from "@/hooks/UseLocalStorageState";
 import { getGaladrielResponse } from "@/getGaladrielResponse.jsx"
+import {validateIngredient} from "@/API/PersonBackend/validateIngredient.jsx";
 
 
 export default function useIngredientManager() {
@@ -45,7 +46,8 @@ export default function useIngredientManager() {
                 }
                 
                 
-                const result = ingredient
+                const result = await validateIngredient(ingredient);
+                console.log("Validation result:", result);
                 
                 if (result.startsWith("Error:")) {
                     validationErrors.push(result)

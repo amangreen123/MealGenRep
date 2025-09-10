@@ -1,1 +1,9 @@
 ﻿GET http://localhost:5261/
+
+###
+POST http://localhost:5261/validate-ingredient
+Content-Type: application/json
+
+{
+  "Ingredient": "Beef"
+}

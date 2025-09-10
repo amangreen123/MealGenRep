@@ -15,9 +15,17 @@ app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientR
     {
         return Results.BadRequest("Ingredient cannot be empty.");
     }
+
+    try
+    {
+        var result = await deepSeek.ValidateIngredientsAsync(request.Ingredient);
+        return Results.Ok(result);
+    } catch(Exception ex)
+    {
+        Console.WriteLine("❌ Error validating ingredient: " + ex.Message);
+        return Results.StatusCode(500);
+    }
     
-    var validated = await deepSeek.ValidateIngredientsAsync(request.Ingredient);
-    return Results.Ok(new { ValidatedIngredient = validated });
 });
 
 app.Run();
