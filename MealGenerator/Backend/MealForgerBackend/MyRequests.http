@@ -7,3 +7,8 @@ Content-Type: application/json
 {
   "Ingredient": "Beef"
 }
+
+### Test Database Connection
+GET http://localhost:5261/api/test/db
+Accept: application/json
+###

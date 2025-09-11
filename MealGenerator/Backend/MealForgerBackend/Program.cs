@@ -1,8 +1,21 @@
+using Microsoft.EntityFrameworkCore;
 using MealForgerBackend.Models;
 using MealForgerBackend.Services;
+using MealForgerBackend.Data;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
+
+//DB Context
+builder.Services.AddDbContext<MealForgerContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MealForgerRecipes")));
+
+
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -13,6 +26,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+// DeepSeek Service
 builder.Services.AddHttpClient<DeepSeekService>();
 builder.Services.AddScoped<DeepSeekService>();
 
@@ -40,5 +54,7 @@ app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientR
     
 });
 
+app.MapControllers();
 app.Run();
+
 
