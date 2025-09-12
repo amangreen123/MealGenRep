@@ -35,7 +35,13 @@ namespace MealForgerBackend.Services
 
             foreach (var meal in response.Meals)
             {
-                if (await _db.Recipes.AnyAsync(r => r.ExternalId == meal.idMeal)) continue;
+                if (await _db.Recipes.AnyAsync(r => r.ExternalId == meal.idMeal))
+                {
+                    Console.WriteLine($"⏭️  Skipping existing recipe: {meal.strMeal}");
+                    continue;
+                }
+                   
+                Console.WriteLine($"➕ Processing: {meal.strMeal}");
 
                 var recipe = new Recipes
                 {
@@ -49,6 +55,8 @@ namespace MealForgerBackend.Services
                     IsDrink = false
                 };
 
+                var ingredientMeasures = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                
                 for (int i = 1; i <= 20; i++)
                 {
                     var ingredientName = meal.GetType().GetProperty($"strIngredient{i}")?.GetValue(meal)?.ToString();
@@ -58,6 +66,25 @@ namespace MealForgerBackend.Services
                     
                     ingredientName = ingredientName.Trim();
 
+                    if (!ingredientMeasures.ContainsKey(ingredientName))
+                    {
+                        ingredientMeasures[ingredientName] = new List<string>();
+                    }
+                    
+                    if(!string.IsNullOrWhiteSpace(measure))
+                    {
+                        ingredientMeasures[ingredientName].Add(measure.Trim());
+                    }
+                }
+                
+                //Process the combined ingredients
+                foreach (KeyValuePair<string, List<string>> ingredientEntry in ingredientMeasures)
+                {
+                    var ingredientName = ingredientEntry.Key;
+                    var measure = ingredientEntry.Value;
+                    
+                    var combinedMeasure = measure.Any() ? string.Join(" + ", measure) : string.Empty;
+                    
                     var existingIngredient = await _db.Ingredients
                         .FirstOrDefaultAsync(i => i.Name.ToLower() == ingredientName.ToLower());
 
@@ -71,8 +98,7 @@ namespace MealForgerBackend.Services
                     {
                         ingredient = new Ingredient { Name = ingredientName };
                         _db.Ingredients.Add(ingredient);
-
-
+                        
                         try
                         {
                             await _db.SaveChangesAsync();
@@ -87,7 +113,7 @@ namespace MealForgerBackend.Services
                     recipe.RecipeIngredients.Add(new RecipeIngredient
                     {
                         Ingredient = ingredient,
-                        Quantity = measure ?? string.Empty
+                        Quantity = combinedMeasure
                     });
                 }
                 
