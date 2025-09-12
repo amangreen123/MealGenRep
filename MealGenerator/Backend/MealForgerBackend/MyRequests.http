@@ -10,5 +10,11 @@ Content-Type: application/json
 
 ### Test Database Connection
 GET http://localhost:5261/api/test/db
+Accept: application/json 
+###
+ 
+### Seed MealDB Recipes
+POST http://localhost:5261/seed-mealdb
 Accept: application/json
+
 ###

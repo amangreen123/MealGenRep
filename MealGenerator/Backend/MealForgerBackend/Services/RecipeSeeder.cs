@@ -1,6 +1,7 @@
 ﻿using MealForgerBackend.Data;
 using MealForgerBackend.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Net.Http.Json;
 
 
@@ -22,7 +23,7 @@ namespace MealForgerBackend.Services
         public async Task SeedMealDbAsync()
         {
             var apiKey = _config["MealDbApiKey"];
-            var url = $"https://www.themealdb.com/api/json/v1/{apiKey}/search.php?s=";
+            var url = $"https://www.themealdb.com/api/json/v2/{apiKey}/search.php?s=";
             
             var response = await _http.GetFromJsonAsync<MealDbResponse>(url); 
             
@@ -50,18 +51,42 @@ namespace MealForgerBackend.Services
 
                 for (int i = 1; i <= 20; i++)
                 {
-                    var ingredient = meal.GetType().GetProperty($"strIngredient{i}")?.GetValue(meal)?.ToString();
+                    var ingredientName = meal.GetType().GetProperty($"strIngredient{i}")?.GetValue(meal)?.ToString();
                     var measure = meal.GetType().GetProperty($"strMeasure{i}")?.GetValue(meal)?.ToString();
                     
-                    if(string.IsNullOrWhiteSpace(ingredient)) continue;
+                    if(string.IsNullOrWhiteSpace(ingredientName)) continue;
                     
-                    var ing = await _db.Ingredients
-                        .FirstOrDefaultAsync(i => i.Name.ToLower() == ingredient.ToLower())
-                        ?? new Ingredient { Name = ingredient };
+                    ingredientName = ingredientName.Trim();
 
+                    var existingIngredient = await _db.Ingredients
+                        .FirstOrDefaultAsync(i => i.Name.ToLower() == ingredientName.ToLower());
+
+                    Ingredient ingredient;
+
+                    if (existingIngredient != null)
+                    {
+                        ingredient = existingIngredient;
+                    }
+                    else
+                    {
+                        ingredient = new Ingredient { Name = ingredientName };
+                        _db.Ingredients.Add(ingredient);
+
+
+                        try
+                        {
+                            await _db.SaveChangesAsync();
+                        }
+                        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+                        {
+                            _db.Entry(ingredient).State = EntityState.Detached;
+                            ingredient = await _db.Ingredients.FirstAsync(i => i.Name.ToLower() == ingredientName.ToLower());
+                        }
+                    }
+                    
                     recipe.RecipeIngredients.Add(new RecipeIngredient
                     {
-                        Ingredient = ing,
+                        Ingredient = ingredient,
                         Quantity = measure ?? string.Empty
                     });
                 }

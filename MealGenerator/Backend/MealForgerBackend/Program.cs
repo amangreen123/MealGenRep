@@ -30,6 +30,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpClient<DeepSeekService>();
 builder.Services.AddScoped<DeepSeekService>();
 
+// Recipe Seeder Service
+builder.Services.AddHttpClient<RecipeSeeder>();
+builder.Services.AddScoped<RecipeSeeder>();
+
 var app = builder.Build();
 
 app.UseCors();
@@ -52,6 +56,13 @@ app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientR
         return Results.StatusCode(500);
     }
     
+});
+
+// Seed MealDB Recipes
+app.MapPost("/seed-mealdb", async (RecipeSeeder seeder) =>
+{
+    await seeder.SeedMealDbAsync();
+    return Results.Ok("Seeding process completed.");
 });
 
 app.MapControllers();
