@@ -16,5 +16,9 @@ Accept: application/json
 ### Seed MealDB Recipes
 POST http://localhost:5261/seed-mealdb
 Accept: application/json
-
 ###
+
+### Get All Recipes
+POST http://localhost:5261/seed-cocktaildb
+Accept: application/json
+

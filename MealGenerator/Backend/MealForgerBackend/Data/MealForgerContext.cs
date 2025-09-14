@@ -11,6 +11,10 @@ namespace MealForgerBackend.Data
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
         
+        public DbSet<CockTails> CockTails { get; set; }
+        public DbSet<DrinkIngredient> DrinkIngredients { get; set; }
+        public DbSet<DrinkRecipeIngredient> DrinkRecipeIngredients { get; set; }
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Ingredient>()
@@ -28,6 +32,25 @@ namespace MealForgerBackend.Data
                 .HasOne(ri => ri.Ingredient)
                 .WithMany(i => i.RecipeIngredients)
                 .HasForeignKey(ri => ri.IngredientId);
+            
+            // Drink entities configuration
+            modelBuilder.Entity<DrinkIngredient>()
+                .HasIndex(di => di.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<DrinkRecipeIngredient>()
+                .HasKey(dri => new { dri.CockTailId, dri.DrinkIngredientId });
+            
+            modelBuilder.Entity<DrinkRecipeIngredient>()
+                .HasOne(dri => dri.CockTail)
+                .WithMany(c => c.DrinkRecipeIngredients)
+                .HasForeignKey(dri => dri.CockTailId);
+            
+            modelBuilder.Entity<DrinkRecipeIngredient>()
+                .HasOne(dri => dri.DrinkIngredient)
+                .WithMany(dri => dri.DrinkRecipeIngredients)
+                .HasForeignKey(dri => dri.DrinkIngredientId);
+
         }
     }
 }

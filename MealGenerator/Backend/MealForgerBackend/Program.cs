@@ -34,6 +34,10 @@ builder.Services.AddScoped<DeepSeekService>();
 builder.Services.AddHttpClient<RecipeSeeder>();
 builder.Services.AddScoped<RecipeSeeder>();
 
+// Cocktail Seeder Service
+builder.Services.AddHttpClient<CocktailSeeder>();
+builder.Services.AddScoped<CocktailSeeder>();
+
 var app = builder.Build();
 
 app.UseCors();
@@ -63,6 +67,22 @@ app.MapPost("/seed-mealdb", async (RecipeSeeder seeder) =>
 {
     await seeder.SeedMealDbAsync();
     return Results.Ok("Seeding process completed.");
+    
+});
+
+// Seed CocktailDB Recipes
+app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
+{
+    try
+    {
+        await seeder.SeedCocktailDbAsync();
+        return Results.Ok("Cocktail seeding completed.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error seeding cocktails: {ex.Message}");
+        return Results.StatusCode(500);
+    }
 });
 
 app.MapControllers();
