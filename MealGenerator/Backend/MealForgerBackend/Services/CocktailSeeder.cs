@@ -21,8 +21,9 @@ namespace MealForgerBackend.Services
         }
 
         public async Task SeedCocktailDbAsync()
-{
-    var apiKey = _config["CocktailDbApiKey"];
+    {
+    var apiKey = _config["COCKTAILDBAPIKEY"];
+
     var url = $"https://www.thecocktaildb.com/api/json/v2/{apiKey}/search.php?s=";
 
     var response = await _http.GetFromJsonAsync<CocktailDbResponse>(url);
@@ -36,14 +37,14 @@ namespace MealForgerBackend.Services
     foreach (var drink in response.Drinks)
     {
         // Check CockTails table, not Recipes
+
         if (await _db.CockTails.AnyAsync(c => c.Id == drink.idDrink))
         {
-            Console.WriteLine($"⏭️  Skipping existing cocktail: {drink.strDrink}");
+            Console.WriteLine($" ⏭️  Skipping existing cocktail: {drink.strDrink}");
             continue;
         }
-
         Console.WriteLine($"➕ Processing: {drink.strDrink}");
-
+       
         var drinkRecipe = new CockTails 
         {
              Id = drink.idDrink,
@@ -54,6 +55,9 @@ namespace MealForgerBackend.Services
              Instructions = drink.strInstructions,
              Thumbnail = drink.strDrinkThumb
         };
+        
+        _db.CockTails.Add(drinkRecipe);
+        await _db.SaveChangesAsync();
 
         var ingredientMeasures = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -93,7 +97,7 @@ namespace MealForgerBackend.Services
 
             DrinkIngredient ingredient;
 
-            if (existingIngredient != null) // ← Fixed: Added missing if
+            if (existingIngredient != null) 
             {
                 ingredient = existingIngredient;
             }
@@ -101,40 +105,36 @@ namespace MealForgerBackend.Services
             {
                 ingredient = new DrinkIngredient { Name = drinkIngredientName };
                 _db.DrinkIngredients.Add(ingredient);
-
+                
                 try
                 {
                     await _db.SaveChangesAsync();
-                    Console.WriteLine($"   ➕ Added new ingredient: {ingredient.Name}");
                 }
                 catch (DbUpdateException dbEx) when (dbEx.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
                 {
                     Console.WriteLine($" ⚠️  Ingredient already exists, fetching existing: {ingredient.Name}");
                     _db.Entry(ingredient).State = EntityState.Detached;
-                    ingredient = await _db.DrinkIngredients.FirstAsync(i =>
-                        i.Name.ToLower() == drinkIngredientName.ToLower());
+                    ingredient = await _db.DrinkIngredients.FirstOrDefaultAsync(i => i.Name.ToLower() == drinkIngredientName.ToLower());
                 }
             }
 
             var drinkRecipeIngredient = new DrinkRecipeIngredient
             {
-                CockTail = drinkRecipe,  
-                DrinkIngredient = ingredient,
+                CockTailId = drinkRecipe.Id,  
+                DrinkIngredientId = ingredient.Id,
                 Measure = combinedMeasure
             };
             
             
             _db.DrinkRecipeIngredients.Add(drinkRecipeIngredient);
+            await _db.SaveChangesAsync();
         }
-        
-        _db.CockTails.Add(drinkRecipe);
     }
-    
-    await _db.SaveChangesAsync();
+ 
     Console.WriteLine("✅ Cocktail seeding completed.");
+    
     }
-        
-        
+
     }
 
     public class CocktailDbResponse

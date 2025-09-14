@@ -75,13 +75,16 @@ app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
 {
     try
     {
+        Console.WriteLine("Starting cocktail seeding...");
         await seeder.SeedCocktailDbAsync();
         return Results.Ok("Cocktail seeding completed.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error seeding cocktails: {ex.Message}");
-        return Results.StatusCode(500);
+        Console.WriteLine($"ERROR: {ex.Message}");
+        Console.WriteLine($"INNER: {ex.InnerException?.Message}");
+        Console.WriteLine($"STACK: {ex.StackTrace}");
+        return Results.Problem($"Error: {ex.Message}");
     }
 });
 

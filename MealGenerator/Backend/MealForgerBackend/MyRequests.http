@@ -20,5 +20,5 @@ Accept: application/json
 
 ### Get All Recipes
 POST http://localhost:5261/seed-cocktaildb
-Accept: application/json
+Content-Type: application/json
 
