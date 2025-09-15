@@ -13,6 +13,7 @@ public class Recipes
     public string Instructions { get; set; }
     public string ImageUrl { get; set; }
     public bool IsDrink { get; set; }
+    
 
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
 }

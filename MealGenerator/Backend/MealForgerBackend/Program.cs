@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
+
 using MealForgerBackend.Models;
 using MealForgerBackend.Services;
 using MealForgerBackend.Data;
+using Microsoft.AspNetCore.Http.Json;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +28,11 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
+});
+
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; 
 });
 
 // DeepSeek Service
@@ -102,7 +109,6 @@ app.MapGet("/recipes-by-ingredients", async (MealForgerContext db, string ingred
     var ingredientList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                     .Select(i => i.Trim().ToLower())
                                     .ToList();
-
     if (!ingredientList.Any())
     {
         return Results.BadRequest("No valid ingredients provided.");
@@ -111,15 +117,16 @@ app.MapGet("/recipes-by-ingredients", async (MealForgerContext db, string ingred
     // Fetch recipes that contain all specified ingredients
     var recipes = await db.Recipes
         .Where(r => r.RecipeIngredients
-            .Select(ri => ri.Ingredient.Name.ToLower())
-            .Intersect(ingredientList)
-            .Count() == ingredientList.Count)
+            .Count(ri => ingredientList.Contains(ri.Ingredient.Name.ToLower())) == ingredientList.Count)
         .Include(r => r.RecipeIngredients)
-            .ThenInclude(ri => ri.Ingredient)
+        .ThenInclude(ri => ri.Ingredient)
         .ToListAsync();
 
     return Results.Ok(recipes);
 });
+
+
+
 
 // General Recipe Search
 app.MapGet("/search-recipes", async (MealForgerContext db, string query) =>
@@ -163,7 +170,13 @@ app.MapGet("/search-all", async (MealForgerContext db, string query) =>
     {
         return Results.BadRequest("Query parameter is required.");
     }
-
+    //edge cases 
+    if (query.Length < 2)
+    {
+        return Results.BadRequest("Query parameter must be at least 2 characters long.");
+    }
+    
+    
     var recipes = await db.Recipes
         .Where(r => EF.Functions.ILike(r.Title, $"%{query}%") ||
                     EF.Functions.ILike(r.Instructions, $"%{query}%") ||
