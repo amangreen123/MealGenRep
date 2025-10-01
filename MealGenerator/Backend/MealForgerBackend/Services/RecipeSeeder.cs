@@ -32,7 +32,7 @@ namespace MealForgerBackend.Services
                 Console.WriteLine("❌ No meals found in the API response.");
                 return;
             }
-
+            
             foreach (var meal in response.Meals)
             {
                 if (await _db.Recipes.AnyAsync(r => r.ExternalId == meal.idMeal))
@@ -77,6 +77,17 @@ namespace MealForgerBackend.Services
                     }
                 }
                 
+                var ingredientList = string.Join(", ", ingredientMeasures.Keys);
+                
+                //Classify the diets
+                var dietInfo = await new DeepSeekService(_http, _config).ClassifyAllDietsAsync(ingredientList);
+                recipe.IsVegan = dietInfo.IsVegan;
+                recipe.IsVegetarian = dietInfo.IsVegetarian;
+                recipe.IsGlutenFree = dietInfo.IsGlutenFree;
+                recipe.IsKeto = dietInfo.IsKeto;
+                recipe.IsPaleo = dietInfo.IsPaleo;
+                
+                
                 //Process the combined ingredients
                 foreach (KeyValuePair<string, List<string>> ingredientEntry in ingredientMeasures)
                 {
@@ -89,6 +100,7 @@ namespace MealForgerBackend.Services
                         .FirstOrDefaultAsync(i => i.Name.ToLower() == ingredientName.ToLower());
 
                     Ingredient ingredient;
+                    
 
                     if (existingIngredient != null)
                     {

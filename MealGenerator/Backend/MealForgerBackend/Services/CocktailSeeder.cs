@@ -36,7 +36,6 @@ namespace MealForgerBackend.Services
 
     foreach (var drink in response.Drinks)
     {
-        // Check CockTails table, not Recipes
 
         if (await _db.CockTails.AnyAsync(c => c.Id == drink.idDrink))
         {
@@ -60,8 +59,7 @@ namespace MealForgerBackend.Services
         await _db.SaveChangesAsync();
 
         var ingredientMeasures = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
-        // Your ingredient collection logic is fine...
+        
         for (int i = 1; i <= 15; i++)
         {
             var drinkIngredientName = drink.GetType().GetProperty($"strIngredient{i}")?.GetValue(drink)?.ToString();
@@ -81,6 +79,16 @@ namespace MealForgerBackend.Services
                 ingredientMeasures[drinkIngredientName].Add(drinkIngredientMeasure.Trim());
             }
         }
+        
+        var ingredientList = string.Join(", ", ingredientMeasures.Keys);
+        
+        var dietInfo = await new DeepSeekService(_http, _config).ClassifyAllDietsAsync(ingredientList);
+        drinkRecipe.IsVegan = dietInfo.IsVegan;
+        drinkRecipe.IsVegetarian = dietInfo.IsVegetarian;
+        drinkRecipe.IsGlutenFree = dietInfo.IsGlutenFree;
+        drinkRecipe.IsKeto = dietInfo.IsKeto;
+        drinkRecipe.IsPaleo = dietInfo.IsPaleo;
+        
 
         foreach (KeyValuePair<string, List<string>> drinkIngredientEntry in ingredientMeasures)
         {
@@ -117,7 +125,9 @@ namespace MealForgerBackend.Services
                     ingredient = await _db.DrinkIngredients.FirstOrDefaultAsync(i => i.Name.ToLower() == drinkIngredientName.ToLower());
                 }
             }
+            
 
+            
             var drinkRecipeIngredient = new DrinkRecipeIngredient
             {
                 CockTailId = drinkRecipe.Id,  

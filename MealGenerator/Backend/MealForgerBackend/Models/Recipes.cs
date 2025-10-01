@@ -14,7 +14,12 @@ public class Recipes
     public string ImageUrl { get; set; }
     public bool IsDrink { get; set; }
     
-
+    public bool IsVegan { get; set; }
+    public bool IsVegetarian { get; set; }
+    public bool IsGlutenFree { get; set; }
+    public bool IsKeto { get; set; }
+    public bool IsPaleo { get; set; }
+    
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
 }
 

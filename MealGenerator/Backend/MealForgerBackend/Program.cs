@@ -99,33 +99,37 @@ app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
 });
 
 //Exact Search Recipes by Ingredients
-app.MapGet("/recipes-by-ingredients", async (MealForgerContext db, string ingredients ) =>
+app.MapGet("/recipes-by-ingredients", async (MealForgerContext db, string ingredients) =>
 {
     if (string.IsNullOrWhiteSpace(ingredients))
-    {
         return Results.BadRequest("Ingredients parameter is required.");
-    }
 
     var ingredientList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(i => i.Trim().ToLower())
-                                    .ToList();
-    if (!ingredientList.Any())
-    {
-        return Results.BadRequest("No valid ingredients provided.");
-    }
+        .Select(i => i.Trim().ToLower())
+        .ToList();
 
-    // Fetch recipes that contain all specified ingredients
+    if (!ingredientList.Any())
+        return Results.BadRequest("No valid ingredients provided.");
+
+    // Find recipes that contain ALL the specified ingredient names (EXACT match)
     var recipes = await db.Recipes
-        .Where(r => r.RecipeIngredients
-            .Count(ri => ingredientList.Contains(ri.Ingredient.Name.ToLower())) == ingredientList.Count)
-        .Include(r => r.RecipeIngredients)
-        .ThenInclude(ri => ri.Ingredient)
+        .Where(r => ingredientList.All(searchIngredient => 
+            r.RecipeIngredients.Any(ri => 
+                ri.Ingredient.Name.ToLower() == searchIngredient)))
+        .Select(r => new
+        {
+            idMeal = r.ExternalId,
+            strMeal = r.Title,
+            strMealThumb = r.ImageUrl,
+            strCategory = r.Category,
+            slug = r.Title.ToLower()
+                .Replace(" ", "-")
+                .Replace("'", "")
+        })
         .ToListAsync();
 
-    return Results.Ok(recipes);
+    return Results.Ok(new { meals = recipes });
 });
-
-
 
 
 // General Recipe Search
@@ -146,6 +150,8 @@ app.MapGet("/search-recipes", async (MealForgerContext db, string query) =>
 
     return Results.Ok(recipes);
 });
+
+
 
 // Cocktail Only Search
 app.MapGet("/search-cocktails", async (MealForgerContext db, string query) =>
@@ -170,7 +176,6 @@ app.MapGet("/search-all", async (MealForgerContext db, string query) =>
     {
         return Results.BadRequest("Query parameter is required.");
     }
-    //edge cases 
     if (query.Length < 2)
     {
         return Results.BadRequest("Query parameter must be at least 2 characters long.");
@@ -193,6 +198,87 @@ app.MapGet("/search-all", async (MealForgerContext db, string query) =>
         .ToListAsync();
 
     return Results.Ok(new { Recipes = recipes, Cocktails = cocktails });
+});
+
+// Get Recipe Details by External ID
+app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
+{
+    var recipe = await db.Recipes
+        .Where(r => r.ExternalId == id)
+        .Include(r => r.RecipeIngredients)
+        .ThenInclude(ri => ri.Ingredient)
+        .FirstOrDefaultAsync();
+
+    if (recipe == null)
+        return Results.NotFound();
+
+    // Create the ingredient/measure pairs like TheMealDB API
+    var ingredients = recipe.RecipeIngredients.ToList();
+
+    var response = new Dictionary<string, object?>
+    {
+        ["idMeal"] = recipe.ExternalId,
+        ["strMeal"] = recipe.Title,
+        ["strMealAlternate"] = null,
+        ["strCategory"] = recipe.Category,
+        ["strArea"] = recipe.Area,
+        ["strInstructions"] = recipe.Instructions,
+        ["strMealThumb"] = recipe.ImageUrl,
+        ["strTags"] = null,
+        ["strYoutube"] = null,
+        ["strSource"] = null,
+        ["strImageSource"] = null,
+        ["strCreativeCommonsConfirmed"] = null,
+        ["dateModified"] = null
+    };
+
+    for (int i = 0; i < 20; i++)
+    {
+        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].Ingredient.Name : "";
+        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Quantity : "";
+    }
+    
+    return Results.Ok(new { meals = new[] { response } });
+});
+
+// Get Cocktail Details by External ID
+app.Map("/cocktail/{id}", async (MealForgerContext db, string id) =>
+{
+    var cocktail = await db.CockTails
+        .Where(c => c.Id == id)
+        .Include(c => c.DrinkRecipeIngredients)
+        .ThenInclude(dri => dri.DrinkIngredient)
+        .FirstOrDefaultAsync();
+    
+    if (cocktail == null)
+        return Results.NotFound();
+    
+    var ingredients = cocktail.DrinkRecipeIngredients.ToList();
+    
+    var response = new Dictionary<string, object?>
+    {
+        ["idDrink"] = cocktail.Id,
+        ["strDrink"] = cocktail.Name,
+        ["strDrinkAlternate"] = null,
+        ["strCategory"] = cocktail.Category,
+        ["strAlcoholic"] = cocktail.Alcoholic,
+        ["strGlass"] = cocktail.Glass,
+        ["strInstructions"] = cocktail.Instructions,
+        ["strDrinkThumb"] = cocktail.Thumbnail,
+        ["strTags"] = null,
+        ["strVideo"] = null,
+        ["strIBA"] = null,
+        ["strCreativeCommonsConfirmed"] = null,
+        ["dateModified"] = null
+    };
+    
+    for (int i = 0; i < 15; i++)
+    {
+        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].DrinkIngredient.Name : "";
+        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Measure : "";
+    }
+    
+    return Results.Ok(new { drinks = new[] { response } });
 });
 
 
