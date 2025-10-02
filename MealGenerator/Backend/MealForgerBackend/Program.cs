@@ -302,8 +302,10 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
     if (recipe == null)
         return Results.NotFound();
 
+    var ingredients = recipe.RecipeIngredients.ToList();
+
     // Create the ingredient/measure pairs like TheMealDB API
-    var ingredients = recipe.RecipeIngredients
+    var ingredientsList = recipe.RecipeIngredients
         .Select(ri => new IngredientWithMeasure
         {
             Name = ri.Ingredient.Name,
@@ -311,7 +313,7 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
         })
         .ToList();
     
-    var nutrition = await deepSeek.CalculateNutritionAsync(ingredients);
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList);
 
     var response = new Dictionary<string, object?>
     {
@@ -329,12 +331,37 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
         ["strCreativeCommonsConfirmed"] = null,
         ["dateModified"] = null
         ,["nutrition"] = nutrition,
-        ["ingredients"] = recipe.RecipeIngredients.Select(ri => new
+      
+        ["isVegan"] = recipe.IsVegan,
+        ["isVegetarian"] = recipe.IsVegetarian,
+        ["isKeto"] = recipe.IsKeto,
+        ["isGlutenFree"] = recipe.IsGlutenFree,
+        ["isPaleo"] = recipe.IsPaleo,
+        
+        ["nutrtion"] = new
         {
-            name = ri.Ingredient.Name,
-            measure = ri.Quantity
-        }).ToList()
+            total = nutrition,
+            perServing = new
+            {
+                calories = nutrition.Calories / 4,
+                protein = Math.Round(nutrition.Protein / 4, 1),
+                carbs = Math.Round(nutrition.Carbohydrates / 4, 1),
+                fat = Math.Round(nutrition.Fat / 4, 1),
+                fiber = Math.Round(nutrition.Fiber / 4, 1),
+                sugar = Math.Round(nutrition.Sugar / 4, 1),
+                sodium = Math.Round(nutrition.Sodium / 4, 1)
+            },
+            
+            servings = 4
+        }
     };
+    
+    // Add ingredients and measures dynamically
+    for (int i = 0; i < ingredients.Count; i++)
+    {
+        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].Ingredient.Name : "";
+        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Quantity : "";
+    }
     
     return Results.Ok(new { meals = new[] { response } });
 });
@@ -352,8 +379,10 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
     
     if (cocktail == null)
         return Results.NotFound();
+    
+    var ingredients = cocktail.DrinkRecipeIngredients.ToList();
 
-    var ingredients = cocktail.DrinkRecipeIngredients
+    var ingredientsList = cocktail.DrinkRecipeIngredients
         .Select(dri => new IngredientWithMeasure
         {
             Name = dri.DrinkIngredient.Name,
@@ -361,7 +390,7 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
         })
         .ToList();
     
-    var nutrition = await deepSeek.CalculateNutritionAsync(ingredients);
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList);
     
     var response = new Dictionary<string, object?>
     {
@@ -378,13 +407,20 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
         ["strIBA"] = null,
         ["strCreativeCommonsConfirmed"] = null,
         ["dateModified"] = null,
-        ["nutrition"] = nutrition,
-        ["ingredients"] = cocktail.DrinkRecipeIngredients.Select(dri => new
+        ["nutrition"] = new
         {
-            name = dri.DrinkIngredient.Name,
-            measure = dri.Measure
-        }).ToList()
+            total = nutrition,
+            perServing = nutrition,
+            servings = 1
+        }
+        
     };
+    
+    for (int i = 0; i < ingredients.Count; i++)
+    {
+        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].DrinkIngredient.Name : "";
+        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Measure : "";
+    }
     
     return Results.Ok(new { drinks = new[] { response } });
 });
