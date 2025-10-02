@@ -98,107 +98,197 @@ app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
     }
 });
 
-//Exact Search Recipes by Ingredients
-app.MapGet("/recipes-by-ingredients", async (MealForgerContext db, string ingredients) =>
+//Search Recipes by Ingredients
+app.MapGet("/general-recipes-search", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50) =>
+{
+    if(string.IsNullOrWhiteSpace(ingredients))
+    {
+        return Results.BadRequest("Ingredients parameter is required.");
+    }
+    
+    var ingredientList = ingredients.Split(',' , StringSplitOptions.RemoveEmptyEntries)
+        .Select(i => i.Trim().ToLower())
+        .ToList();
+    
+    if(!ingredients.Any())
+    {
+        return Results.BadRequest("At least one ingredient is required.");
+    }
+    
+    var allRecipes = await db.Recipes
+        .Include(r => r.RecipeIngredients)
+        .ThenInclude(ri => ri.Ingredient)
+        .ToListAsync();
+    
+    var scoredRecipes = allRecipes.Select(r => new
+        {
+            Recipe = r,
+            MatchCount = ingredientList.Count(userIng =>
+                r.RecipeIngredients.Any(ri => ri.Ingredient.Name.ToLower().Contains(userIng))),
+            TotalIngredients = r.RecipeIngredients.Count,
+            MissingCount = r.RecipeIngredients.Count(ri =>
+                !ingredientList.Any(userIng => ri.Ingredient.Name.ToLower().Contains(userIng)))
+        })
+        .Where(x => x.MatchCount > 0)
+        .Where(x => string.IsNullOrEmpty(diet) || diet.ToLower().Replace("-", "").Replace(" ", "") switch
+        {
+            "vegan" => x.Recipe.IsVegan,
+            "vegetarian" => x.Recipe.IsVegetarian,
+            "keto" => x.Recipe.IsKeto,
+            "glutenfree" => x.Recipe.IsGlutenFree,
+            "paleo" => x.Recipe.IsPaleo,
+            _ => true
+        })
+        .Select(x => new {
+            idMeal = x.Recipe.ExternalId,
+            strMeal = x.Recipe.Title,
+            strMealThumb = x.Recipe.ImageUrl,
+            strCategory = x.Recipe.Category,
+            strArea = x.Recipe.Area,
+            matchScore = x.MatchCount,
+            totalIngredients = x.TotalIngredients,
+            missingIngredients = x.MissingCount,
+            matchPercentage = Math.Round((double)x.MatchCount / ingredientList.Count * 100, 1),
+            canCook = x.MissingCount == 0,
+            score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 20 : 0) - (x.MissingCount * 2),
+            isVegan = x.Recipe.IsVegan,
+            isVegetarian = x.Recipe.IsVegetarian,
+            isKetogenic = x.Recipe.IsKeto,
+            isGlutenFree = x.Recipe.IsGlutenFree,
+            isPaleo = x.Recipe.IsPaleo,
+            slug = x.Recipe.Title.ToLower().Replace(" ", "-").Replace("'", "")
+        })
+        .OrderByDescending(x => x.score)
+        .Take(maxResults)
+        .ToList();
+
+    return Results.Ok(new { meals = scoredRecipes });
+});
+
+//Cocktail Search By Ingredients
+app.MapGet("/general-cocktails-search", async (MealForgerContext db, string ingredients, int maxResults = 50) =>
 {
     if (string.IsNullOrWhiteSpace(ingredients))
+    {
         return Results.BadRequest("Ingredients parameter is required.");
+    }
 
     var ingredientList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(i => i.Trim().ToLower())
         .ToList();
 
-    if (!ingredientList.Any())
-        return Results.BadRequest("No valid ingredients provided.");
-
-    // Find recipes that contain ALL the specified ingredient names (EXACT match)
-    var recipes = await db.Recipes
-        .Where(r => ingredientList.All(searchIngredient => 
-            r.RecipeIngredients.Any(ri => 
-                ri.Ingredient.Name.ToLower() == searchIngredient)))
-        .Select(r => new
-        {
-            idMeal = r.ExternalId,
-            strMeal = r.Title,
-            strMealThumb = r.ImageUrl,
-            strCategory = r.Category,
-            slug = r.Title.ToLower()
-                .Replace(" ", "-")
-                .Replace("'", "")
-        })
-        .ToListAsync();
-
-    return Results.Ok(new { meals = recipes });
-});
-
-
-// General Recipe Search
-app.MapGet("/search-recipes", async (MealForgerContext db, string query) =>
-{
-    if (string.IsNullOrWhiteSpace(query))
+    if (!ingredients.Any())
     {
-        return Results.BadRequest("Query parameter is required.");
+        return Results.BadRequest("At least one ingredient is required.");
     }
 
-    var recipes = await db.Recipes
-        .Where(r => EF.Functions.ILike(r.Title, $"%{query}%") ||
-                    EF.Functions.ILike(r.Instructions, $"%{query}%") ||
-                    r.RecipeIngredients.Any(ri => EF.Functions.ILike(ri.Ingredient.Name, $"%{query}%")))
-        .Include(r => r.RecipeIngredients)
-        .ThenInclude(ri => ri.Ingredient)
-        .ToListAsync();
-
-    return Results.Ok(recipes);
-});
-
-
-
-// Cocktail Only Search
-app.MapGet("/search-cocktails", async (MealForgerContext db, string query) =>
-{
-    if (string.IsNullOrWhiteSpace(query))
-    {
-        return Results.BadRequest("Query parameter is required.");
-    }
-    var cocktails = await db.CockTails
-        .Where(c => EF.Functions.ILike(c.Name, $"%{query}%") ||
-                    c.DrinkRecipeIngredients.Any(dri => EF.Functions.ILike(dri.DrinkIngredient.Name, $"%{query}%")))
+    var allCocktails = await db.CockTails
         .Include(c => c.DrinkRecipeIngredients)
         .ThenInclude(dri => dri.DrinkIngredient)
         .ToListAsync();
-    return Results.Ok(cocktails);
+
+    var scoredCocktails = allCocktails.Select(c => new
+        {
+            Cocktail = c,
+            MatchCount = ingredientList.Count(userIng =>
+                c.DrinkRecipeIngredients.Any(dri => dri.DrinkIngredient.Name.ToLower().Contains(userIng))),
+            TotalIngredients = c.DrinkRecipeIngredients.Count,
+            MissingCount = c.DrinkRecipeIngredients.Count(dri =>
+                !ingredientList.Any(userIng => dri.DrinkIngredient.Name.ToLower().Contains(userIng)))
+        })
+        .Where(x => x.MatchCount > 0)
+        .Select(x => new
+        {
+            idDrink = x.Cocktail.Id,
+            strDrink = x.Cocktail.Name,
+            strDrinkThumb = x.Cocktail.Thumbnail,
+            strCategory = x.Cocktail.Category,
+            strAlcoholic = x.Cocktail.Alcoholic,
+            strGlass = x.Cocktail.Glass,
+            matchScore = x.MatchCount,
+            totalIngredients = x.TotalIngredients,
+            missingIngredients = x.MissingCount,
+            matchPercentage = Math.Round((double)x.MatchCount / ingredientList.Count * 100, 1),
+            canMake = x.MissingCount == 0,
+            score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 20 : 0) - (x.MissingCount * 2),
+            slug = x.Cocktail.Name.ToLower().Replace(" ", "-").Replace("'", "")
+        })
+        .OrderByDescending(x => x.score)
+        .Take(maxResults)
+        .ToList();
+
+    return Results.Ok(new { drinks = scoredCocktails });
 });
 
 // Both Recipes and Cocktails Search
-app.MapGet("/search-all", async (MealForgerContext db, string query) =>
+app.MapGet("/search-all", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50 ) =>
 {
-    if (string.IsNullOrWhiteSpace(query))
+    if(string.IsNullOrWhiteSpace(ingredients))
     {
-        return Results.BadRequest("Query parameter is required.");
-    }
-    if (query.Length < 2)
-    {
-        return Results.BadRequest("Query parameter must be at least 2 characters long.");
+        return Results.BadRequest("Ingredients parameter is required.");
     }
     
+    if(!ingredients.Any())
+    {
+        return Results.BadRequest("At least one ingredient is required.");
+    }
     
-    var recipes = await db.Recipes
-        .Where(r => EF.Functions.ILike(r.Title, $"%{query}%") ||
-                    EF.Functions.ILike(r.Instructions, $"%{query}%") ||
-                    r.RecipeIngredients.Any(ri => EF.Functions.ILike(ri.Ingredient.Name, $"%{query}%")))
+    var ingredientsList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(i => i.Trim().ToLower())
+        .ToList();
+    
+    var allRecipes = await db.Recipes
         .Include(r => r.RecipeIngredients)
         .ThenInclude(ri => ri.Ingredient)
         .ToListAsync();
 
-    var cocktails = await db.CockTails
-        .Where(c => EF.Functions.ILike(c.Name, $"%{query}%") ||
-                    c.DrinkRecipeIngredients.Any(dri => EF.Functions.ILike(dri.DrinkIngredient.Name, $"%{query}%")))
-        .Include(c => c.DrinkRecipeIngredients)
-        .ThenInclude(dri => dri.DrinkIngredient)
-        .ToListAsync();
-
-    return Results.Ok(new { Recipes = recipes, Cocktails = cocktails });
+    var scoredRecipes = allRecipes
+        .Select(r => new
+        {
+            Recipe = r,
+            MatchCount = ingredientsList.Count(userIng =>
+                r.RecipeIngredients.Any(ri => ri.Ingredient.Name.ToLower().Contains(userIng))),
+            TotalIngredients = r.RecipeIngredients.Count,
+            MissingCount = r.RecipeIngredients.Count(ri =>
+                !ingredientsList.Any(userIng => ri.Ingredient.Name.ToLower().Contains(userIng)))
+        })
+        .Where(x => x.MatchCount > 0)
+        .Where(x => string.IsNullOrEmpty(diet) || diet.ToLower().Replace("-", "").Replace(" ", "") switch
+        {
+            "vegan" => x.Recipe.IsVegan,
+            "vegetarian" => x.Recipe.IsVegetarian,
+            "keto" => x.Recipe.IsKeto,
+            "glutenfree" => x.Recipe.IsGlutenFree,
+            "paleo" => x.Recipe.IsPaleo,
+            _ => true
+        })
+        .Select(x => new
+        {
+            idMeal = x.Recipe.ExternalId,
+            strMeal = x.Recipe.Title,
+            strMealThumb = x.Recipe.ImageUrl,
+            strCategory = x.Recipe.Category,
+            strArea = x.Recipe.Area,
+            matchScore = x.MatchCount,
+            totalIngredients = x.TotalIngredients,
+            missingIngredients = x.MissingCount,
+            matchPercentage = Math.Round((double)x.MatchCount / ingredientsList.Count * 100, 1),
+            canCook = x.MissingCount == 0,
+            score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 20 : 0) - (x.MissingCount * 2),
+            isVegan = x.Recipe.IsVegan,
+            isVegetarian = x.Recipe.IsVegetarian,
+            isKetogenic = x.Recipe.IsKeto,
+            isGlutenFree = x.Recipe.IsGlutenFree,
+            isPaleo = x.Recipe.IsPaleo,
+            slug = x.Recipe.Title.ToLower().Replace(" ", "-").Replace("'", "")
+        })
+        .OrderByDescending(x => x.score)
+        .Take(maxResults)
+        .ToList();
+    return Results.Ok(new { meals = scoredRecipes });
 });
+
+
 
 // Get Recipe Details by External ID
 app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
@@ -240,6 +330,8 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
     
     return Results.Ok(new { meals = new[] { response } });
 });
+
+
 
 // Get Cocktail Details by External ID
 app.Map("/cocktail/{id}", async (MealForgerContext db, string id) =>
