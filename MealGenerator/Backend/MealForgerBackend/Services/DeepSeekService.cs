@@ -121,7 +121,7 @@ namespace MealForgerBackend.Services
                     IsGlutenFree = content.Contains("GlutenFree: YES", StringComparison.OrdinalIgnoreCase),
                     IsPaleo = content.Contains("Paleo: YES", StringComparison.OrdinalIgnoreCase)
                 };
-                
+
                 return classification;
 
             }
@@ -131,8 +131,86 @@ namespace MealForgerBackend.Services
                 return new DietClassification();
             }
         }
+        
+        public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients)
+        {
+            var ingredientText = string.Join("\n", ingredients.Select(i => $"{i.Measure}  {i.Name}"));
+
+            var payload = new
+            {
+                model = "deepseek/deepseek-chat-v3.1:free",
+
+                message = new[]
+                {
+                    new
+                    {
+                        role = "system",
+                        content =
+                            "You are a nutrition expert. Calculate accurate nutritional information for recipes.\n\n" +
+                            "Respond in this EXACT JSON format:\n" +
+                            "{\n" +
+                            "  \"calories\": number,\n" +
+                            "  \"protein\": number,\n" +
+                            "  \"carbs\": number,\n" +
+                            "  \"fat\": number,\n" +
+                            "  \"fiber\": number,\n" +
+                            "  \"sugar\": number,\n" +
+                            "  \"sodium\": number\n" +
+                            "}\n\n" +
+                            "All values in grams except calories (kcal) and sodium (mg).\n" +
+                            "Use USDA food database knowledge for accuracy.\n" +
+                            "Consider the MEASURE (cup, tablespoon, ounce, etc.) carefully.\n" +
+                            "Return ONLY valid JSON, no explanation."
+                    },
+                    new
+                    {
+                        role = "user",
+                        content = $"Calculate nutrition for these ingredients:\n{ingredientText}"
+                    }
+                }
+            };
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+            {
+                Content = JsonContent.Create(payload)
+            };
+
+            request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
+
+            try
+            {
+                var response = await _http.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("⚠️ Nutrition calculation API call failed");
+                    return new NutritionData();
+                }
+                var raw = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
+                var content = result?.choices?[0]?.message?.content?.Trim() ?? "{}";
+
+                content = content.Replace("```json", "").Replace("```", "").Trim();
+                
+                Console.WriteLine("🔍 OpenRouter nutrition response:\n" + content);
+                
+                var nutrition = JsonSerializer.Deserialize<NutritionData>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                return nutrition ?? new NutritionData();
+                
+            } catch (Exception ex) {
+                Console.WriteLine("❌ Error calculating nutrition: " + ex.Message);
+                return new NutritionData();
+            }
+        }
     }
 }
+
+
+
     
     
         
