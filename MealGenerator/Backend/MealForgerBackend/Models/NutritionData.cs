@@ -3,7 +3,6 @@
     
     public class NutritionData
     {
-        public string Name { get; set; } = string.Empty;
         public int Calories { get; set; }
         public float Protein { get; set; }
         public float Carbohydrates { get; set; }

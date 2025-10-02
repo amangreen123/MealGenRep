@@ -291,7 +291,7 @@ app.MapGet("/search-all", async (MealForgerContext db, string ingredients, strin
 
 
 // Get Recipe Details by External ID
-app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
+app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek, string id) =>
 {
     var recipe = await db.Recipes
         .Where(r => r.ExternalId == id)
@@ -303,7 +303,15 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
         return Results.NotFound();
 
     // Create the ingredient/measure pairs like TheMealDB API
-    var ingredients = recipe.RecipeIngredients.ToList();
+    var ingredients = recipe.RecipeIngredients
+        .Select(ri => new IngredientWithMeasure
+        {
+            Name = ri.Ingredient.Name,
+            Measure = ri.Quantity
+        })
+        .ToList();
+    
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredients);
 
     var response = new Dictionary<string, object?>
     {
@@ -320,13 +328,13 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
         ["strImageSource"] = null,
         ["strCreativeCommonsConfirmed"] = null,
         ["dateModified"] = null
+        ,["nutrition"] = nutrition,
+        ["ingredients"] = recipe.RecipeIngredients.Select(ri => new
+        {
+            name = ri.Ingredient.Name,
+            measure = ri.Quantity
+        }).ToList()
     };
-
-    for (int i = 0; i < 20; i++)
-    {
-        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].Ingredient.Name : "";
-        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Quantity : "";
-    }
     
     return Results.Ok(new { meals = new[] { response } });
 });
@@ -334,7 +342,7 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, string id) =>
 
 
 // Get Cocktail Details by External ID
-app.Map("/cocktail/{id}", async (MealForgerContext db, string id) =>
+app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekService deepSeek) =>
 {
     var cocktail = await db.CockTails
         .Where(c => c.Id == id)
@@ -344,8 +352,16 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id) =>
     
     if (cocktail == null)
         return Results.NotFound();
+
+    var ingredients = cocktail.DrinkRecipeIngredients
+        .Select(dri => new IngredientWithMeasure
+        {
+            Name = dri.DrinkIngredient.Name,
+            Measure = dri.Measure
+        })
+        .ToList();
     
-    var ingredients = cocktail.DrinkRecipeIngredients.ToList();
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredients);
     
     var response = new Dictionary<string, object?>
     {
@@ -361,14 +377,14 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id) =>
         ["strVideo"] = null,
         ["strIBA"] = null,
         ["strCreativeCommonsConfirmed"] = null,
-        ["dateModified"] = null
+        ["dateModified"] = null,
+        ["nutrition"] = nutrition,
+        ["ingredients"] = cocktail.DrinkRecipeIngredients.Select(dri => new
+        {
+            name = dri.DrinkIngredient.Name,
+            measure = dri.Measure
+        }).ToList()
     };
-    
-    for (int i = 0; i < 15; i++)
-    {
-        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].DrinkIngredient.Name : "";
-        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Measure : "";
-    }
     
     return Results.Ok(new { drinks = new[] { response } });
 });
