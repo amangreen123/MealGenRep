@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Users, Flame, Zap, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import getMealDBRecipeDetails from "./GetMealDBRecipeDetails"
 import { slugify } from "./utils/slugify"
 
 const MealDBRecipeDetails = () => {
@@ -22,13 +21,13 @@ const MealDBRecipeDetails = () => {
     const [recipeDetails, setRecipeDetails] = useState(null)
     const [error, setError] = useState(null)
 
-    // Mock nutrition info
-    const nutritionInfo = {
-        calories: 650,
-        protein: 40,
-        fat: 30,
-        carbs: 50,
-    }
+    // Nutrition state - will be populated from backend
+    const [nutritionInfo, setNutritionInfo] = useState({
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0
+    })
 
     useEffect(() => {
         const fetchRecipeData = async () => {
@@ -40,14 +39,33 @@ const MealDBRecipeDetails = () => {
 
             try {
                 setLoading(true)
-                const data = await getMealDBRecipeDetails(recipeId)
+                const BASE_URL = import.meta.env.VITE_API_URL ||'http://localhost:5261'
+                const response = await fetch(`${BASE_URL}/recipe/${recipeId}`)
+
+                if (!response.ok) {
+                    throw new Error('Recipe not found')
+                }
+
+                const data = await response.json()
 
                 if (data?.meals?.[0]) {
-                    setRecipeDetails(data.meals[0])
+                    const mealData = data.meals[0]
+                    setRecipeDetails(mealData)
+
+                    // Extract AI-calculated nutrition
+                    if (mealData.nutrition?.perServing) {
+                        setNutritionInfo({
+                            calories: Math.round(mealData.nutrition.perServing.calories || 0),
+                            protein: Math.round(mealData.nutrition.perServing.protein || 0),
+                            fat: Math.round(mealData.nutrition.perServing.fat || 0),
+                            carbs: Math.round(mealData.nutrition.perServing.carbs || 0),
+                        })
+                    }
                 } else {
                     setError("Recipe not found")
                 }
             } catch (error) {
+                console.error("Error fetching recipe:", error)
                 setError(error.message || "An error occurred while fetching recipe details")
             } finally {
                 setLoading(false)
@@ -136,7 +154,7 @@ const MealDBRecipeDetails = () => {
                                 <Home className="w-6 h-4 mr-2" />
                                 Main Menu
                             </Button>
-                            
+
                             <Button
                                 variant="outline"
                                 onClick={() => navigateToRecipe("prev")}
@@ -210,13 +228,13 @@ const MealDBRecipeDetails = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm font-bold">420 kcal</span>
+                                        <span className="font-terminal text-xs sm:text-sm font-bold">{nutritionInfo.calories} kcal</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Nutrition Facts */}
+                        {/* Nutrition Facts - NOW USING AI DATA */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                             <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
                                 <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
@@ -277,7 +295,7 @@ const MealDBRecipeDetails = () => {
                         </div>
                     </div>
 
-                    {/* Right Sidebar */}
+                    {/* Right Sidebar - YOUR EXISTING CODE UNCHANGED */}
                     <div className="lg:col-span-1 space-y-4 sm:space-y-6">
                         {/* My Pantry */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">

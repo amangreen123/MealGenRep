@@ -132,15 +132,17 @@ namespace MealForgerBackend.Services
             }
         }
         
-        public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients)
+        public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients , int servings = 4) 
         {
             var ingredientText = string.Join("\n", ingredients.Select(i => $"{i.Measure}  {i.Name}"));
+
+            Console.WriteLine($"🍎 Ingredient list being sent:\n{ingredientText}");
 
             var payload = new
             {
                 model = "deepseek/deepseek-chat-v3.1:free",
 
-                message = new[]
+                messages = new[]
                 {
                     new
                     {
@@ -175,7 +177,11 @@ namespace MealForgerBackend.Services
                 Content = JsonContent.Create(payload)
             };
 
-            request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
+            var apiKey = _config["OpenRouterApiKey"];
+            Console.WriteLine($"🔑 API Key present: {!string.IsNullOrEmpty(apiKey)}");
+            Console.WriteLine($"🔑 API Key length: {apiKey?.Length ?? 0}");
+    
+            request.Headers.Add("Authorization", $"Bearer {apiKey}");
 
             try
             {
@@ -184,9 +190,13 @@ namespace MealForgerBackend.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("⚠️ Nutrition calculation API call failed");
+                    Console.WriteLine($"❌ Status: {response.StatusCode}");
                     return new NutritionData();
                 }
                 var raw = await response.Content.ReadAsStringAsync();
+                
+                Console.WriteLine("🔍 OpenRouter raw response:\n" + raw);
+                
                 var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
                 var content = result?.choices?[0]?.message?.content?.Trim() ?? "{}";
 

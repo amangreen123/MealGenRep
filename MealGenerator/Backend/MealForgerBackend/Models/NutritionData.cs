@@ -1,10 +1,14 @@
-﻿namespace MealForgerBackend.Models
+﻿using System.Text.Json.Serialization;
+
+namespace MealForgerBackend.Models
 {
     
     public class NutritionData
     {
         public int Calories { get; set; }
         public float Protein { get; set; }
+        
+        [JsonPropertyName("carbs")]
         public float Carbohydrates { get; set; }
         public float Fat { get; set; }
         public float Fiber { get; set; }

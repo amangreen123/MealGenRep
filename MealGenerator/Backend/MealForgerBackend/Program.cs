@@ -47,6 +47,10 @@ builder.Services.AddScoped<RecipeSeeder>();
 builder.Services.AddHttpClient<CocktailSeeder>();
 builder.Services.AddScoped<CocktailSeeder>();
 
+// USDA Service
+builder.Services.AddHttpClient<USDAService>();
+builder.Services.AddScoped<USDAService>();
+
 var app = builder.Build();
 
 app.UseCors();
@@ -313,6 +317,9 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
         })
         .ToList();
     
+    Console.WriteLine($"📋 Calculating nutrition for {ingredientsList.Count} ingredients");
+
+    
     var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList);
 
     var response = new Dictionary<string, object?>
@@ -329,16 +336,14 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
         ["strSource"] = null,
         ["strImageSource"] = null,
         ["strCreativeCommonsConfirmed"] = null,
-        ["dateModified"] = null
-        ,["nutrition"] = nutrition,
-      
+        ["dateModified"] = null,
         ["isVegan"] = recipe.IsVegan,
         ["isVegetarian"] = recipe.IsVegetarian,
         ["isKeto"] = recipe.IsKeto,
         ["isGlutenFree"] = recipe.IsGlutenFree,
         ["isPaleo"] = recipe.IsPaleo,
         
-        ["nutrtion"] = new
+        ["nutrition"] = new
         {
             total = nutrition,
             perServing = new
@@ -390,7 +395,7 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
         })
         .ToList();
     
-    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList);
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList, servings: 4);
     
     var response = new Dictionary<string, object?>
     {
