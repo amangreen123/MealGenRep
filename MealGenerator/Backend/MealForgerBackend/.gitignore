@@ -68,7 +68,11 @@ Thumbs.db
 
 # Environment files
 .env
+# App settings
 appsettings.Development.json
 appsettings.Local.json
-appsettings.Secrets.json
-appsettings.json
+appsettings.Production.json
+appsettings.*.json
+
+# But keep the template
+!appsettings.json
