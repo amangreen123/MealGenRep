@@ -101,7 +101,7 @@ namespace MealForgerBackend.Services
     
         public class FoodNutrient
         {
-            public string NutrientId { get; set; } = string.Empty;
+            public int NutrientId { get; set; }
             public string NutrientNumber { get; set; } = string.Empty;
             public string NutrientName { get; set; } = string.Empty;
             public double Value { get; set; }

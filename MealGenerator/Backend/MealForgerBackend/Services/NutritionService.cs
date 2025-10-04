@@ -13,7 +13,7 @@ public class NutritionService
         _deepSeek = deepSeek;
     }
 
-    public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients, int serving = 4)
+    public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients, int servings = 4)
     {
         var totalNutrition = new NutritionData();
         var failedIngredients = new List<IngredientWithMeasure>();
@@ -52,7 +52,7 @@ public class NutritionService
         {
             try
             {
-                var deeepSeekFallBack = await _deepSeek.CalculateNutritionAsync(failedIngredients, serving);
+                var deeepSeekFallBack = await _deepSeek.CalculateNutritionAsync(failedIngredients, servings);
                 totalNutrition.Calories += deeepSeekFallBack.Calories;
                 totalNutrition.Protein += deeepSeekFallBack.Protein;
                 totalNutrition.Carbohydrates += deeepSeekFallBack.Carbohydrates;

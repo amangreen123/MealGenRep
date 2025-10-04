@@ -319,8 +319,7 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
         // Use cached data from database
         nutrition = new NutritionData
         {
-            Calories = recipe.Calories.Value,
-            Protein = recipe.Protein.Value,
+            Calories = recipe.Calories ?? 0,          
             Carbohydrates = recipe.Carbohydrates ?? 0,
             Fat = recipe.Fat ?? 0,
             Fiber = recipe.Fiber ?? 0,
@@ -340,29 +339,42 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
                 Measure = ri.Quantity
             })
             .ToList();
-        
+
         Console.WriteLine($"🔄 Calculating fresh nutrition for: {recipe.Title}");
-        nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, serving: 4);
-        
-        // Cache the results in database
-        recipe.Calories = nutrition.Calories;
-        recipe.Protein = nutrition.Protein;
-        recipe.Carbohydrates = nutrition.Carbohydrates;
-        recipe.Fat = nutrition.Fat;
-        recipe.Fiber = nutrition.Fiber;
-        recipe.Sugar = nutrition.Sugar;
-        recipe.Sodium = nutrition.Sodium;
-        recipe.NutritionCalculatedAt = DateTime.UtcNow;
-        
+
         try
         {
-            await db.SaveChangesAsync();
-            Console.WriteLine($"💾 Nutrition cached for: {recipe.Title}");
+            nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, servings: 4);
+
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️  Failed to cache nutrition: {ex.Message}");
-            // Continue anyway - we still have the calculated data
+            Console.WriteLine($"❌ Nutrition calculation failed: {ex.Message}");
+            nutrition = new NutritionData();
+        }
+
+        if (nutrition.Calories > 0 || nutrition.Protein > 0)
+        {
+            // Cache the results in database
+            recipe.Calories = nutrition.Calories;
+            recipe.Protein = nutrition.Protein;
+            recipe.Carbohydrates = nutrition.Carbohydrates;
+            recipe.Fat = nutrition.Fat;
+            recipe.Fiber = nutrition.Fiber;
+            recipe.Sugar = nutrition.Sugar;
+            recipe.Sodium = nutrition.Sodium;
+            recipe.NutritionCalculatedAt = DateTime.UtcNow;
+            
+            try
+            {
+                await db.SaveChangesAsync();
+                Console.WriteLine($"💾 Nutrition cached for: {recipe.Title}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to cache nutrition: {ex.Message}");
+                // Continue anyway - we still have the calculated data
+            }
         }
     }
 

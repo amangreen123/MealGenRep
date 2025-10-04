@@ -65,3 +65,10 @@ yarn.lock
 *.vs/
 .DS_Store
 Thumbs.db
+
+# Environment files
+.env
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Secrets.json
+appsettings.json
