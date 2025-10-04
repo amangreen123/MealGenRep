@@ -51,11 +51,14 @@ builder.Services.AddScoped<CocktailSeeder>();
 builder.Services.AddHttpClient<USDAService>();
 builder.Services.AddScoped<USDAService>();
 
+// Nutrition Service
+builder.Services.AddScoped<NutritionService>();
+
 var app = builder.Build();
 
 app.UseCors();
 
-//DeeoSeek Ingredient Validation Endpoint
+//DeepSeek Ingredient Validation Endpoint
 app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientRequest request) =>
 {
     if(string.IsNullOrWhiteSpace(request.Ingredient))
@@ -295,7 +298,7 @@ app.MapGet("/search-all", async (MealForgerContext db, string ingredients, strin
 
 
 // Get Recipe Details by External ID
-app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek, string id) =>
+app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutritionService, string id) =>
 {
     var recipe = await db.Recipes
         .Where(r => r.ExternalId == id)
@@ -308,19 +311,60 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
 
     var ingredients = recipe.RecipeIngredients.ToList();
 
-    // Create the ingredient/measure pairs like TheMealDB API
-    var ingredientsList = recipe.RecipeIngredients
-        .Select(ri => new IngredientWithMeasure
+    // Check if nutrition data is already cached in database
+    NutritionData nutrition;
+    
+    if (recipe.Calories.HasValue && recipe.Protein.HasValue)
+    {
+        // Use cached data from database
+        nutrition = new NutritionData
         {
-            Name = ri.Ingredient.Name,
-            Measure = ri.Quantity
-        })
-        .ToList();
-    
-    Console.WriteLine($"📋 Calculating nutrition for {ingredientsList.Count} ingredients");
-
-    
-    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList);
+            Calories = recipe.Calories.Value,
+            Protein = recipe.Protein.Value,
+            Carbohydrates = recipe.Carbohydrates ?? 0,
+            Fat = recipe.Fat ?? 0,
+            Fiber = recipe.Fiber ?? 0,
+            Sugar = recipe.Sugar ?? 0,
+            Sodium = recipe.Sodium ?? 0
+        };
+        
+        Console.WriteLine($"✅ Using cached nutrition for: {recipe.Title}");
+    }
+    else
+    {
+        // Calculate nutrition using hybrid USDA + AI approach
+        var ingredientsList = recipe.RecipeIngredients
+            .Select(ri => new IngredientWithMeasure
+            {
+                Name = ri.Ingredient.Name,
+                Measure = ri.Quantity
+            })
+            .ToList();
+        
+        Console.WriteLine($"🔄 Calculating fresh nutrition for: {recipe.Title}");
+        nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, serving: 4);
+        
+        // Cache the results in database
+        recipe.Calories = nutrition.Calories;
+        recipe.Protein = nutrition.Protein;
+        recipe.Carbohydrates = nutrition.Carbohydrates;
+        recipe.Fat = nutrition.Fat;
+        recipe.Fiber = nutrition.Fiber;
+        recipe.Sugar = nutrition.Sugar;
+        recipe.Sodium = nutrition.Sodium;
+        recipe.NutritionCalculatedAt = DateTime.UtcNow;
+        
+        try
+        {
+            await db.SaveChangesAsync();
+            Console.WriteLine($"💾 Nutrition cached for: {recipe.Title}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️  Failed to cache nutrition: {ex.Message}");
+            // Continue anyway - we still have the calculated data
+        }
+    }
 
     var response = new Dictionary<string, object?>
     {
@@ -356,9 +400,8 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
                 sugar = Math.Round((double)(nutrition.Sugar / 4), 1),
                 sodium = Math.Round((double)(nutrition.Sodium / 4), 1)
             },
-            
             servings = 4,
-            lastCalculated = recipe.NutritionCalculatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A"
+            lastCalculated = recipe.NutritionCalculatedAt.HasValue ? recipe.NutritionCalculatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null
         }
     };
     
@@ -371,8 +414,6 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
     
     return Results.Ok(new { meals = new[] { response } });
 });
-
-
 
 // Get Cocktail Details by External ID
 app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekService deepSeek) =>

@@ -61,6 +61,7 @@ namespace MealForgerBackend.Services
             var payload = new
             {
                 model = "deepseek/deepseek-chat-v3.1:free",
+                temperature = 0,
 
                 messages = new[]
                 {
