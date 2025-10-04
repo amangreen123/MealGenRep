@@ -349,15 +349,16 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, DeepSeekService deepSeek
             perServing = new
             {
                 calories = nutrition.Calories / 4,
-                protein = Math.Round(nutrition.Protein / 4, 1),
-                carbs = Math.Round(nutrition.Carbohydrates / 4, 1),
-                fat = Math.Round(nutrition.Fat / 4, 1),
-                fiber = Math.Round(nutrition.Fiber / 4, 1),
-                sugar = Math.Round(nutrition.Sugar / 4, 1),
-                sodium = Math.Round(nutrition.Sodium / 4, 1)
+                protein = Math.Round((double)(nutrition.Protein / 4), 1),
+                carbs = Math.Round((double)(nutrition.Carbohydrates / 4), 1),
+                fat = Math.Round((double)(nutrition.Fat / 4), 1),
+                fiber = Math.Round((double)(nutrition.Fiber / 4), 1),
+                sugar = Math.Round((double)(nutrition.Sugar / 4), 1),
+                sodium = Math.Round((double)(nutrition.Sodium / 4), 1)
             },
             
-            servings = 4
+            servings = 4,
+            lastCalculated = recipe.NutritionCalculatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A"
         }
     };
     

@@ -19,6 +19,7 @@ namespace MealForgerBackend.Services
         {
             if (_cache.ContainsKey(ingredient.ToLower()))
             {
+                
                 return _cache[ingredient.ToLower()];
             }
 
@@ -49,9 +50,13 @@ namespace MealForgerBackend.Services
                     Calories = ExtractNutrient(food, "208"), // Energy
                     Protein = ExtractNutrient(food, "203"), // Protein
                     Fat = ExtractNutrient(food, "204"), // Total lipid (fat)
-                    Carbs = ExtractNutrient(food, "205") // Carbohydrate,
+                    Carbs = ExtractNutrient(food, "205"), // Carbohydrate,
+                    Fiber = ExtractNutrient(food, "291"),      // Fiber, total dietary
+                    Sugar = ExtractNutrient(food, "269"),      // Sugars, total including NLEA
+                    Sodium = ExtractNutrient(food, "307")   // Sodium, Na
                 };
                 _cache[ingredient.ToLower()] = nutritionData;
+                
                 return nutritionData;
 
             } catch (Exception ex) {
@@ -63,23 +68,20 @@ namespace MealForgerBackend.Services
         
         private double ExtractNutrient(USDAFood food, string nutrientId)
         {
-            var nutrient = food.FoodNutrients?.FirstOrDefault(n => n.NutrientId == nutrientId);
+            var nutrient = food.FoodNutrients?.FirstOrDefault(n => n.NutrientNumber == nutrientId);
             return nutrient?.Value ?? 0.0;
         }
         
         public class USDANutritionData
         {
-            public string Description { get; set; }
+            public string Description { get; set; } = string.Empty;
             public int FdcId { get; set; }
             public double Calories { get; set; }
             public double Protein { get; set; }
             public double Fat { get; set; }
             public double Carbs { get; set; }
-            
             public double Fiber { get; set; }
-            
             public double Sugar { get; set; }
-            
             public double Sodium { get; set; }
             
         }
