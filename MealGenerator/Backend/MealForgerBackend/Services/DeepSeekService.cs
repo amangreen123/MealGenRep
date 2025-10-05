@@ -19,7 +19,7 @@ namespace MealForgerBackend.Services
         {
             var payload = new
             {
-                model = "deepseek/deepseek-chat-v3.1:free",
+                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
                 temperature = 0,
 
                 messages = new[]
@@ -63,7 +63,7 @@ namespace MealForgerBackend.Services
         {
             var payload = new
             {
-                model = "deepseek/deepseek-chat-v3.1:free",
+                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
                 temperature = 0,
 
                 messages = new[]
@@ -138,7 +138,7 @@ namespace MealForgerBackend.Services
             }
         }
         
-        public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients , int servings = 4) 
+        public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients, int servings = 4) 
         {
             var ingredientText = string.Join("\n", ingredients.Select(i => $"{i.Measure}  {i.Name}"));
 
@@ -146,7 +146,7 @@ namespace MealForgerBackend.Services
 
             var payload = new
             {
-                model = "deepseek/deepseek-chat-v3.1:free",
+                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
                 temperature = 0,
 
                 messages = new[]
@@ -174,7 +174,7 @@ namespace MealForgerBackend.Services
                     new
                     {
                         role = "user",
-                        content = $"Calculate nutrition for these ingredients:\n{ingredientText}"
+                        content = $"Calculate total nutrition for ALL these ingredients combined:\n{ingredientText}"
                     }
                 }
             };
@@ -220,21 +220,12 @@ namespace MealForgerBackend.Services
                 
                 return nutrition ?? new NutritionData();
                 
-            } catch (Exception ex) {
+            } 
+            catch (Exception ex) 
+            {
                 Console.WriteLine("❌ Error calculating nutrition: " + ex.Message);
                 return new NutritionData();
             }
         }
-        
     }
 }
-
-
-
-    
-    
-        
-            
-                    
-                    
-        
