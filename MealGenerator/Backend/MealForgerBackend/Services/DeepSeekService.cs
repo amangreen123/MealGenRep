@@ -43,6 +43,8 @@ namespace MealForgerBackend.Services
             };
 
             request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
+            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
+            request.Headers.Add("X-Title", "MealForger");
 
             var response = await _http.SendAsync(request);
 
@@ -62,6 +64,7 @@ namespace MealForgerBackend.Services
             var payload = new
             {
                 model = "deepseek/deepseek-chat-v3.1:free",
+                temperature = 0,
 
                 messages = new[]
                 {
@@ -98,6 +101,8 @@ namespace MealForgerBackend.Services
             };
 
             request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
+            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
+            request.Headers.Add("X-Title", "MealForger");
 
             try
             {
@@ -142,6 +147,7 @@ namespace MealForgerBackend.Services
             var payload = new
             {
                 model = "deepseek/deepseek-chat-v3.1:free",
+                temperature = 0,
 
                 messages = new[]
                 {
@@ -183,6 +189,8 @@ namespace MealForgerBackend.Services
             Console.WriteLine($"🔑 API Key length: {apiKey?.Length ?? 0}");
     
             request.Headers.Add("Authorization", $"Bearer {apiKey}");
+            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
+            request.Headers.Add("X-Title", "MealForger");
 
             try
             {
