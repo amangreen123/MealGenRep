@@ -19,9 +19,8 @@ namespace MealForgerBackend.Services
         {
             var payload = new
             {
-                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
+                model = "llama-3.1-8b-instant",
                 temperature = 0,
-
                 messages = new[]
                 {
                     new
@@ -37,25 +36,25 @@ namespace MealForgerBackend.Services
                     new { role = "user", content = ingredients }
                 }
             };
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions")
             {
                 Content = JsonContent.Create(payload)
             };
 
-            request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
-            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
-            request.Headers.Add("X-Title", "MealForger");
+            request.Headers.Add("Authorization", $"Bearer {_config["GroqApiKey"]}");
 
             var response = await _http.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Groq API Error: {response.StatusCode} - {errorBody}");
                 throw new Exception("Failed to validate ingredient.");
             }
 
             var raw = await response.Content.ReadAsStringAsync();
-            Console.WriteLine("🔍 OpenRouter raw response:\n" + raw);
-            var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
+            var result = JsonSerializer.Deserialize<GroqResponse>(raw);
             return result?.choices?[0]?.message?.content?.Trim() ?? "Error: invalid ingredient";
         }
 
@@ -63,9 +62,8 @@ namespace MealForgerBackend.Services
         {
             var payload = new
             {
-                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
+                model = "llama-3.1-8b-instant",
                 temperature = 0,
-
                 messages = new[]
                 {
                     new
@@ -95,14 +93,12 @@ namespace MealForgerBackend.Services
                 }
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions")
             {
                 Content = JsonContent.Create(payload)
             };
 
-            request.Headers.Add("Authorization", $"Bearer {_config["OpenRouterApiKey"]}");
-            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
-            request.Headers.Add("X-Title", "MealForger");
+            request.Headers.Add("Authorization", $"Bearer {_config["GroqApiKey"]}");
 
             try
             {
@@ -110,13 +106,12 @@ namespace MealForgerBackend.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("⚠️ Diet classification API call failed");
+                    Console.WriteLine("Diet classification API call failed");
                     return new DietClassification();
                 }
 
                 var raw = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("🔍 OpenRouter raw response:\n" + raw);
-                var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
+                var result = JsonSerializer.Deserialize<GroqResponse>(raw);
                 var content = result?.choices?[0]?.message?.content?.Trim() ?? "";
 
                 var classification = new DietClassification
@@ -129,11 +124,10 @@ namespace MealForgerBackend.Services
                 };
 
                 return classification;
-
             }
             catch (Exception ex)
             {
-                Console.WriteLine("❌ Error classifying diets: " + ex.Message);
+                Console.WriteLine($"Error classifying diets: {ex.Message}");
                 return new DietClassification();
             }
         }
@@ -142,13 +136,12 @@ namespace MealForgerBackend.Services
         {
             var ingredientText = string.Join("\n", ingredients.Select(i => $"{i.Measure}  {i.Name}"));
 
-            Console.WriteLine($"🍎 Ingredient list being sent:\n{ingredientText}");
+            Console.WriteLine($"Ingredient list being sent:\n{ingredientText}");
 
             var payload = new
             {
-                model = "meta-llama/llama-3.1-8b-instruct:free",  // ✅ Changed
+                model = "llama-3.1-8b-instant",
                 temperature = 0,
-
                 messages = new[]
                 {
                     new
@@ -179,18 +172,13 @@ namespace MealForgerBackend.Services
                 }
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions")
             {
                 Content = JsonContent.Create(payload)
             };
 
-            var apiKey = _config["OpenRouterApiKey"];
-            Console.WriteLine($"🔑 API Key present: {!string.IsNullOrEmpty(apiKey)}");
-            Console.WriteLine($"🔑 API Key length: {apiKey?.Length ?? 0}");
-    
+            var apiKey = _config["GroqApiKey"];
             request.Headers.Add("Authorization", $"Bearer {apiKey}");
-            request.Headers.Add("HTTP-Referer", "http://localhost:5261");
-            request.Headers.Add("X-Title", "MealForger");
 
             try
             {
@@ -198,20 +186,18 @@ namespace MealForgerBackend.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("⚠️ Nutrition calculation API call failed");
-                    Console.WriteLine($"❌ Status: {response.StatusCode}");
+                    Console.WriteLine("Nutrition calculation API call failed");
+                    Console.WriteLine($"Status: {response.StatusCode}");
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error: {errorBody}");
                     return new NutritionData();
                 }
+
                 var raw = await response.Content.ReadAsStringAsync();
-                
-                Console.WriteLine("🔍 OpenRouter raw response:\n" + raw);
-                
-                var result = JsonSerializer.Deserialize<OpenRouterResponse>(raw);
+                var result = JsonSerializer.Deserialize<GroqResponse>(raw);
                 var content = result?.choices?[0]?.message?.content?.Trim() ?? "{}";
 
                 content = content.Replace("```json", "").Replace("```", "").Trim();
-                
-                Console.WriteLine("🔍 OpenRouter nutrition response:\n" + content);
                 
                 var nutrition = JsonSerializer.Deserialize<NutritionData>(content, new JsonSerializerOptions
                 {
@@ -219,13 +205,28 @@ namespace MealForgerBackend.Services
                 });
                 
                 return nutrition ?? new NutritionData();
-                
             } 
             catch (Exception ex) 
             {
-                Console.WriteLine("❌ Error calculating nutrition: " + ex.Message);
+                Console.WriteLine($"Error calculating nutrition: {ex.Message}");
                 return new NutritionData();
             }
         }
+    }
+
+    // Response model for Groq (same structure as OpenAI)
+    public class GroqResponse
+    {
+        public List<GroqChoice>? choices { get; set; }
+    }
+
+    public class GroqChoice
+    {
+        public GroqMessage? message { get; set; }
+    }
+
+    public class GroqMessage
+    {
+        public string? content { get; set; }
     }
 }
