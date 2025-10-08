@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { slugify } from "./utils/slugify"
 
 const DrinkDetails = () => {
     const { id } = useParams()

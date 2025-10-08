@@ -548,12 +548,12 @@ img {
 
 /* Hide scrollbars */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none; /* Safari and Chrome */
 }
 
 /* Ensure horizontal scroll works smoothly */
@@ -633,8 +633,6 @@ img {
   }
 }
 
-/* REPLACE the search CSS at the end of your index.css with this: */
-
 /* Perfect search bar alignment - COMPLETE FIX */
 .search-input-container {
   position: relative;
@@ -645,7 +643,7 @@ img {
 
 .search-input-container input {
   padding-left: 3rem;
-  padding-right: 3rem;
+  padding-right: 8rem; /* Increased to make room for camera + plus buttons */
   height: 48px; /* Fixed height for consistency */
   line-height: 1;
 }
@@ -709,6 +707,56 @@ img {
   padding: 0 !important;
 }
 
+/* Camera button styles for image ingredient upload */
+.camera-button {
+  position: absolute;
+  right: 3.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  height: 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  border: 2px solid #ce7c1c !important;
+  background-color: transparent !important;
+  color: #ce7c1c !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.camera-button:hover {
+  background-color: rgba(206, 124, 28, 0.2) !important;
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.camera-button:active {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+
+.camera-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Override any conflicting button styles for camera button */
+.camera-button[class*="Button"] {
+  height: 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+}
+
+.transform.camera-button {
+  transform: translateY(-50%) translateZ(0);
+}
+
 /* Ensure no conflicting transforms */
 .search-container * {
   box-sizing: border-box;
@@ -721,13 +769,4 @@ img {
 
 .search-button.transform {
   transform: translateY(-50%) !important;
-}
-/* Fix any transform conflicts */
-.transform {
-  transform: translateZ(0);
-}
-
-.transform.search-icon,
-.transform.search-button {
-  transform: translateY(-50%) translateZ(0);
 }

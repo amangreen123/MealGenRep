@@ -5,9 +5,9 @@ import './index.css';
 
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Users from './UserInput.jsx';
-import RecipeDetails from "./RecipeDetails.jsx";
-import MealDBRecipeDetails from "./MealDBRecipeDetails.jsx";
-import DrinkDetails from "./DrinkDetails.jsx"
+import RecipeDetails from "./API/Spooncular/RecipeDetails.jsx";
+import MealDBRecipeDetails from "./API/MealDB/MealDBRecipeDetails.jsx";
+import DrinkDetails from "./API/MealDB/DrinkDetails.jsx"
 import GoogleAnalytics from "./GoogleAnalytics.jsx";
 
 

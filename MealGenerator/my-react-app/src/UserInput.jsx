@@ -6,14 +6,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { slugify } from "./utils/slugify"
 import "@/fonts/fonts.css"
 
-import useFetchMeals from "./GetMeals.jsx"
-import useTheMealDB from "./getTheMealDB.jsx"
-import useTheCocktailDB from "./GetCocktailDB.jsx"
-
 import { InfoIcon, Search, Plus } from 'lucide-react'
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
-import CookableSearch from "./CookableSearch.jsx"
+import CookableSearch from "@/components/CookableSearch.jsx"
 import PantryList from "@/components/PantryList.jsx"
 import QuickAddButtons from "@/components/QuickAddButtons.jsx"
 import DietSelector from "@/components/DietSelector.jsx"
@@ -25,6 +21,10 @@ import useRecipeSearch from "@/hooks/useRecipeSearch.jsx"
 import useIngredientManager from "@/hooks/useIngredientManager.jsx"
 import { getCategoryIngredient } from "./utils/categorySearch.js"
 import RandomSelectionRecipes from "@/components/RandomSelectionRecipes.jsx"
+
+import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
+import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
+import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
 
 
 
