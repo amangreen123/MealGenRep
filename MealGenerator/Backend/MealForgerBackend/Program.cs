@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-using System.Collections.Generic;
-
+using Microsoft.AspNetCore.Http;
 using MealForgerBackend.Models;
 using MealForgerBackend.Services;
 using MealForgerBackend.Data;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.AspNetCore.SignalR.Protocol;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +54,10 @@ builder.Services.AddScoped<USDAService>();
 
 // Nutrition Service
 builder.Services.AddScoped<NutritionService>();
+
+// Gemini Service
+builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddScoped<GeminiService>();
 
 var app = builder.Build();
 
@@ -228,22 +233,16 @@ app.MapGet("/general-cocktails-search", async (MealForgerContext db, string ingr
 });
 
 // Both Recipes and Cocktails Search
-app.MapGet("/search-all", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50 ) =>
+app.MapGet("/search-all", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50) =>
 {
-    if(string.IsNullOrWhiteSpace(ingredients))
-    {
+    if (string.IsNullOrWhiteSpace(ingredients))
         return Results.BadRequest("Ingredients parameter is required.");
-    }
-    
-    if(!ingredients.Any())
-    {
-        return Results.BadRequest("At least one ingredient is required.");
-    }
-    
+
     var ingredientsList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(i => i.Trim().ToLower())
         .ToList();
-    
+
+    // Search Recipes
     var allRecipes = await db.Recipes
         .Include(r => r.RecipeIngredients)
         .ThenInclude(ri => ri.Ingredient)
@@ -271,6 +270,7 @@ app.MapGet("/search-all", async (MealForgerContext db, string ingredients, strin
         })
         .Select(x => new
         {
+            type = "meal",
             idMeal = x.Recipe.ExternalId,
             strMeal = x.Recipe.Title,
             strMealThumb = x.Recipe.ImageUrl,
@@ -282,23 +282,62 @@ app.MapGet("/search-all", async (MealForgerContext db, string ingredients, strin
             matchPercentage = Math.Round((double)x.MatchCount / ingredientsList.Count * 100, 1),
             canCook = x.MissingCount == 0,
             score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 20 : 0) - (x.MissingCount * 2),
-            isVegan = x.Recipe.IsVegan,
-            isVegetarian = x.Recipe.IsVegetarian,
-            isKetogenic = x.Recipe.IsKeto,
-            isGlutenFree = x.Recipe.IsGlutenFree,
-            isPaleo = x.Recipe.IsPaleo,
             slug = x.Recipe.Title.ToLower().Replace(" ", "-").Replace("'", "")
         })
         .OrderByDescending(x => x.score)
-        .Take(maxResults)
+        .Take(maxResults / 2)  // Split results between recipes and cocktails
         .ToList();
-    return Results.Ok(new { meals = scoredRecipes });
+
+    // Search Cocktails
+    var allCocktails = await db.CockTails
+        .Include(c => c.DrinkRecipeIngredients)
+        .ThenInclude(dri => dri.DrinkIngredient)
+        .ToListAsync();
+
+    var scoredCocktails = allCocktails
+        .Select(c => new
+        {
+            Cocktail = c,
+            MatchCount = ingredientsList.Count(userIng =>
+                c.DrinkRecipeIngredients.Any(dri => dri.DrinkIngredient.Name.ToLower().Contains(userIng))),
+            TotalIngredients = c.DrinkRecipeIngredients.Count,
+            MissingCount = c.DrinkRecipeIngredients.Count(dri =>
+                !ingredientsList.Any(userIng => dri.DrinkIngredient.Name.ToLower().Contains(userIng)))
+        })
+        .Where(x => x.MatchCount > 0)
+        .Select(x => new
+        {
+            type = "drink",
+            idDrink = x.Cocktail.Id,
+            strDrink = x.Cocktail.Name,
+            strDrinkThumb = x.Cocktail.Thumbnail,
+            strCategory = x.Cocktail.Category,
+            strAlcoholic = x.Cocktail.Alcoholic,
+            strGlass = x.Cocktail.Glass,
+            matchScore = x.MatchCount,
+            totalIngredients = x.TotalIngredients,
+            missingIngredients = x.MissingCount,
+            matchPercentage = Math.Round((double)x.MatchCount / ingredientsList.Count * 100, 1),
+            canMake = x.MissingCount == 0,
+            score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 20 : 0) - (x.MissingCount * 2),
+            slug = x.Cocktail.Name.ToLower().Replace(" ", "-").Replace("'", "")
+        })
+        .OrderByDescending(x => x.score)
+        .Take(maxResults / 2)
+        .ToList();
+
+    return Results.Ok(new
+    {
+        meals = scoredRecipes,
+        drinks = scoredCocktails,
+        totalResults = scoredRecipes.Count + scoredCocktails.Count
+    });
 });
 
 
 
 // Get Recipe Details by External ID
-app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutritionService, string id) =>
+app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutritionService, string id, int? servings) =>
 {
     var recipe = await db.Recipes
         .Where(r => r.ExternalId == id)
@@ -308,9 +347,16 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
 
     if (recipe == null)
         return Results.NotFound();
-
+    
     var ingredients = recipe.RecipeIngredients.ToList();
+    
+    int actualServings = servings ?? 4;
 
+    
+    foreach (var ri in recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredient>())
+    {
+        Console.WriteLine($"  - {ri.Ingredient?.Name ?? "NULL"}: {ri.Quantity}");
+    }
     // Check if nutrition data is already cached in database
     NutritionData nutrition;
     
@@ -319,7 +365,8 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
         // Use cached data from database
         nutrition = new NutritionData
         {
-            Calories = recipe.Calories ?? 0,          
+            Calories = recipe.Calories ?? 0, 
+            Protein = recipe.Protein ?? 0,
             Carbohydrates = recipe.Carbohydrates ?? 0,
             Fat = recipe.Fat ?? 0,
             Fiber = recipe.Fiber ?? 0,
@@ -341,10 +388,12 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
             .ToList();
 
         Console.WriteLine($"🔄 Calculating fresh nutrition for: {recipe.Title}");
+        Console.WriteLine($"📊 Created {ingredientsList.Count} ingredients for API");
+
 
         try
         {
-            nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, servings: 4);
+            nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, servings: actualServings);
 
         }
         catch (Exception ex)
@@ -404,15 +453,15 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
             total = nutrition,
             perServing = new
             {
-                calories = nutrition.Calories / 4,
-                protein = Math.Round((double)(nutrition.Protein / 4), 1),
-                carbs = Math.Round((double)(nutrition.Carbohydrates / 4), 1),
-                fat = Math.Round((double)(nutrition.Fat / 4), 1),
-                fiber = Math.Round((double)(nutrition.Fiber / 4), 1),
-                sugar = Math.Round((double)(nutrition.Sugar / 4), 1),
-                sodium = Math.Round((double)(nutrition.Sodium / 4), 1)
+                calories = (nutrition.Calories ?? 0) / actualServings,
+                protein = Math.Round((double)((nutrition.Protein ?? 0) / actualServings), 1),
+                carbs = Math.Round((double)((nutrition.Carbohydrates ?? 0) / actualServings), 1),
+                fat = Math.Round((double)((nutrition.Fat ?? 0) / actualServings), 1),
+                fiber = Math.Round((double)((nutrition.Fiber ?? 0) / actualServings), 1),
+                sugar = Math.Round((double)((nutrition.Sugar ?? 0) / actualServings), 1),
+                sodium = Math.Round((double)((nutrition.Sodium ?? 0) / actualServings), 1)
             },
-            servings = 4,
+            servings = actualServings,
             lastCalculated = recipe.NutritionCalculatedAt.HasValue ? recipe.NutritionCalculatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null
         }
     };
@@ -428,8 +477,11 @@ app.MapGet("/recipe/{id}", async (MealForgerContext db, NutritionService nutriti
 });
 
 // Get Cocktail Details by External ID
-app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekService deepSeek) =>
+app.MapGet("/cocktail/{id}", async (MealForgerContext db, DeepSeekService deepSeek, string id, int? servings) =>
 {
+    // Use 1 as default for cocktails (typically single serving)
+    int actualServings = servings ?? 1;
+    
     var cocktail = await db.CockTails
         .Where(c => c.Id == id)
         .Include(c => c.DrinkRecipeIngredients)
@@ -449,7 +501,8 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
         })
         .ToList();
     
-    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList, servings: 4);
+    // Calculate nutrition (DeepSeek handles the total)
+    var nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList, servings: actualServings);
     
     var response = new Dictionary<string, object?>
     {
@@ -469,19 +522,62 @@ app.Map("/cocktail/{id}", async (MealForgerContext db, string id, DeepSeekServic
         ["nutrition"] = new
         {
             total = nutrition,
-            perServing = nutrition,
-            servings = 1
+            perServing = new
+            {
+                calories = (nutrition.Calories ?? 0) / actualServings,
+                protein = Math.Round((double)((nutrition.Protein ?? 0) / actualServings), 1),
+                carbs = Math.Round((double)((nutrition.Carbohydrates ?? 0) / actualServings), 1),
+                fat = Math.Round((double)((nutrition.Fat ?? 0) / actualServings), 1),
+                fiber = Math.Round((double)((nutrition.Fiber ?? 0) / actualServings), 1),
+                sugar = Math.Round((double)((nutrition.Sugar ?? 0) / actualServings), 1),
+                sodium = Math.Round((double)((nutrition.Sodium ?? 0) / actualServings), 1)
+            },
+            servings = actualServings
         }
-        
     };
     
     for (int i = 0; i < ingredients.Count; i++)
     {
-        response[$"strIngredient{i + 1}"] = i < ingredients.Count ? ingredients[i].DrinkIngredient.Name : "";
-        response[$"strMeasure{i + 1}"] = i < ingredients.Count ? ingredients[i].Measure : "";
+        response[$"strIngredient{i + 1}"] = ingredients[i].DrinkIngredient.Name;
+        response[$"strMeasure{i + 1}"] = ingredients[i].Measure;
     }
     
     return Results.Ok(new { drinks = new[] { response } });
+});
+
+//Gemini AI Photo to text endpoint
+app.MapPost("/identify-ingredient", async (GeminiService gemini, IFormFile image) =>
+{
+    try
+    {
+        using var memoryStream = new MemoryStream();
+        await image.CopyToAsync(memoryStream);
+        var base64Image = Convert.ToBase64String(memoryStream.ToArray());
+
+        var result = await gemini.IdentifyIngredientFromImageAsync(base64Image);
+
+        if (!result.Success)
+        {
+            return Results.BadRequest(new
+            {
+                success = false,
+                message = result.ErrorMessage ?? "Failed to identify ingredient."
+            });
+        }
+
+        return Results.Ok(new
+        {
+            success = true,
+            ingredient = result.ValidatedIngredient,
+            rawResult = result.RawIngredient
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("❌ Error identifying ingredient: " + ex.Message);
+        return Results.StatusCode(500);
+    }
+    
 });
 
 

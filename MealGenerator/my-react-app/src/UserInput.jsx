@@ -238,7 +238,7 @@ const UserInput = () => {
                         </div>
                     </div>
 
-                    {/* Search bar - Fixed alignment */}
+                    {/* Search bar */}
                     <div className="search-input-container w-full max-w-2xl mx-auto mb-4">
                         <Input
                             type="text"

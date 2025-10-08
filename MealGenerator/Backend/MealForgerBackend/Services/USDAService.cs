@@ -55,12 +55,15 @@ namespace MealForgerBackend.Services
                     Sugar = ExtractNutrient(food, "269"),      // Sugars, total including NLEA
                     Sodium = ExtractNutrient(food, "307")   // Sodium, Na
                 };
+                
+                Console.WriteLine($"✅ USDA: {ingredient} → Calories: {nutritionData.Calories}, Protein: {nutritionData.Protein}g");
+
                 _cache[ingredient.ToLower()] = nutritionData;
                 
                 return nutritionData;
 
             } catch (Exception ex) {
-                Console.WriteLine($"Error fetching nutrition data: {ex.Message}");
+                Console.WriteLine($"❌ USDA error for {ingredient}: {ex.Message}");
                 return null;
             }
 

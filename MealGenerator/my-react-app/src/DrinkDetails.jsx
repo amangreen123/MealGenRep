@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import getDrinkDetails from "./getDrinkDetails.jsx"
 import { slugify } from "./utils/slugify"
 
 const DrinkDetails = () => {
@@ -23,13 +22,14 @@ const DrinkDetails = () => {
     const [ingredients, setIngredients] = useState([])
     const [error, setError] = useState(null)
 
-    // Mock nutrition data
-    const [totalNutrition] = useState({
-        calories: 245,
-        protein: 0,
-        fat: 0,
-        carbs: 22,
-        alcohol: 14,
+    const [servings, setServings] = useState(1)
+    const [baseNutrition, setBaseNutrition] = useState(null)
+
+    // Nutrition state - will be populated from backend
+    const [nutritionInfo, setNutritionInfo] = useState({
+        calories: 0,
+        carbs: 0,
+        alcohol: 0,
     })
 
     useEffect(() => {
@@ -42,7 +42,14 @@ const DrinkDetails = () => {
 
             try {
                 setLoading(true)
-                const data = await getDrinkDetails(drinkId)
+                const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5261"
+                const response = await fetch(`${BASE_URL}/cocktail/${drinkId}`)
+
+                if (!response.ok) {
+                    throw new Error("Cocktail not found")
+                }
+
+                const data = await response.json()
 
                 if (data?.drinks?.[0]) {
                     const drinkData = data.drinks[0]
@@ -58,10 +65,31 @@ const DrinkDetails = () => {
                         }
                     }
                     setIngredients(extractedIngredients)
+
+                    if (drinkData.nutrition?.perServing) {
+                        const baseNutritionData = {
+                            calories: drinkData.nutrition.perServing.calories || 0,
+                            carbs: drinkData.nutrition.perServing.carbs || 0,
+                            alcohol: drinkData.nutrition.perServing.alcohol || 0,
+                        }
+                        setBaseNutrition(baseNutritionData)
+
+                        // Set initial servings from API response (default to 1 for cocktails)
+                        const initialServings = drinkData.nutrition.servings || 1
+                        setServings(initialServings)
+
+                        // Calculate nutrition for initial servings
+                        setNutritionInfo({
+                            calories: Math.round(baseNutritionData.calories * initialServings),
+                            carbs: Math.round(baseNutritionData.carbs * initialServings),
+                            alcohol: Math.round(baseNutritionData.alcohol * initialServings),
+                        })
+                    }
                 } else {
                     setError("Drink not found")
                 }
             } catch (error) {
+                console.error("Error fetching drink:", error)
                 setError(error.message || "An error occurred while fetching drink details")
             } finally {
                 setLoading(false)
@@ -70,6 +98,17 @@ const DrinkDetails = () => {
 
         fetchDrinkData()
     }, [drinkId])
+
+    const handleServingsChange = (newServings) => {
+        setServings(newServings)
+        if (baseNutrition) {
+            setNutritionInfo({
+                calories: Math.round(baseNutrition.calories * newServings),
+                carbs: Math.round(baseNutrition.carbs * newServings),
+                alcohol: Math.round(baseNutrition.alcohol * newServings),
+            })
+        }
+    }
 
     if (loading) {
         return (
@@ -215,26 +254,57 @@ const DrinkDetails = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm">1 serving</span>
+                                        <span className="font-terminal text-xs sm:text-sm">
+                      {servings} serving{servings > 1 ? "s" : ""}
+                    </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm font-bold">{totalNutrition.calories} kcal</span>
+                                        <span className="font-terminal text-xs sm:text-sm font-bold">{nutritionInfo.calories} kcal</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Nutrition Facts */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
-                                <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-6 sm:mb-8">
+                                <h2 className="text-xl sm:text-2xl font-bold font-title">
+                                    <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
+                                </h2>
+                                <div className="text-xs font-terminal text-gray-400">
+                                    Per Serving: {Math.round(nutritionInfo.calories / servings)} kcal
+                                </div>
+                            </div>
+
+                            {/* Serving Size Slider */}
+                            <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-sm font-terminal text-[#f5efe4]">SERVINGS</label>
+                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="8"
+                                    value={servings}
+                                    onChange={(e) => handleServingsChange(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                                    style={{
+                                        background: `linear-gradient(to right, #ce7c1c 0%, #ce7c1c ${((servings - 1) / 7) * 100}%, #374151 ${((servings - 1) / 7) * 100}%, #374151 100%)`,
+                                    }}
+                                />
+                                <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
+                                    <span>1</span>
+                                    <span>4</span>
+                                    <span>8</span>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {totalNutrition.calories}
+                                        {nutritionInfo.calories}
                                     </div>
                                     <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">Calories</div>
                                 </div>
@@ -243,7 +313,7 @@ const DrinkDetails = () => {
                                         <span className="text-white font-bold text-xs sm:text-sm">C</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {totalNutrition.carbs}g
+                                        {nutritionInfo.carbs}g
                                     </div>
                                     <div className="text-xs font-terminal text-yellow-400 uppercase tracking-wider">Carbs</div>
                                 </div>
@@ -251,7 +321,7 @@ const DrinkDetails = () => {
                                     <div className="text-center">
                                         <Wine className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
                                         <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                            {totalNutrition.alcohol}g
+                                            {nutritionInfo.alcohol}g
                                         </div>
                                         <div className="text-xs font-terminal text-purple-400 uppercase tracking-wider">Alcohol</div>
                                     </div>

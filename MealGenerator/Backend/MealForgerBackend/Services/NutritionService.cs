@@ -15,8 +15,30 @@ public class NutritionService
 
     public async Task<NutritionData> CalculateNutritionAsync(List<IngredientWithMeasure> ingredients, int servings = 4)
     {
-        var totalNutrition = new NutritionData();
+        var totalNutrition = new NutritionData
+        {
+            Calories = 0,           
+            Protein = 0,
+            Carbohydrates = 0,
+            Fat = 0,
+            Fiber = 0,
+            Sugar = 0,
+            Sodium = 0
+        };
+        
         var failedIngredients = new List<IngredientWithMeasure>();
+        
+        Console.WriteLine($"🔍 CalculateNutritionAsync called with {ingredients?.Count ?? 0} ingredients");
+    
+        if (ingredients == null || ingredients.Count == 0)
+        {
+            Console.WriteLine("❌ No ingredients provided to calculate nutrition!");
+            return new NutritionData();
+        }
+
+        var ingredientText = string.Join("\n", ingredients.Select(i => $"{i.Measure}  {i.Name}"));
+
+        Console.WriteLine($"🍎 Ingredient list being sent:\n{ingredientText}");
 
         foreach (var ing in ingredients)
         {
@@ -25,10 +47,12 @@ public class NutritionService
                 //try usda first
                 var usdaData = await _usda.GetNutritionDataAsync(ing.Name);
 
-                if (usdaData != null && usdaData.Calories > 0)
+                if (usdaData != null)
                 {
                     var grams = ConvertMeasureToGrams(ing.Measure, ing.Name);
                     var multiplier = grams / 100.0;
+                    
+                    var calsToAdd = (int)(usdaData.Calories * multiplier);
                     
                     totalNutrition.Calories += (int)(usdaData.Calories * multiplier);
                     totalNutrition.Protein += (float)(usdaData.Protein * multiplier);
@@ -37,22 +61,31 @@ public class NutritionService
                     totalNutrition.Fiber += (float)(usdaData.Fiber * multiplier);
                     totalNutrition.Sugar += (float)(usdaData.Sugar * multiplier);
                     totalNutrition.Sodium += (float)(usdaData.Sodium * multiplier);
+                    
+                    Console.WriteLine($"✅ {ing.Name} ({grams}g): +{calsToAdd} cal");
                 }
                 else
                 {
                     failedIngredients.Add(ing);
+                    Console.WriteLine($"⚠️ {ing.Name} - USDA returned null");
                 }
             } catch (Exception ex)
             {
                 failedIngredients.Add(ing);
+                Console.WriteLine($"❌ {ing.Name} exception: {ex.Message}");
             }
         }
 
+        Console.WriteLine($"📊 TOTAL: {totalNutrition.Calories} cal, {totalNutrition.Protein}g protein, {totalNutrition.Carbohydrates}g carbs, {totalNutrition.Fat}g fat");
+
         if (failedIngredients.Count > 0)
         {
+            Console.WriteLine($"🤖 Using AI for {failedIngredients.Count} failed ingredients");
+
             try
             {
                 var deeepSeekFallBack = await _deepSeek.CalculateNutritionAsync(failedIngredients, servings);
+               
                 totalNutrition.Calories += deeepSeekFallBack.Calories;
                 totalNutrition.Protein += deeepSeekFallBack.Protein;
                 totalNutrition.Carbohydrates += deeepSeekFallBack.Carbohydrates;
