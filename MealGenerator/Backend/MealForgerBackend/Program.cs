@@ -437,6 +437,8 @@ app.MapGet("/search-all", async (
 });
 
 // Get Recipe Details by External ID (with caching)
+// Replace your existing /recipe/{id} endpoint with this:
+
 app.MapGet("/recipe/{id}", async (
     MealForgerContext db, 
     NutritionService nutritionService,
@@ -471,7 +473,7 @@ app.MapGet("/recipe/{id}", async (
     // Check if nutrition data is already cached in database
     NutritionData nutrition;
     
-    if (recipe.Calories.HasValue && recipe.Protein.HasValue)
+    if (recipe.Calories.HasValue && recipe.Protein.HasValue && recipe.Calories > 0)
     {
         nutrition = new NutritionData
         {
@@ -485,6 +487,7 @@ app.MapGet("/recipe/{id}", async (
         };
         
         Console.WriteLine($"✅ Using cached nutrition for: {recipe.Title}");
+        Console.WriteLine($"   Calories: {nutrition.Calories}, Protein: {nutrition.Protein}g, Carbs: {nutrition.Carbohydrates}g, Fat: {nutrition.Fat}g");
     }
     else
     {
@@ -497,18 +500,24 @@ app.MapGet("/recipe/{id}", async (
             .ToList();
 
         Console.WriteLine($"🔄 Calculating fresh nutrition for: {recipe.Title}");
+        Console.WriteLine($"📝 Ingredients: {string.Join(", ", ingredientsList.Select(i => $"{i.Measure} {i.Name}"))}");
 
         try
         {
+            // This will use USDA first, then DeepSeek fallback for missing ingredients
             nutrition = await nutritionService.CalculateNutritionAsync(ingredientsList, servings: actualServings);
+            
+            Console.WriteLine($"✅ Calculated nutrition: Calories={nutrition.Calories}, Protein={nutrition.Protein}g");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Nutrition calculation failed: {ex.Message}");
+            Console.WriteLine($"   Stack: {ex.StackTrace}");
             nutrition = new NutritionData();
         }
 
-        if (nutrition.Calories > 0 || nutrition.Protein > 0)
+        // Save to database if we got valid data
+        if ((nutrition.Calories ?? 0) > 0 || (nutrition.Protein ?? 0) > 0)
         {
             recipe.Calories = nutrition.Calories;
             recipe.Protein = nutrition.Protein;
@@ -522,12 +531,16 @@ app.MapGet("/recipe/{id}", async (
             try
             {
                 await db.SaveChangesAsync();
-                Console.WriteLine($"💾 Nutrition cached for: {recipe.Title}");
+                Console.WriteLine($"💾 Nutrition cached to database for: {recipe.Title}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"⚠️ Failed to cache nutrition: {ex.Message}");
             }
+        }
+        else
+        {
+            Console.WriteLine($"⚠️ No nutrition data to save (all zeros)");
         }
     }
 
@@ -553,10 +566,19 @@ app.MapGet("/recipe/{id}", async (
         ["isPaleo"] = recipe.IsPaleo,
         ["nutrition"] = new
         {
-            total = nutrition,
+            total = new
+            {
+                calories = nutrition.Calories ?? 0,
+                protein = nutrition.Protein ?? 0,
+                carbs = nutrition.Carbohydrates ?? 0,
+                fat = nutrition.Fat ?? 0,
+                fiber = nutrition.Fiber ?? 0,
+                sugar = nutrition.Sugar ?? 0,
+                sodium = nutrition.Sodium ?? 0
+            },
             perServing = new
             {
-                calories = (nutrition.Calories ?? 0) / actualServings,
+                calories = Math.Round((double)((nutrition.Calories ?? 0) / actualServings), 0),
                 protein = Math.Round((double)((nutrition.Protein ?? 0) / actualServings), 1),
                 carbs = Math.Round((double)((nutrition.Carbohydrates ?? 0) / actualServings), 1),
                 fat = Math.Round((double)((nutrition.Fat ?? 0) / actualServings), 1),
@@ -586,6 +608,8 @@ app.MapGet("/recipe/{id}", async (
 });
 
 // Get Cocktail Details by External ID (with caching)
+// Replace your existing /cocktail/{id} endpoint with this:
+
 app.MapGet("/cocktail/{id}", async (
     MealForgerContext db, 
     DeepSeekService deepSeek,
@@ -619,7 +643,8 @@ app.MapGet("/cocktail/{id}", async (
             Fat = cocktail.Fat ?? 0,
             Fiber = cocktail.Fiber ?? 0,
             Sugar = cocktail.Sugar ?? 0,
-            Sodium = cocktail.Sodium ?? 0
+            Sodium = cocktail.Sodium ?? 0,
+            Alcohol = cocktail.Alcohol ?? 0
         };
         
         Console.WriteLine($"✅ Using cached nutrition for: {cocktail.Name}");
@@ -655,6 +680,7 @@ app.MapGet("/cocktail/{id}", async (
             cocktail.Fiber = nutrition.Fiber;
             cocktail.Sugar = nutrition.Sugar;
             cocktail.Sodium = nutrition.Sodium;
+            cocktail.Alcohol = nutrition.Alcohol;
             cocktail.NutritionCalculatedAt = DateTime.UtcNow;
             
             try
@@ -695,7 +721,8 @@ app.MapGet("/cocktail/{id}", async (
                 fat = Math.Round((double)((nutrition.Fat ?? 0) / actualServings), 1),
                 fiber = Math.Round((double)((nutrition.Fiber ?? 0) / actualServings), 1),
                 sugar = Math.Round((double)((nutrition.Sugar ?? 0) / actualServings), 1),
-                sodium = Math.Round((double)((nutrition.Sodium ?? 0) / actualServings), 1)
+                sodium = Math.Round((double)((nutrition.Sodium ?? 0) / actualServings), 1),
+                alcohol = Math.Round((double)((nutrition.Alcohol ?? 0) / actualServings), 1)
             },
             servings = actualServings,
             lastCalculated = cocktail.NutritionCalculatedAt.HasValue ? cocktail.NutritionCalculatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null

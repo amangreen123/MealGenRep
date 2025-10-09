@@ -268,7 +268,8 @@ namespace MealForgerBackend.Services
                 Fat = 0,
                 Fiber = 0,
                 Sugar = 0,
-                Sodium = 0
+                Sodium = 0,
+                Alcohol = 0 // ✅ Track alcohol grams
             };
 
             foreach (var ing in ingredients)

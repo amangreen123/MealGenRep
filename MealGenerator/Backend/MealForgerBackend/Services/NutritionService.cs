@@ -93,7 +93,6 @@ public class NutritionService
                 totalNutrition.Fiber +=deepSeekFallBack.Fiber ?? 0;
                 totalNutrition.Sugar += deepSeekFallBack.Sugar ?? 0;
                 totalNutrition.Sodium += deepSeekFallBack.Sodium ?? 0;
-
                 
             } catch (Exception ex)
             {
@@ -101,7 +100,6 @@ public class NutritionService
                 
             }
         }
-
         return totalNutrition;
     }
     

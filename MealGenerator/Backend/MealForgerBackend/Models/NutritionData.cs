@@ -16,6 +16,8 @@ namespace MealForgerBackend.Models
         public float? Fiber { get; set; }
         public float? Sugar { get; set; }
         public float? Sodium { get; set; }
+        public float? Alcohol { get; set; }
+
         
     }
     

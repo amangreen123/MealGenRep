@@ -19,7 +19,6 @@ namespace MealForgerBackend.Services
         {
             if (_cache.ContainsKey(ingredient.ToLower()))
             {
-                
                 return _cache[ingredient.ToLower()];
             }
 
@@ -64,9 +63,16 @@ namespace MealForgerBackend.Services
 
                 }
                 
+                Console.WriteLine($"📊 Available nutrients for {ingredient}:");
+                foreach (var nutrient in detailedFood.FoodNutrients.Take(10))
+                {
+                    Console.WriteLine($"   - Number: '{nutrient.NutrientNumber}' | Name: {nutrient.NutrientName} | Value: {nutrient.Value}");
+                }
+
+                
                 var nutritionData = new USDANutritionData
                 {
-                    Description =  detailedFood.Description,
+                    Description = detailedFood.Description,
                     FdcId = detailedFood.FdcId,
                     Calories = ExtractNutrient(detailedFood.FoodNutrients, "208"),
                     Protein = ExtractNutrient(detailedFood.FoodNutrients, "203"),
@@ -74,7 +80,7 @@ namespace MealForgerBackend.Services
                     Fat = ExtractNutrient(detailedFood.FoodNutrients, "204"),
                     Fiber = ExtractNutrient(detailedFood.FoodNutrients, "291"),
                     Sugar = ExtractNutrient(detailedFood.FoodNutrients, "269"),
-                    Sodium = ExtractNutrient(detailedFood.FoodNutrients, "307")
+                    Sodium = ExtractNutrient(detailedFood.FoodNutrients, "307"),
                 };
                 
                 Console.WriteLine($"✅ USDA: {ingredient} → Calories: {nutritionData.Calories}, Protein: {nutritionData.Protein}g");
@@ -92,8 +98,18 @@ namespace MealForgerBackend.Services
         
         private double ExtractNutrient(List<FoodNutrient>? foodNutrients, string nutrientNumber)
         {
-            var nutrient = foodNutrients?
-                .FirstOrDefault(n => n.NutrientNumber == nutrientNumber);             
+            if (foodNutrients == null) return 0.0;
+            
+            var nutrient = foodNutrients.FirstOrDefault(n => n.NutrientNumber == nutrientNumber);
+            
+            if (nutrient != null)
+            {
+                Console.WriteLine($"   ✓ Found nutrient {nutrientNumber}: {nutrient.Value}{nutrient.UnitName}");
+            }
+            else
+            {
+                Console.WriteLine($"   ✗ Nutrient {nutrientNumber} not found");
+            }
             
             return nutrient?.Value ?? 0.0;
         }
