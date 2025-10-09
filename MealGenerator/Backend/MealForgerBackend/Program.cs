@@ -118,12 +118,7 @@ app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
     }
 });
 
-app.MapGet("/general-recipes-search", async (
-    MealForgerContext db, 
-    IMemoryCache cache,
-    string ingredients, 
-    string diet = "", 
-    int maxResults = 50) =>
+app.MapGet("/general-recipes-search", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50) => 
 {
     if(string.IsNullOrWhiteSpace(ingredients))
     {
@@ -139,31 +134,29 @@ app.MapGet("/general-recipes-search", async (
         return Results.BadRequest("At least one ingredient is required.");
     }
     
-    // Create cache key
-    var cacheKey = $"recipe_search_{string.Join("_", ingredientList.OrderBy(i => i))}_{diet}_{maxResults}";
-    
-    // Try to get from cache
-    if (cache.TryGetValue(cacheKey, out object? cachedResult))
+    var baseQuery = db.Recipes
+        .Include(r => r.RecipeIngredients)
+        .ThenInclude(ri => ri.Ingredient)
+        .AsQueryable();
+
+    if (!string.IsNullOrEmpty(diet))
     {
-        Console.WriteLine($"✅ Cache HIT for: {cacheKey}");
-        return Results.Ok(cachedResult);
+       var normalizedDiet = diet.ToLower().Replace("-", "").Replace(" ", "");
+       
+       if(normalizedDiet == "vegan")
+           baseQuery = baseQuery.Where(r => r.IsVegan);
+       else if(normalizedDiet == "vegetarian")
+           baseQuery = baseQuery.Where(r => r.IsVegetarian);
+       else if(normalizedDiet == "keto")
+           baseQuery = baseQuery.Where(r => r.IsKeto);
+       else if(normalizedDiet == "glutenfree")
+           baseQuery = baseQuery.Where(r => r.IsGlutenFree);
+       else if(normalizedDiet == "paleo")
+           baseQuery = baseQuery.Where(r => r.IsPaleo);
     }
     
-    Console.WriteLine($"🔄 Cache MISS for: {cacheKey}");
-    
     // Get all recipes from cache or database
-    var allRecipes = await cache.GetOrCreateAsync("all_recipes_cache", async entry =>
-    {
-        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
-        entry.SetPriority(CacheItemPriority.High);
-        
-        Console.WriteLine("📚 Loading all recipes from database...");
-        return await db.Recipes
-            .Include(r => r.RecipeIngredients)
-            .ThenInclude(ri => ri.Ingredient)
-            .AsNoTracking()
-            .ToListAsync();
-    });
+    var allRecipes = await baseQuery.ToListAsync();
     
     var scoredRecipes = allRecipes!.Select(r => new
         {
@@ -206,17 +199,8 @@ app.MapGet("/general-recipes-search", async (
         .OrderByDescending(x => x.score)
         .Take(maxResults)
         .ToList();
-
-    var result = new { meals = scoredRecipes };
     
-    // Cache the result for 10 minutes
-    cache.Set(cacheKey, result, new MemoryCacheEntryOptions
-    {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-        SlidingExpiration = TimeSpan.FromMinutes(5)
-    });
-    
-    return Results.Ok(result);
+    return Results.Ok(new { meals = scoredRecipes  });
 });
 
 // Cocktail Search By Ingredients (with caching)
@@ -610,16 +594,6 @@ app.MapGet("/cocktail/{id}", async (
     int? servings) =>
 {
     int actualServings = servings ?? 1;
-    var cacheKey = $"cocktail_details_{id}_{actualServings}";
-    
-    // Try to get from cache
-    if (cache.TryGetValue(cacheKey, out object? cachedResult))
-    {
-        Console.WriteLine($"✅ Cache HIT for cocktail: {id}");
-        return Results.Ok(cachedResult);
-    }
-    
-    Console.WriteLine($"🔄 Cache MISS for cocktail: {id}");
     
     var cocktail = await db.CockTails
         .Where(c => c.Id == id)
@@ -632,26 +606,69 @@ app.MapGet("/cocktail/{id}", async (
         return Results.NotFound();
     
     var ingredients = cocktail.DrinkRecipeIngredients.ToList();
-
-    var ingredientsList = cocktail.DrinkRecipeIngredients
-        .Select(dri => new IngredientWithMeasure
-        {
-            Name = dri.DrinkIngredient.Name,
-            Measure = dri.Measure
-        })
-        .ToList();
     
     NutritionData nutrition;
-    try
+
+    if(cocktail.Calories.HasValue && cocktail.Protein.HasValue)
     {
-        nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList, servings: actualServings);
+        nutrition = new NutritionData
+        {
+            Calories = cocktail.Calories ?? 0, 
+            Protein = cocktail.Protein ?? 0,
+            Carbohydrates = cocktail.Carbohydrates ?? 0,
+            Fat = cocktail.Fat ?? 0,
+            Fiber = cocktail.Fiber ?? 0,
+            Sugar = cocktail.Sugar ?? 0,
+            Sodium = cocktail.Sodium ?? 0
+        };
+        
+        Console.WriteLine($"✅ Using cached nutrition for: {cocktail.Name}");
     }
-    catch (Exception ex)
+    else
     {
-        Console.WriteLine($"❌ Nutrition calculation failed: {ex.Message}");
-        nutrition = new NutritionData();
+        var ingredientsList = cocktail.DrinkRecipeIngredients
+            .Select(dri => new IngredientWithMeasure
+            {
+                Name = dri.DrinkIngredient.Name,
+                Measure = dri.Measure
+            })
+            .ToList();
+
+        Console.WriteLine($"🔄 Calculating fresh nutrition for: {cocktail.Name}");
+
+        try
+        {
+            nutrition = await deepSeek.CalculateNutritionAsync(ingredientsList, servings: actualServings);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Nutrition calculation failed: {ex.Message}");
+            nutrition = new NutritionData();
+        }
+
+        if (nutrition.Calories > 0 || nutrition.Protein > 0)
+        {
+            cocktail.Calories = nutrition.Calories;
+            cocktail.Protein = nutrition.Protein;
+            cocktail.Carbohydrates = nutrition.Carbohydrates;
+            cocktail.Fat = nutrition.Fat;
+            cocktail.Fiber = nutrition.Fiber;
+            cocktail.Sugar = nutrition.Sugar;
+            cocktail.Sodium = nutrition.Sodium;
+            cocktail.NutritionCalculatedAt = DateTime.UtcNow;
+            
+            try
+            {
+                await db.SaveChangesAsync();
+                Console.WriteLine($"💾 Nutrition cached for: {cocktail.Name}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Failed to cache nutrition: {ex.Message}");
+            }
+        }
     }
-    
+
     var response = new Dictionary<string, object?>
     {
         ["idDrink"] = cocktail.Id,
@@ -680,7 +697,8 @@ app.MapGet("/cocktail/{id}", async (
                 sugar = Math.Round((double)((nutrition.Sugar ?? 0) / actualServings), 1),
                 sodium = Math.Round((double)((nutrition.Sodium ?? 0) / actualServings), 1)
             },
-            servings = actualServings
+            servings = actualServings,
+            lastCalculated = cocktail.NutritionCalculatedAt.HasValue ? cocktail.NutritionCalculatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : null
         }
     };
     
@@ -690,12 +708,8 @@ app.MapGet("/cocktail/{id}", async (
         response[$"strMeasure{i + 1}"] = ingredients[i].Measure;
     }
     
-    var result = new { drinks = new[] { response } };
+    return Results.Ok(new { drinks = new[] { response } });
     
-    // Cache for 30 minutes
-    cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
-    
-    return Results.Ok(result);
 });
 
 //Gemini AI Photo to text endpoint

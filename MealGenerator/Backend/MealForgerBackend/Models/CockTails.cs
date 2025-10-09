@@ -16,5 +16,15 @@ public class CockTails
     public bool IsKeto { get; set; }
     public bool IsPaleo { get; set; }
     
+    
+    public int? Calories { get; set; }
+    public float? Protein { get; set; }
+    public float? Carbohydrates { get; set; }
+    public float? Fat { get; set; }
+    public float? Fiber { get; set; }
+    public float? Sugar { get; set; }
+    public float? Sodium { get; set; }
+    public DateTime? NutritionCalculatedAt { get; set; }
+    
     public ICollection<DrinkRecipeIngredient> DrinkRecipeIngredients { get; set; } = new List<DrinkRecipeIngredient>();
 }

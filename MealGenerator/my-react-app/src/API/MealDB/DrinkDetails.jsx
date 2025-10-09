@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home } from "luci
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { slugify } from "@/utils/slugify"
+import useRecipeDetails from "@/Hooks/useRecipeDetails.jsx";
+
 
 const DrinkDetails = () => {
     const { id } = useParams()
@@ -17,39 +19,19 @@ const DrinkDetails = () => {
 
     const drinkId = state.recipeId || drink?.idDrink || id
 
-    const [loading, setLoading] = useState(true)
-    const [drinkDetails, setDrinkDetails] = useState(null)
-    const [ingredients, setIngredients] = useState([])
-    const [error, setError] = useState(null)
-
-    const [servings, setServings] = useState(1)
-    const [baseNutrition, setBaseNutrition] = useState(null)
-
-    // Nutrition state - will be populated from backend
-    const [nutritionInfo, setNutritionInfo] = useState({
-        calories: 0,
-        carbs: 0,
-        alcohol: 0,
-    })
+    // Use the cached hook instead of local state
+    const { getDrinkDetails, loading, error: fetchError } = useRecipeDetails()
 
     useEffect(() => {
         const fetchDrinkData = async () => {
             if (!drinkId) {
                 setError("Invalid drink ID")
-                setLoading(false)
                 return
             }
 
             try {
-                setLoading(true)
-                const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5261"
-                const response = await fetch(`${BASE_URL}/cocktail/${drinkId}`)
-
-                if (!response.ok) {
-                    throw new Error("Cocktail not found")
-                }
-
-                const data = await response.json()
+                // Use cached hook - only fetches ONCE per drink
+                const data = await getDrinkDetails(drinkId)
 
                 if (data?.drinks?.[0]) {
                     const drinkData = data.drinks[0]
@@ -61,7 +43,10 @@ const DrinkDetails = () => {
                         const ingredient = drinkData[`strIngredient${i}`]
                         const measure = drinkData[`strMeasure${i}`]
                         if (ingredient && ingredient.trim() !== "") {
-                            extractedIngredients.push({ ingredient, measure: measure || "To taste" })
+                            extractedIngredients.push({
+                                ingredient,
+                                measure: measure || "To taste"
+                            })
                         }
                     }
                     setIngredients(extractedIngredients)
@@ -74,11 +59,9 @@ const DrinkDetails = () => {
                         }
                         setBaseNutrition(baseNutritionData)
 
-                        // Set initial servings from API response (default to 1 for cocktails)
                         const initialServings = drinkData.nutrition.servings || 1
                         setServings(initialServings)
 
-                        // Calculate nutrition for initial servings
                         setNutritionInfo({
                             calories: Math.round(baseNutritionData.calories * initialServings),
                             carbs: Math.round(baseNutritionData.carbs * initialServings),
@@ -90,14 +73,12 @@ const DrinkDetails = () => {
                 }
             } catch (error) {
                 console.error("Error fetching drink:", error)
-                setError(error.message || "An error occurred while fetching drink details")
-            } finally {
-                setLoading(false)
+                setError(error.message || "An error occurred")
             }
         }
 
         fetchDrinkData()
-    }, [drinkId])
+    }, [drinkId, getDrinkDetails])
 
     const handleServingsChange = (newServings) => {
         setServings(newServings)
@@ -113,26 +94,45 @@ const DrinkDetails = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
-                <div className="text-[#f5efe4] text-xl font-terminal">Loading drink details...</div>
+                <div className="text-center">
+                    <div className="text-[#f5efe4] text-xl font-terminal mb-4">
+                        Loading drink details...
+                    </div>
+                    <div className="text-[#ce7c1c] text-sm font-terminal animate-pulse">
+                        FETCHING FROM DATABASE
+                    </div>
+                </div>
             </div>
         )
     }
 
-    if (error || !drinkDetails) {
+    if (error || fetchError || !drinkDetails) {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
-                <div className="text-[#f5efe4] text-xl font-terminal">{error || "Drink not found"}</div>
+                <div className="text-center">
+                    <div className="text-[#f5efe4] text-xl font-terminal mb-4">
+                        {error || fetchError || "Drink not found"}
+                    </div>
+                    <Button
+                        onClick={() => navigate(previousPath)}
+                        className="bg-[#ce7c1c] text-white hover:bg-[#b56a15] font-terminal"
+                    >
+                        Go Back
+                    </Button>
+                </div>
             </div>
         )
     }
 
     // Determine matching and missing ingredients
-    const userIngredientsNormalized = userIngredients.map((ing) => ing.toLowerCase().trim())
+    const userIngredientsNormalized = userIngredients.map((ing) =>
+        ing.toLowerCase().trim()
+    )
     const pantryItems = ingredients.filter((item) =>
-        userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim()),
+        userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
     )
     const shoppingListItems = ingredients.filter(
-        (item) => !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim()),
+        (item) => !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
     )
 
     // Parse instructions
@@ -141,10 +141,13 @@ const DrinkDetails = () => {
         .filter((step) => step.trim())
         .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
 
-    const isAlcoholic = drinkDetails.strAlcoholic && !drinkDetails.strAlcoholic.toLowerCase().includes("non")
+    const isAlcoholic = drinkDetails.strAlcoholic &&
+        !drinkDetails.strAlcoholic.toLowerCase().includes("non")
 
     // Navigation helpers
-    const currentIndex = location.state?.allRecipes?.findIndex((r) => r.idDrink === drinkDetails.idDrink) ?? -1
+    const currentIndex = location.state?.allRecipes?.findIndex(
+        (r) => r.idDrink === drinkDetails.idDrink
+    ) ?? -1
     const totalRecipes = location.state?.allRecipes?.length ?? 0
     const hasPrevious = currentIndex > 0
     const hasNext = currentIndex < totalRecipes - 1
@@ -166,7 +169,9 @@ const DrinkDetails = () => {
     }
 
     // Get related recipes
-    const relatedRecipes = allRecipes.filter((r) => r.idDrink !== drinkDetails.idDrink).slice(0, 3)
+    const relatedRecipes = allRecipes
+        .filter((r) => r.idDrink !== drinkDetails.idDrink)
+        .slice(0, 3)
 
     return (
         <div className="min-h-screen bg-[#131415] text-[#f5efe4]">
@@ -221,7 +226,9 @@ const DrinkDetails = () => {
                         {/* Drink Header */}
                         <div>
                             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">{drinkDetails.strDrink.toUpperCase()}</span>
+                                <span className="text-[#ce7c1c]">
+                                    {drinkDetails.strDrink.toUpperCase()}
+                                </span>
                             </h1>
                             <div className="flex flex-wrap gap-2 mb-6">
                                 {drinkDetails.strCategory && (
@@ -231,7 +238,9 @@ const DrinkDetails = () => {
                                 )}
                                 <Badge
                                     className={`${
-                                        isAlcoholic ? "bg-purple-900 border-purple-700" : "bg-green-900 border-green-700"
+                                        isAlcoholic
+                                            ? "bg-purple-900 border-purple-700"
+                                            : "bg-green-900 border-green-700"
                                     } text-[#f5efe4] font-terminal text-xs px-3 py-1 rounded-full`}
                                 >
                                     {drinkDetails.strAlcoholic}
@@ -255,21 +264,25 @@ const DrinkDetails = () => {
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
                                         <span className="font-terminal text-xs sm:text-sm">
-                      {servings} serving{servings > 1 ? "s" : ""}
-                    </span>
+                                            {servings} serving{servings > 1 ? "s" : ""}
+                                        </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm font-bold">{nutritionInfo.calories} kcal</span>
+                                        <span className="font-terminal text-xs sm:text-sm font-bold">
+                                            {nutritionInfo.calories} kcal
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Nutrition Facts */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                             <div className="flex items-center justify-between mb-6 sm:mb-8">
                                 <h2 className="text-xl sm:text-2xl font-bold font-title">
-                                    <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
+                                    <span className="text-[#ce7c1c]">NUTRITION</span>{" "}
+                                    <span className="text-white">FACTS</span>
                                 </h2>
                                 <div className="text-xs font-terminal text-gray-400">
                                     Per Serving: {Math.round(nutritionInfo.calories / servings)} kcal
@@ -279,19 +292,20 @@ const DrinkDetails = () => {
                             {/* Serving Size Slider */}
                             <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4">
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="text-sm font-terminal text-[#f5efe4]">SERVINGS</label>
-                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
+                                    <label className="text-sm font-terminal text-[#f5efe4]">
+                                        SERVINGS
+                                    </label>
+                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">
+                                        {servings}
+                                    </span>
                                 </div>
                                 <input
                                     type="range"
                                     min="1"
-                                    max="8"
+                                    max="12"
                                     value={servings}
                                     onChange={(e) => handleServingsChange(Number(e.target.value))}
-                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
-                                    style={{
-                                        background: `linear-gradient(to right, #ce7c1c 0%, #ce7c1c ${((servings - 1) / 7) * 100}%, #374151 ${((servings - 1) / 7) * 100}%, #374151 100%)`,
-                                    }}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#ce7c1c]"
                                 />
                                 <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
                                     <span>1</span>
@@ -302,11 +316,13 @@ const DrinkDetails = () => {
 
                             <div className="grid grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
-                                    <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
+                                    <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2"/>
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {nutritionInfo.calories}
+                                    {nutritionInfo.calories}
                                     </div>
-                                    <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">Calories</div>
+                                    <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">
+                                        Calories
+                                    </div>
                                 </div>
                                 <div className="text-center">
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#ce7c1c] rounded-full flex items-center justify-center mx-auto mb-2">
@@ -315,7 +331,9 @@ const DrinkDetails = () => {
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
                                         {nutritionInfo.carbs}g
                                     </div>
-                                    <div className="text-xs font-terminal text-yellow-400 uppercase tracking-wider">Carbs</div>
+                                    <div className="text-xs font-terminal text-yellow-400 uppercase tracking-wider">
+                                        Carbs
+                                    </div>
                                 </div>
                                 {isAlcoholic && (
                                     <div className="text-center">
@@ -323,7 +341,9 @@ const DrinkDetails = () => {
                                         <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
                                             {nutritionInfo.alcohol}g
                                         </div>
-                                        <div className="text-xs font-terminal text-purple-400 uppercase tracking-wider">Alcohol</div>
+                                        <div className="text-xs font-terminal text-purple-400 uppercase tracking-wider">
+                                            Alcohol
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -332,14 +352,17 @@ const DrinkDetails = () => {
                         {/* Preparation Instructions */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                             <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
-                                <span className="text-[#ce7c1c]">PREPARATION</span> <span className="text-white">INSTRUCTIONS</span>
+                                <span className="text-[#ce7c1c]">PREPARATION</span>{" "}
+                                <span className="text-white">INSTRUCTIONS</span>
                             </h2>
                             <ScrollArea className="h-[400px] sm:h-[500px] pr-4">
                                 <div className="space-y-4 sm:space-y-6">
                                     {instructionSteps.map((step, index) => (
                                         <div key={index} className="flex gap-3 sm:gap-4">
                                             <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-[#ce7c1c] rounded-full flex items-center justify-center shadow-lg">
-                                                <span className="font-terminal text-xs sm:text-sm font-bold text-white">{index + 1}</span>
+                                                <span className="font-terminal text-xs sm:text-sm font-bold text-white">
+                                                    {index + 1}
+                                                </span>
                                             </div>
                                             <p className="font-terminal text-xs sm:text-sm text-[#f5efe4] leading-relaxed pt-1 sm:pt-2">
                                                 {step}
@@ -356,7 +379,8 @@ const DrinkDetails = () => {
                         {/* My Pantry */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
                             <h3 className="text-lg sm:text-xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">MY</span> <span className="text-white">PANTRY</span>
+                                <span className="text-[#ce7c1c]">MY</span>{" "}
+                                <span className="text-white">PANTRY</span>
                             </h3>
                             {pantryItems.length > 0 ? (
                                 <>
@@ -384,7 +408,8 @@ const DrinkDetails = () => {
                         {/* Shopping List */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
                             <h3 className="text-lg sm:text-xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">SHOPPING</span> <span className="text-white">LIST</span>
+                                <span className="text-[#ce7c1c]">SHOPPING</span>{" "}
+                                <span className="text-white">LIST</span>
                             </h3>
                             {shoppingListItems.length > 0 ? (
                                 <ScrollArea className="h-[300px]">
@@ -396,7 +421,9 @@ const DrinkDetails = () => {
                                             >
                                                 <div>{item.ingredient}</div>
                                                 {item.measure && item.measure.trim() !== "" && (
-                                                    <div className="text-gray-500 text-xs mt-1">{item.measure}</div>
+                                                    <div className="text-gray-500 text-xs mt-1">
+                                                        {item.measure}
+                                                    </div>
                                                 )}
                                             </div>
                                         ))}
@@ -413,7 +440,8 @@ const DrinkDetails = () => {
                         {relatedRecipes.length > 0 && (
                             <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
                                 <h3 className="text-xl font-bold font-title mb-6">
-                                    <span className="text-white">YOU MIGHT</span> <span className="text-[#ce7c1c]">ALSO LIKE</span>
+                                    <span className="text-white">YOU MIGHT</span>{" "}
+                                    <span className="text-[#ce7c1c]">ALSO LIKE</span>
                                 </h3>
                                 <div className="space-y-4">
                                     {relatedRecipes.map((relatedRecipe) => (
@@ -445,22 +473,6 @@ const DrinkDetails = () => {
                                                     {relatedRecipe.strCategory && (
                                                         <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
                                                             {relatedRecipe.strCategory}
-                                                        </Badge>
-                                                    )}
-                                                    {relatedRecipe.strAlcoholic && (
-                                                        <Badge
-                                                            className={`${
-                                                                relatedRecipe.strAlcoholic.toLowerCase().includes("non")
-                                                                    ? "bg-green-900/30 text-green-400 border-green-700/30"
-                                                                    : "bg-purple-900/30 text-purple-400 border-purple-700/30"
-                                                            } font-terminal text-xs px-2 py-0.5 rounded-full`}
-                                                        >
-                                                            {relatedRecipe.strAlcoholic}
-                                                        </Badge>
-                                                    )}
-                                                    {relatedRecipe.strGlass && (
-                                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-terminal text-xs px-2 py-0.5 rounded-full">
-                                                            {relatedRecipe.strGlass}
                                                         </Badge>
                                                     )}
                                                 </div>
