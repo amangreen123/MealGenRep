@@ -16,5 +16,16 @@ export default defineConfig({
   build:{
     sourcemap: true,
     assetsDir: 'image'
-  }
+  },
+    server: {
+    proxy: {
+        '/api': {
+            target:'https://localhost:5261',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+    },
+  },
+  
 })

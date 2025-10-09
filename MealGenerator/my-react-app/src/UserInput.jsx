@@ -150,7 +150,7 @@ const UserInput = () => {
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title
         const recipeSlug = recipe.slug || slugify(recipeName)
 
-        if (recipe.isDrink) {
+        if (recipe.idDrink) {
             navigate(`/drink/${recipeSlug}`, {
                 state: {
                     drink: recipe,
