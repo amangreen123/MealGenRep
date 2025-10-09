@@ -8,6 +8,7 @@ namespace MealForgerBackend.Services
     {
         private readonly HttpClient _http;
         private readonly IConfiguration _config;
+        private readonly ILogger<DeepSeekService> _logger;
 
         public DeepSeekService(HttpClient http, IConfiguration config)
         {
@@ -49,10 +50,10 @@ namespace MealForgerBackend.Services
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Groq API Error: {response.StatusCode} - {errorBody}");
+                Console.WriteLine($"Ingredient validation API call failed. Status: {response.StatusCode}, Error: {errorBody}");
                 throw new Exception("Failed to validate ingredient.");
             }
-
+            
             var raw = await response.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<GroqResponse>(raw);
             return result?.choices?[0]?.message?.content?.Trim() ?? "Error: invalid ingredient";

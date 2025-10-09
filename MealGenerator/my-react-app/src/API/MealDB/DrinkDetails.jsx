@@ -62,8 +62,9 @@ const DrinkDetails = () => {
                         }
                     }
                     setIngredients(extractedIngredients)
-
-                    if (drinkData.nutrition?.perServing) {
+                    
+                    if (drinkData.nutrition) {
+                        
                         const baseNutritionData = {
                             calories: drinkData.nutrition.perServing.calories || 0,
                             carbs: drinkData.nutrition.perServing.carbs || 0,
@@ -95,7 +96,10 @@ const DrinkDetails = () => {
 
     const handleServingsChange = (newServings) => {
         const clamped = Math.max(1, Math.min(12, Number(newServings) || 1))
-        setServings(newServings)
+        setServings(clamped)
+        console.log("Base nutrition:", baseNutrition)
+        console.log("Clamped servings:", clamped)
+        
         if (baseNutrition) {
             setNutritionInfo({
                 calories: Math.round((baseNutrition.calories || 0) * clamped),

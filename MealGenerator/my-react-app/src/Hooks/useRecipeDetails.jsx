@@ -1,6 +1,5 @@
-﻿import { useState, useRef } from "react";
+﻿import { useState, useRef, useCallback} from "react";
 import axios from "axios";
-
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
 
 export const useRecipeDetails = () => {
@@ -11,7 +10,7 @@ export const useRecipeDetails = () => {
     const mealCache = useRef({});
     const drinkCache = useRef({});
     
-    const getMealDetails = async (id, servings = 4) => {
+    const getMealDetails = useCallback (async (id, servings = 4) => {
         const cacheKey = `${id}_${servings}`;
 
         // Check cache
@@ -43,10 +42,10 @@ export const useRecipeDetails = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
     
     
-    const getDrinkDetails = async (id, servings = 1) => {
+    const getDrinkDetails = useCallback (async (id, servings = 1) => {
         const cacheKey = `${id}_${servings}`;
 
         // Check cache
@@ -78,7 +77,7 @@ export const useRecipeDetails = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     /**
      * Clear all caches
