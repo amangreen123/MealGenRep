@@ -105,18 +105,19 @@ const UserInput = () => {
         }
     }
 
+
     const handleSearch = async ({
-                                    cookableOnly = false,
-                                    strictMode = false,
+                                    searchType = "all", 
+                                    exactMatch = false, 
                                     focusSearch = false,
                                     focusIngredient = null,
                                 }) => {
-        setHasGeneratedRecipes(true) // Add this line
+        setHasGeneratedRecipes(true)
         await searchRecipes({
             ingredients,
             selectedDiet,
-            cookableOnly,
-            strictMode,
+            searchType, 
+            exactMatch,
             focusSearch,
             focusIngredient,
         })
@@ -196,16 +197,7 @@ const UserInput = () => {
             },
         })
     }
-
-    // Auto-search when ingredients are loaded from localStorage
-    // useEffect(() => {
-    //   if (ingredients.length > 0) {
-    //     setTimeout(() => {
-    //       handleSearch({ cookableOnly: false, strictMode: false })
-    //     }, 500)
-    //   }
-    // }, [ingredients.length]) // Only run when ingredients length changes
-
+    
     // Determine what to show in the recipes section
     const showGeneratedRecipes = allRecipes.length > 0 || isSearching
     const recipeSectionTitle = showGeneratedRecipes ? "RECIPES YOU CAN COOK" : "POPULAR RECIPES"

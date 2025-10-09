@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Users, Flame, Zap, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
+import { slugify } from "@/utils/slugify"
 
 const MealDBRecipeDetails = () => {
     const { id } = useParams()
@@ -441,15 +441,17 @@ const MealDBRecipeDetails = () => {
                                                 <h4 className="font-terminal text-sm font-bold text-[#f5efe4] mb-2 line-clamp-2 uppercase leading-tight">
                                                     {relatedRecipe.strMeal}
                                                 </h4>
-                                                <div className="flex items-center gap-2 text-xs font-terminal text-gray-400 mb-2">
-                                                    <span>30 min</span>
-                                                    <span>•</span>
-                                                    <span className="text-[#ce7c1c]">450 kcal</span>
-                                                </div>
-                                                <div className="flex gap-2 text-xs font-terminal text-gray-400">
-                                                    <span>28P</span>
-                                                    <span>35C</span>
-                                                    <span>20F</span>
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {relatedRecipe.strArea && (
+                                                        <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
+                                                            {relatedRecipe.strArea}
+                                                        </Badge>
+                                                    )}
+                                                    {relatedRecipe.strCategory && (
+                                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-terminal text-xs px-2 py-0.5 rounded-full">
+                                                            {relatedRecipe.strCategory}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

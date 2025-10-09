@@ -4,20 +4,32 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ChefHat, Loader2, ScanEye } from "lucide-react"
+import { ChefHat, Loader2, Wine, UtensilsCrossed, ScanEye } from "lucide-react"
 
 const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching = false, focusIngredient }) => {
-    const [cookableOnly, setCookableOnly] = useState(false)
-    const [strictMode, setStrictMode] = useState(false)
+    const [searchType, setSearchType] = useState("all") // "all", "meals", "drinks"
+    const [exactMatch, setExactMatch] = useState(false)
     const [focusSearch, setFocusSearch] = useState(false)
 
     const handleSearchClick = () => {
         onSearch({
-            cookableOnly,
-            strictMode,
+            searchType,
+            exactMatch,
             focusSearch,
             focusIngredient: focusSearch && ingredients.length > 0 ? ingredients[0] : null,
         })
+    }
+
+    const getSearchButtonText = () => {
+        if (focusSearch && ingredients.length > 0) {
+            return `Find ${ingredients[0]} ${searchType === "all" ? "Recipes" : searchType === "drinks" ? "Drinks" : "Meals"}`
+        }
+
+        if (exactMatch) {
+            return `Find Exact ${searchType === "all" ? "Matches" : searchType === "drinks" ? "Drinks" : "Meals"}`
+        }
+
+        return `Find ${searchType === "all" ? "All Recipes" : searchType === "drinks" ? "Drinks" : "Meals"}`
     }
 
     return (
@@ -27,42 +39,67 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                 <h3 className="text-lg font-title">Search Options</h3>
             </div>
 
-            {/* Cookable Only Toggle */}
-            <div className="flex items-center justify-between">
+            <div className="space-y-2">
+                <Label className="text-base font-terminal">Search Type</Label>
+                <div className="grid grid-cols-3 gap-2">
+                    <Button
+                        variant={searchType === "all" ? "default" : "outline"}
+                        onClick={() => setSearchType("all")}
+                        className={`font-terminal ${
+                            searchType === "all"
+                                ? "bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 text-white border-[#ce7c1c]"
+                                : "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                        }`}
+                    >
+                        <UtensilsCrossed className="h-4 w-4 mr-2" />
+                        All
+                    </Button>
+                    <Button
+                        variant={searchType === "meals" ? "default" : "outline"}
+                        onClick={() => setSearchType("meals")}
+                        className={`font-terminal ${
+                            searchType === "meals"
+                                ? "bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 text-white border-[#ce7c1c]"
+                                : "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                        }`}
+                    >
+                        <ChefHat className="h-4 w-4 mr-2" />
+                        Meals
+                    </Button>
+                    <Button
+                        variant={searchType === "drinks" ? "default" : "outline"}
+                        onClick={() => setSearchType("drinks")}
+                        className={`font-terminal ${
+                            searchType === "drinks"
+                                ? "bg-[#ce7c1c] hover:bg-[#ce7c1c]/80 text-white border-[#ce7c1c]"
+                                : "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                        }`}
+                    >
+                        <Wine className="h-4 w-4 mr-2" />
+                        Drinks
+                    </Button>
+                </div>
+                <p className="text-sm text-gray-400 font-terminal">
+                    {searchType === "all" && "Search both meals and cocktails"}
+                    {searchType === "meals" && "Search only food recipes"}
+                    {searchType === "drinks" && "Search only cocktails and beverages"}
+                </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
                 <div className="space-y-0.5">
-                    <Label className="text-base font-terminal">Cookable Now</Label>
-                    <p className="text-sm text-gray-400 font-terminal">
-                        {strictMode
-                            ? "Only recipes with EXACT ingredient matches"
-                            : "Show recipes you can make with your ingredients"}
-                    </p>
+                    <Label className="text-base flex items-center gap-2 font-terminal">
+                        <ScanEye className="h-4 w-4" />
+                        Exact Match
+                    </Label>
+                    <p className="text-sm text-gray-400 font-terminal">Only show recipes with exact ingredient matches</p>
                 </div>
                 <Switch
-                    checked={cookableOnly}
-                    onCheckedChange={setCookableOnly}
+                    checked={exactMatch}
+                    onCheckedChange={setExactMatch}
                     className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c]"
                 />
             </div>
-
-            {/* Strict Mode Toggle */}
-            {cookableOnly && (
-                <div className="flex items-center justify-between pt-2">
-                    <div className="space-y-0.5">
-                        <Label className="text-base flex items-center gap-2 font-terminal">
-                            <ScanEye className="h-4 w-4" />
-                            Strict Matching
-                        </Label>
-                        <p className="text-sm text-gray-400 font-terminal">
-                            Require exact ingredient names (e.g. "cheddar cheese" not just "cheddar")
-                        </p>
-                    </div>
-                    <Switch
-                        checked={strictMode}
-                        onCheckedChange={setStrictMode}
-                        className="bg-gray-700 data-[state=checked]:bg-[#ce7c1c]"
-                    />
-                </div>
-            )}
 
             {/* Focus Search Toggle */}
             {ingredients.length > 0 && (
@@ -97,7 +134,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                         Searching...
                     </>
                 ) : (
-                    `Find ${focusSearch ? `${ingredients[0]} ` : ""}${cookableOnly ? (strictMode ? "Exact Match" : "Cookable") : "All"} Recipes`
+                    getSearchButtonText()
                 )}
             </Button>
 
