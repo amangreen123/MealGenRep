@@ -32,7 +32,7 @@ const useFetchMeals = () => {
                 addRecipeInformation: true,
                 fillIngredients: true,
                 instructionsRequired: true,
-                number: 20,
+                number: 30,
                 query: focusIngredient || ingredients.join(" "),
                 addRecipeNutrition: true,
                 sort: "max-used-ingredients"

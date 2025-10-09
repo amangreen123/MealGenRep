@@ -21,6 +21,15 @@ const RecipeDetails = () => {
     const [recipeDetails, setRecipeDetails] = useState(null)
     const [error, setError] = useState(null)
 
+    const [servings, setServings] = useState(recipe?.servings || 4)
+    const [baseNutrition, setBaseNutrition] = useState(null)
+    const [nutritionInfo, setNutritionInfo] = useState({
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+    })
+
     useEffect(() => {
         const fetchRecipeData = async () => {
             if (!recipeId) return
@@ -28,6 +37,26 @@ const RecipeDetails = () => {
                 setLoading(true)
                 const data = await getInstructions(recipeId)
                 setRecipeDetails(data)
+
+                if (data.macros) {
+                    const initialServings = recipe?.servings || 4
+                    const baseNutritionData = {
+                        calories: data.macros.calories / initialServings,
+                        protein: data.macros.protein / initialServings,
+                        carbs: data.macros.carbs / initialServings,
+                        fat: data.macros.fat / initialServings,
+                    }
+                    setBaseNutrition(baseNutritionData)
+                    setServings(initialServings)
+
+                    // Set initial nutrition for the recipe's default servings
+                    setNutritionInfo({
+                        calories: Math.round(baseNutritionData.calories * initialServings),
+                        protein: Math.round(baseNutritionData.protein * initialServings),
+                        carbs: Math.round(baseNutritionData.carbs * initialServings),
+                        fat: Math.round(baseNutritionData.fat * initialServings),
+                    })
+                }
             } catch (error) {
                 setError(error.message || "An error occurred while fetching recipe details")
             } finally {
@@ -37,6 +66,18 @@ const RecipeDetails = () => {
 
         fetchRecipeData()
     }, [recipeId])
+
+    const handleServingsChange = (newServings) => {
+        setServings(newServings)
+        if (baseNutrition) {
+            setNutritionInfo({
+                calories: Math.round(baseNutrition.calories * newServings),
+                protein: Math.round(baseNutrition.protein * newServings),
+                carbs: Math.round(baseNutrition.carbs * newServings),
+                fat: Math.round(baseNutrition.fat * newServings),
+            })
+        }
+    }
 
     if (!recipe) {
         return (
@@ -186,13 +227,13 @@ const RecipeDetails = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm">{recipe.servings || "4"} servings</span>
+                                        <span className="font-terminal text-xs sm:text-sm">
+                      {servings} serving{servings > 1 ? "s" : ""}
+                    </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm font-bold">
-                      {Math.round(macros?.calories || 0)} kcal
-                    </span>
+                                        <span className="font-terminal text-xs sm:text-sm font-bold">{nutritionInfo.calories} kcal</span>
                                     </div>
                                 </div>
                             </div>
@@ -200,21 +241,50 @@ const RecipeDetails = () => {
 
                         {/* Nutrition Facts */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
-                                <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-6 sm:mb-8">
+                                <h2 className="text-xl sm:text-2xl font-bold font-title">
+                                    <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
+                                </h2>
+                                <div className="text-xs font-terminal text-gray-400">
+                                    Per Serving: {Math.round(nutritionInfo.calories / servings)} kcal
+                                </div>
+                            </div>
+
+                            <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-sm font-terminal text-[#f5efe4]">SERVINGS</label>
+                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="12"
+                                    value={servings}
+                                    onChange={(e) => handleServingsChange(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                                    style={{
+                                        background: `linear-gradient(to right, #ce7c1c 0%, #ce7c1c ${((servings - 1) / 11) * 100}%, #374151 ${((servings - 1) / 11) * 100}%, #374151 100%)`,
+                                    }}
+                                />
+                                <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
+                                    <span>1</span>
+                                    <span>6</span>
+                                    <span>12</span>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {Math.round(macros?.calories || 0)}
+                                        {nutritionInfo.calories}
                                     </div>
                                     <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">Calories</div>
                                 </div>
                                 <div className="text-center">
                                     <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {Math.round(macros?.protein || 0)}g
+                                        {nutritionInfo.protein}g
                                     </div>
                                     <div className="text-xs font-terminal text-blue-400 uppercase tracking-wider">Protein</div>
                                 </div>
@@ -223,7 +293,7 @@ const RecipeDetails = () => {
                                         <span className="text-white font-bold text-xs sm:text-sm">C</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {Math.round(macros?.carbs || 0)}g
+                                        {nutritionInfo.carbs}g
                                     </div>
                                     <div className="text-xs font-terminal text-yellow-400 uppercase tracking-wider">Carbs</div>
                                 </div>
@@ -231,9 +301,7 @@ const RecipeDetails = () => {
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#ce7c1c] rounded-full flex items-center justify-center mx-auto mb-2">
                                         <span className="text-white font-bold text-xs sm:text-sm">F</span>
                                     </div>
-                                    <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {Math.round(macros?.fat || 0)}g
-                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">{nutritionInfo.fat}g</div>
                                     <div className="text-xs font-terminal text-orange-400 uppercase tracking-wider">Fat</div>
                                 </div>
                             </div>

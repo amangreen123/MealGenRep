@@ -21,12 +21,15 @@ const MealDBRecipeDetails = () => {
     const [recipeDetails, setRecipeDetails] = useState(null)
     const [error, setError] = useState(null)
 
+    const [servings, setServings] = useState(4)
+    const [baseNutrition, setBaseNutrition] = useState(null)
+
     // Nutrition state - will be populated from backend
     const [nutritionInfo, setNutritionInfo] = useState({
         calories: 0,
         protein: 0,
         fat: 0,
-        carbs: 0
+        carbs: 0,
     })
 
     useEffect(() => {
@@ -39,11 +42,11 @@ const MealDBRecipeDetails = () => {
 
             try {
                 setLoading(true)
-                const BASE_URL = import.meta.env.VITE_API_URL ||'http://localhost:5261'
+                const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5261"
                 const response = await fetch(`${BASE_URL}/recipe/${recipeId}`)
 
                 if (!response.ok) {
-                    throw new Error('Recipe not found')
+                    throw new Error("Recipe not found")
                 }
 
                 const data = await response.json()
@@ -52,13 +55,25 @@ const MealDBRecipeDetails = () => {
                     const mealData = data.meals[0]
                     setRecipeDetails(mealData)
 
-                    // Extract AI-calculated nutrition
                     if (mealData.nutrition?.perServing) {
+                        const baseNutritionData = {
+                            calories: mealData.nutrition.perServing.calories || 0,
+                            protein: mealData.nutrition.perServing.protein || 0,
+                            fat: mealData.nutrition.perServing.fat || 0,
+                            carbs: mealData.nutrition.perServing.carbs || 0,
+                        }
+                        setBaseNutrition(baseNutritionData)
+
+                        // Set initial servings from API response
+                        const initialServings = mealData.nutrition.servings || 4
+                        setServings(initialServings)
+
+                        // Calculate nutrition for initial servings
                         setNutritionInfo({
-                            calories: Math.round(mealData.nutrition.perServing.calories || 0),
-                            protein: Math.round(mealData.nutrition.perServing.protein || 0),
-                            fat: Math.round(mealData.nutrition.perServing.fat || 0),
-                            carbs: Math.round(mealData.nutrition.perServing.carbs || 0),
+                            calories: Math.round(baseNutritionData.calories * initialServings),
+                            protein: Math.round(baseNutritionData.protein * initialServings),
+                            fat: Math.round(baseNutritionData.fat * initialServings),
+                            carbs: Math.round(baseNutritionData.carbs * initialServings),
                         })
                     }
                 } else {
@@ -74,6 +89,18 @@ const MealDBRecipeDetails = () => {
 
         fetchRecipeData()
     }, [recipeId])
+
+    const handleServingsChange = (newServings) => {
+        setServings(newServings)
+        if (baseNutrition) {
+            setNutritionInfo({
+                calories: Math.round(baseNutrition.calories * newServings),
+                protein: Math.round(baseNutrition.protein * newServings),
+                fat: Math.round(baseNutrition.fat * newServings),
+                carbs: Math.round(baseNutrition.carbs * newServings),
+            })
+        }
+    }
 
     if (loading) {
         return (
@@ -224,7 +251,7 @@ const MealDBRecipeDetails = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm">4 servings</span>
+                                        <span className="font-terminal text-xs sm:text-sm">{servings} servings</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
@@ -234,11 +261,40 @@ const MealDBRecipeDetails = () => {
                             </div>
                         </div>
 
-                        {/* Nutrition Facts - NOW USING AI DATA */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
-                                <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-6 sm:mb-8">
+                                <h2 className="text-xl sm:text-2xl font-bold font-title">
+                                    <span className="text-[#ce7c1c]">NUTRITION</span> <span className="text-white">FACTS</span>
+                                </h2>
+                                <div className="text-xs font-terminal text-gray-400">
+                                    Per Serving: {Math.round(nutritionInfo.calories / servings)} kcal
+                                </div>
+                            </div>
+
+                            {/* Serving Size Slider */}
+                            <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-sm font-terminal text-[#f5efe4]">SERVINGS</label>
+                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="12"
+                                    value={servings}
+                                    onChange={(e) => handleServingsChange(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                                    style={{
+                                        background: `linear-gradient(to right, #ce7c1c 0%, #ce7c1c ${((servings - 1) / 11) * 100}%, #374151 ${((servings - 1) / 11) * 100}%, #374151 100%)`,
+                                    }}
+                                />
+                                <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
+                                    <span>1</span>
+                                    <span>6</span>
+                                    <span>12</span>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
