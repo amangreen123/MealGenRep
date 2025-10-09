@@ -25,6 +25,7 @@ namespace MealForgerBackend.Services
 
             try
             {
+                
                 var apiKey = _config["USDAApiKey"];
                 var response = await _http.GetAsync(
                     $"https://api.nal.usda.gov/fdc/v1/foods/search?query={Uri.EscapeDataString(ingredient)}&pageSize=1&api_key={apiKey}");
@@ -42,18 +43,38 @@ namespace MealForgerBackend.Services
                 }
 
                 var food = data.Foods.First();
+                int fdcId = food.FdcId;
 
+                
+                var detailedResponse = await _http.GetAsync(
+                    $"https://api.nal.usda.gov/fdc/v1/food/{fdcId}?api_key={apiKey}");
+                
+                if(!detailedResponse.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"❌ Failed to get details for FdcId: {fdcId}. Status: {detailedResponse.StatusCode}");
+                    return null;
+                }
+                
+                var detailedFood = await detailedResponse.Content.ReadFromJsonAsync<USDAFood>();
+
+                if (detailedFood?.FoodNutrients == null)
+                {
+                    Console.WriteLine($"⚠️ FdcId: {fdcId} had no nutrient breakdown in detail view.");
+                    return null;
+
+                }
+                
                 var nutritionData = new USDANutritionData
                 {
-                    Description = food.Description,
-                    FdcId = food.FdcId,
-                    Calories = ExtractNutrient(food, "208"), // Energy
-                    Protein = ExtractNutrient(food, "203"), // Protein
-                    Fat = ExtractNutrient(food, "204"), // Total lipid (fat)
-                    Carbs = ExtractNutrient(food, "205"), // Carbohydrate,
-                    Fiber = ExtractNutrient(food, "291"),      // Fiber, total dietary
-                    Sugar = ExtractNutrient(food, "269"),      // Sugars, total including NLEA
-                    Sodium = ExtractNutrient(food, "307")   // Sodium, Na
+                    Description =  detailedFood.Description,
+                    FdcId = detailedFood.FdcId,
+                    Calories = ExtractNutrient(detailedFood.FoodNutrients, "208"),
+                    Protein = ExtractNutrient(detailedFood.FoodNutrients, "203"),
+                    Carbs = ExtractNutrient(detailedFood.FoodNutrients, "205"),
+                    Fat = ExtractNutrient(detailedFood.FoodNutrients, "204"),
+                    Fiber = ExtractNutrient(detailedFood.FoodNutrients, "291"),
+                    Sugar = ExtractNutrient(detailedFood.FoodNutrients, "269"),
+                    Sodium = ExtractNutrient(detailedFood.FoodNutrients, "307")
                 };
                 
                 Console.WriteLine($"✅ USDA: {ingredient} → Calories: {nutritionData.Calories}, Protein: {nutritionData.Protein}g");
@@ -69,11 +90,14 @@ namespace MealForgerBackend.Services
 
         }
         
-        private double ExtractNutrient(USDAFood food, string nutrientId)
+        private double ExtractNutrient(List<FoodNutrient>? foodNutrients, string nutrientNumber)
         {
-            var nutrient = food.FoodNutrients?.FirstOrDefault(n => n.NutrientNumber == nutrientId);
+            var nutrient = foodNutrients?
+                .FirstOrDefault(n => n.NutrientNumber == nutrientNumber);             
+            
             return nutrient?.Value ?? 0.0;
         }
+       
         
         public class USDANutritionData
         {

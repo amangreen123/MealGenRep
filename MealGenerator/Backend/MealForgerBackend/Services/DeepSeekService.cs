@@ -200,6 +200,8 @@ namespace MealForgerBackend.Services
 
                 content = content.Replace("```json", "").Replace("```", "").Trim();
                 
+                Console.WriteLine($"Raw nutrition response:\n{content}");
+                
                 var nutrition = JsonSerializer.Deserialize<NutritionData>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true

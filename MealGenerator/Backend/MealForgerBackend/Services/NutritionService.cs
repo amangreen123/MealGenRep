@@ -81,18 +81,19 @@ public class NutritionService
         if (failedIngredients.Count > 0)
         {
             Console.WriteLine($"🤖 Using AI for {failedIngredients.Count} failed ingredients");
-
+        
             try
             {
-                var deeepSeekFallBack = await _deepSeek.CalculateNutritionAsync(failedIngredients, servings);
+                var deepSeekFallBack = await _deepSeek.CalculateNutritionAsync(failedIngredients, servings);
                
-                totalNutrition.Calories += deeepSeekFallBack.Calories;
-                totalNutrition.Protein += deeepSeekFallBack.Protein;
-                totalNutrition.Carbohydrates += deeepSeekFallBack.Carbohydrates;
-                totalNutrition.Fat += deeepSeekFallBack.Fat;
-                totalNutrition.Fiber += deeepSeekFallBack.Fiber;
-                totalNutrition.Sugar += deeepSeekFallBack.Sugar;
-                totalNutrition.Sodium += deeepSeekFallBack.Sodium;
+                totalNutrition.Calories += deepSeekFallBack.Calories ?? 0;
+                totalNutrition.Protein += deepSeekFallBack.Protein ?? 0;
+                totalNutrition.Carbohydrates += deepSeekFallBack.Carbohydrates ?? 0;
+                totalNutrition.Fat += deepSeekFallBack.Fat ?? 0;
+                totalNutrition.Fiber +=deepSeekFallBack.Fiber ?? 0;
+                totalNutrition.Sugar += deepSeekFallBack.Sugar ?? 0;
+                totalNutrition.Sodium += deepSeekFallBack.Sodium ?? 0;
+
                 
             } catch (Exception ex)
             {
@@ -116,13 +117,21 @@ public class NutritionService
             double quantity = numberMatch.Success ? double.Parse(numberMatch.Value) : 1;
 
             // Handle fractions like "1/2 cup"
-            if (measureText.Contains("/"))
+            var fractionMatch = System.Text.RegularExpressions.Regex.Match(measureText, @"(\d+)\s*/\s*(\d+)");
+            if (fractionMatch.Success)
             {
-                var fractionMatch = System.Text.RegularExpressions.Regex.Match(measureText, @"(\d+)/(\d+)");
-                if (fractionMatch.Success)
+                double fractionValue = double.Parse(fractionMatch.Groups[1].Value) / 
+                                       double.Parse(fractionMatch.Groups[2].Value);
+                
+                // If there's a whole number before the fraction (e.g., "1 1/2")
+                var wholeNumberMatch = System.Text.RegularExpressions.Regex.Match(measureText, @"^(\d+)\s+\d+/\d+");
+                if (wholeNumberMatch.Success)
                 {
-                    quantity = double.Parse(fractionMatch.Groups[1].Value) / 
-                              double.Parse(fractionMatch.Groups[2].Value);
+                    quantity = double.Parse(wholeNumberMatch.Groups[1].Value) + fractionValue;
+                }
+                else
+                {
+                    quantity = fractionValue;
                 }
             }
 
@@ -131,9 +140,13 @@ public class NutritionService
             {
                 // Different densities for different ingredients
                 if (ingredientName.Contains("flour")) return quantity * 125;
-                if (ingredientName.Contains("sugar")) return quantity * 200;
+                if (ingredientName.Contains("sugar") && !ingredientName.Contains("powder")) return quantity * 200;
                 if (ingredientName.Contains("rice")) return quantity * 185;
-                if (ingredientName.Contains("water") || ingredientName.Contains("milk")) return quantity * 240;
+                if (ingredientName.Contains("oat")) return quantity * 80;
+                if (ingredientName.Contains("water") || ingredientName.Contains("milk") || 
+                    ingredientName.Contains("juice") || ingredientName.Contains("broth")) return quantity * 240;
+                if (ingredientName.Contains("oil") || ingredientName.Contains("butter")) return quantity * 220;
+                if (ingredientName.Contains("honey") || ingredientName.Contains("syrup")) return quantity * 340;
                 return quantity * 240; // default liquid
             }
             
@@ -150,7 +163,40 @@ public class NutritionService
                 return quantity * 453.6;
             
             if (measureText.Contains("ml"))
-                return quantity; // approximate 1:1 for liquids
+                return quantity;
+            
+            // Liquid volume
+            if (measureText.Contains("ml"))
+                return quantity;
+        
+            if (measureText.Contains("liter") || measureText.Contains("litre"))
+                return quantity * 1000;
+        
+            if (measureText.Contains("pint"))
+                return quantity * 473;
+        
+            if (measureText.Contains("quart"))
+                return quantity * 946;
+        
+            if (measureText.Contains("gallon"))
+                return quantity * 3785;
+        
+            if (measureText.Contains("fl oz") || measureText.Contains("fluid ounce"))
+                return quantity * 30;
+            
+            if (measureText.Contains("clove") && ingredientName.Contains("garlic"))
+                return quantity * 3;
+        
+            if (measureText.Contains("piece") || measureText.Contains("whole"))
+            {
+                if (ingredientName.Contains("egg")) return quantity * 50;
+                if (ingredientName.Contains("onion")) return quantity * 150;
+                if (ingredientName.Contains("tomato")) return quantity * 120;
+                if (ingredientName.Contains("potato")) return quantity * 170;
+                if (ingredientName.Contains("carrot")) return quantity * 60;
+                if (ingredientName.Contains("lemon") || ingredientName.Contains("lime")) return quantity * 60;
+                return quantity * 100;
+            }
             
             // Check if grams are directly specified
             if (measureText.Contains("g") && !measureText.Contains("kg"))

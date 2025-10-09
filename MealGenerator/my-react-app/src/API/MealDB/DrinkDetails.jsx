@@ -49,6 +49,7 @@ const DrinkDetails = () => {
                     const drinkData = data.drinks[0]
                     setDrinkDetails(drinkData)
 
+                    console.log("Drink details set:", drinkData)
                     // Extract ingredients
                     const extractedIngredients = []
                     for (let i = 1; i <= 15; i++) {
