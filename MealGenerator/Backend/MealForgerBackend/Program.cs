@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.SignalR.Protocol;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -30,6 +31,7 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -61,7 +63,9 @@ builder.Services.AddScoped<GeminiService>();
 
 var app = builder.Build();
 
+app.UseRouting();
 app.UseCors();
+app.UseAntiforgery();
 
 //DeepSeek Ingredient Validation Endpoint
 app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientRequest request) =>

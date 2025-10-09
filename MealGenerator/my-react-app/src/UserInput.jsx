@@ -25,6 +25,7 @@ import RandomSelectionRecipes from "@/components/RandomSelectionRecipes.jsx"
 import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
 import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
 import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
+import ImageIngredientUpload from "@/components/ImageIngredientUpload.jsx";
 
 
 
@@ -49,7 +50,7 @@ const UserInput = () => {
         addIngredients,
         removeIngredient,
         errorMessage: ingredientError,
-        isSearching: ingredientLoading
+        isSearching: ingredientLoading,
     } = useIngredientManager()
 
     const {
@@ -58,18 +59,26 @@ const UserInput = () => {
         loadingText,
         errorMessage: searchError,
         searchRecipes,
-        categorySearch
+        categorySearch,
     } = useRecipeSearch({
         getRecipes,
         getMealDBRecipes,
         getCocktailDBDrinks,
-        slugify
+        slugify,
     })
 
     const navigate = useNavigate()
 
     // Combine error messages
     const errorMessage = ingredientError || searchError
+
+    const handleCameraIngredient = async (ingredient) => {
+        try {
+            await addIngredients(ingredient)
+        } catch (error) {
+            console.error("Failed to add camera ingredient:", error)
+        }
+    }
 
     const handleInputChange = ({ target: { value } }) => {
         setInputString(value)
@@ -108,7 +117,7 @@ const UserInput = () => {
             cookableOnly,
             strictMode,
             focusSearch,
-            focusIngredient
+            focusIngredient,
         })
         setShowFilters(false)
     }
@@ -233,13 +242,13 @@ const UserInput = () => {
                     <div className="flex justify-center mb-6">
                         <div className="text-3xl md:text-4xl font-bold font-title">
                             <span className="text-white">MEAL</span>
-                            <br/>
+                            <br />
                             <span className="text-[#ce7c1c]">FORGER</span>
                         </div>
                     </div>
 
-                    {/* Search bar */}
-                    <div className="search-input-container w-full max-w-2xl mx-auto mb-4">
+                    {/* Search bar - Fixed alignment */}
+                    <div className="search-input-container w-full max-w-2xl mx-auto mb-4 relative">
                         <Input
                             type="text"
                             placeholder="Enter an ingredient ....."
@@ -248,24 +257,28 @@ const UserInput = () => {
                             onChange={handleInputChange}
                             onKeyPress={handleKeyPress}
                             style={{
-                                height: '48px',
-                                paddingLeft: '3rem',
-                                paddingRight: '3rem',
-                                lineHeight: '1'
+                                height: "48px",
+                                paddingLeft: "3rem",
+                                paddingRight: "8rem",
+                                lineHeight: "1",
                             }}
                         />
-                        <div className="search-icon">
-                            <Search className="h-5 w-5 text-gray-400"/>
+                        <div className="search-icon absolute left-12 top-1/2 transform -translate-y-1/2">
+                            <Search className="h-5 w-5 text-gray-400" />
                         </div>
+                        <ImageIngredientUpload
+                            onIngredientIdentified={handleCameraIngredient}
+                            className="absolute right-12 top-1/2 transform -translate-y-1/2"
+                        />
                         <Button
-                            className="search-button bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white transition-all duration-300"
+                            className="search-button bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white transition-all duration-300 absolute right-4 top-1/2 transform -translate-y-1/2"
                             onClick={handleAddIngredient}
                             disabled={ingredientLoading}
                         >
-                            <Plus className="h-4 w-4"/>
+                            <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    
+
                     {/* Filters button */}
                     <div className="flex justify-center mb-6">
                         <Button
@@ -305,21 +318,15 @@ const UserInput = () => {
             {/* Main Content */}
             <main className="flex-grow">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
-
                     {/* MY PANTRY - Slimmer design */}
                     <div className="mb-6">
-                        <PantryList
-                            ingredients={ingredients}
-                            onRemove={removeIngredient}
-                        />
+                        <PantryList ingredients={ingredients} onRemove={removeIngredient} />
                     </div>
 
                     {/* 2 Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
                         {/* Left Column - Controls */}
                         <div className="space-y-6">
-
                             {/* QUICK ADD */}
                             <QuickAddButtons
                                 onQuickSearch={handleQuickSearch}
@@ -330,10 +337,7 @@ const UserInput = () => {
                             />
 
                             {/* MY DIET */}
-                            <DietSelector
-                                selectedDiet={selectedDiet}
-                                setSelectedDiet={setSelectedDiet}
-                            />
+                            <DietSelector selectedDiet={selectedDiet} setSelectedDiet={setSelectedDiet} />
                         </div>
 
                         {/* Right Column - Combined Recipes Section */}
@@ -351,7 +355,7 @@ const UserInput = () => {
                             {/* Combined Recipes Display - VERTICAL SCROLL ONLY */}
                             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
                                 <h2 className="text-2xl md:text-3xl font-bold mb-6 font-title text-center">
-                                    {(hasGeneratedRecipes && (allRecipes.length > 0 || isSearching)) ? (
+                                    {hasGeneratedRecipes && (allRecipes.length > 0 || isSearching) ? (
                                         <>
                                             <span className="text-[#ce7c1c]">RE</span>
                                             <span className="text-white">CIPES</span>
@@ -371,7 +375,7 @@ const UserInput = () => {
                                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ce7c1c] mb-4"></div>
                                             <p className="text-gray-400 font-terminal">{loadingText || "Searching..."}</p>
                                         </div>
-                                    ) : (hasGeneratedRecipes && allRecipes.length > 0) ? (
+                                    ) : hasGeneratedRecipes && allRecipes.length > 0 ? (
                                         /* Show Generated Recipes only when generate button was pressed */
                                         <div className="space-y-4 pb-4">
                                             {allRecipes.map((recipe) => {
@@ -436,7 +440,9 @@ const UserInput = () => {
                                                             />
                                                         </div>
                                                         <div className="w-2/3 p-4">
-                                                            <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">{recipe.strMeal}</h3>
+                                                            <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">
+                                                                {recipe.strMeal}
+                                                            </h3>
                                                             <div className="flex flex-wrap gap-2 mb-2">
                                                                 {recipe.strCategory && (
                                                                     <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
@@ -449,9 +455,7 @@ const UserInput = () => {
                                   </span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-sm text-gray-400 font-terminal">
-                                                                25 min • 4 servings
-                                                            </div>
+                                                            <div className="text-sm text-gray-400 font-terminal">25 min • 4 servings</div>
                                                         </div>
                                                     </div>
                                                 </div>
