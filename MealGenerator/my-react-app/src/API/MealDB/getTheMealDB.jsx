@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react"
 import axios from "axios"
-const apiKey = import.meta.env.VITE_MEALDB_KEY
-const BASE_URL = `https://www.themealdb.com/api/json/v2/${apiKey}/`;
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
 
 export const useTheMealDB = () => {
     const [MealDBRecipes, setMealDBRecipes] = useState([])
@@ -11,61 +11,56 @@ export const useTheMealDB = () => {
     const [loading, setLoading] = useState(false)
     const cache = useRef({})
 
-    const getMealDBRecipes = async (ingredients) => {
-        const mainIngredient = Array.isArray(ingredients) ? ingredients[0] : ingredients
-        const key = mainIngredient.toLowerCase().trim()
-        
-        console.log("✅ MealDB API called with:", key)
+    const getMealDBRecipes = async (ingredients, diet = "") => {
+        // Handle array or string input
+        const ingredientString = Array.isArray(ingredients)
+            ? ingredients.join(',')
+            : ingredients;
+
+        const cacheKey = `${ingredientString}-${diet}`.toLowerCase();
 
         // Check cache first
-        if (cache.current[key]) {
-            setMealDBRecipes(cache.current[key])
+        if (cache.current[cacheKey]) {
+            setMealDBRecipes(cache.current[cacheKey])
             setLoading(false)
-            //console.log("Using cached MealDB recipes for:", key)
-            return
+            return cache.current[cacheKey];
         }
 
         setLoading(true)
         setError(null)
 
         try {
-            // Construct the URL properly with encoded ingredient
-            const url = `${BASE_URL}filter.php?i=${encodeURIComponent(key)}`;
-            
-            //console.log("Fetching from MealDB:", url)
+            // Use your backend endpoint
+            const url = `${BASE_URL}/general-recipes-search?ingredients=${encodeURIComponent(ingredientString)}&diet=${encodeURIComponent(diet)}`;
+
+            console.log("Fetching recipes from:", url)
 
             const response = await axios.get(url)
-            // Handle API-specific null response
+
             if (!response.data || !response.data.meals) {
-                const newError = `No recipes found for ${key}`
-                console.log(newError)
-                setError(newError)
+                console.log(`No recipes found for ${ingredientString}`)
+                setError(`No recipes found`)
                 setMealDBRecipes([])
-                cache.current[key] = [] 
+                cache.current[cacheKey] = []
                 return []
             }
 
             const results = response.data.meals
-            console.log("MealDB API Response:", results)
-            
-            cache.current[key] = results
+
+            cache.current[cacheKey] = results
             setMealDBRecipes(results)
-            
-            // console.log("MealDB recipes", results)
-            // console.log("MealDB recipes found:", results.length)
-            
+
+            console.log("Recipes found:", results.length)
+
             return results
 
         } catch (error) {
-            const errorMessage =
-                error.response?.status === 403
-                    ? "Access to MealDB API was denied. Please check your implementation."
-                    : error.message || "Failed to fetch recipes from MealDB"
-
-            console.error("MealDB API Error:", errorMessage)
+            const errorMessage = error.response?.data?.message || error.message || "Failed to fetch recipes"
+            console.error("Recipe API Error:", errorMessage)
             setError(errorMessage)
             setMealDBRecipes([])
-            cache.current[key] = [] // Cache failed results
+            cache.current[cacheKey] = []
+            return []
         } finally {
             setLoading(false)
         }
@@ -83,4 +78,3 @@ export const useTheMealDB = () => {
 }
 
 export default useTheMealDB
-

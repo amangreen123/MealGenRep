@@ -1,20 +1,19 @@
 import axios from "axios"
 
-export const getMealDBRecipeDetails = async (id) => {
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
+
+export const getMealDBRecipeDetails = async (id, servings = 4) => {
     try {
-        const apiKey = import.meta.env.VITE_MEALDB_KEY
-        const response = await axios.get(`https://www.themealdb.com/api/json/v2/${apiKey}/lookup.php?i=${id}`, {
-            timeout: 5000 
+        const response = await axios.get(`${BASE_URL}/recipe/${id}?servings=${servings}`, {
+            timeout: 5000
         });
-        console.log("response" + id)
-        const results = response.data
-        console.log("Meal DB Recipe Step Data", results)
-        return results // Return the entire response data
+
+        console.log("Recipe details for", id);
+        return response.data;
     } catch (error) {
-        //console.log("Error", error.message)
-        throw error // Throw the error to be handled by the caller
+        console.error("Error fetching recipe:", error);
+        throw error;
     }
 }
 
-export default getMealDBRecipeDetails
-
+export default getMealDBRecipeDetails;

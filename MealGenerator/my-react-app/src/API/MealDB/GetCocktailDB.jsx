@@ -2,9 +2,8 @@
 
 import { useState, useRef } from "react";
 import axios from "axios";
-const apiKey = import.meta.env.VITE_COCKTAILDB_KEY;
-const BASE_URL = `'http://localhost:5261';`
-//https://www.thecocktaildb.com/api/json/v1/${apiKey}`;
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
 
 export const useTheCocktailDB = () => {
     const [CocktailDBDrinks, setCocktailDBDrinks] = useState([]);
@@ -13,54 +12,49 @@ export const useTheCocktailDB = () => {
     const cache = useRef({});
 
     const getCocktailDBDrinks = async (ingredients) => {
-        const mainIngredient = Array.isArray(ingredients) ? ingredients[0]?.name || ingredients[0] : ingredients;
-        const key = mainIngredient.toLowerCase().trim();
+        const ingredientString = Array.isArray(ingredients)
+            ? ingredients.join(',')
+            : ingredients;
+
+        const key = ingredientString.toLowerCase().trim();
 
         if (cache.current[key]) {
             setCocktailDBDrinks(cache.current[key]);
             setLoading(false);
-            
-            return cache.current[key]; 
+            return cache.current[key];
         }
 
         setLoading(true);
         setError(null);
 
         try {
-            const filterUrl = `${BASE_URL}/filter.php?i=${encodeURIComponent(key)}`;
-            const filterResponse = await axios.get(filterUrl);
+            const url = `${BASE_URL}/general-cocktails-search?ingredients=${encodeURIComponent(ingredientString)}`;
+            console.log("Fetching cocktails from:", url);
 
-            if (!filterResponse.data || !filterResponse.data.drinks) {
+            const response = await axios.get(url);
+
+            if (!response.data || !response.data.drinks) {
                 setError(`No drinks found for ${key}`);
                 setCocktailDBDrinks([]);
                 cache.current[key] = [];
-                
                 return [];
             }
 
-            // Randomly select 5 drinks
-            const allDrinks = filterResponse.data.drinks;
-            const randomDrinks = allDrinks
-                .sort(() => 0.5 - Math.random()) // Shuffle array
-                .slice(0, 15); // Pick first 15
+            const drinks = response.data.drinks;
 
-            const drinkIds = randomDrinks.map(d => d.idDrink);
-            
-            const detailsResponses = await Promise.all(
-                drinkIds.map(id => axios.get(`${BASE_URL}/cocktail/{id}${id}`))
-            );
+            cache.current[key] = drinks;
+            setCocktailDBDrinks(drinks);
 
-            //console.log("CockTail" + filterResponse)
-            const drinksWithDetails = detailsResponses.map(resp => resp.data.drinks[0]);
-
-            cache.current[key] = drinksWithDetails;
-            setCocktailDBDrinks(drinksWithDetails);
-            
-            return drinksWithDetails;
+            console.log("Cocktails found:", drinks.length);
+            return drinks;
 
         } catch (error) {
-            setError(error.message || "Failed to fetch drinks");
+            const errorMessage = error.response?.data?.message || error.message || "Failed to fetch drinks";
+            console.error("Cocktail API Error:", errorMessage);
+            setError(errorMessage);
             cache.current[key] = [];
+            setCocktailDBDrinks([]);
+            return [];
         } finally {
             setLoading(false);
         }
