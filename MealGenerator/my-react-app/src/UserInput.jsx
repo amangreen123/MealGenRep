@@ -147,7 +147,7 @@ const UserInput = () => {
 
     const clickHandler = (recipe) => {
         const currentPath = window.location.pathname
-        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title || "recipe"
+        const recipeName = recipe.strDrink || recipe.strMeal || recipe.title
         const recipeSlug = recipe.slug || slugify(recipeName)
 
         if (recipe.isDrink) {

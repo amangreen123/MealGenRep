@@ -22,7 +22,16 @@ const DrinkDetails = () => {
     // Use the cached hook instead of local state
     const { getDrinkDetails, loading, error: fetchError } = useRecipeDetails()
 
+    const [drinkDetails, setDrinkDetails] = useState(null)
+    const [ingredients, setIngredients] = useState([])
+    const [baseNutrition, setBaseNutrition] = useState(null)
+    const [servings, setServings] = useState(1)
+    const [nutritionInfo, setNutritionInfo] = useState({ calories: 0, carbs: 0, alcohol: 0 })
+    const [error, setError] = useState(null)
+
     useEffect(() => {
+        
+        let mounted = true
         const fetchDrinkData = async () => {
             if (!drinkId) {
                 setError("Invalid drink ID")
@@ -32,7 +41,10 @@ const DrinkDetails = () => {
             try {
                 // Use cached hook - only fetches ONCE per drink
                 const data = await getDrinkDetails(drinkId)
+                console.log("Drink data from API:", data)
 
+                if(!mounted) return;
+                
                 if (data?.drinks?.[0]) {
                     const drinkData = data.drinks[0]
                     setDrinkDetails(drinkData)
@@ -76,17 +88,19 @@ const DrinkDetails = () => {
                 setError(error.message || "An error occurred")
             }
         }
-
         fetchDrinkData()
+        
+        return () => { mounted = false }
     }, [drinkId, getDrinkDetails])
 
     const handleServingsChange = (newServings) => {
+        const clamped = Math.max(1, Math.min(12, Number(newServings) || 1))
         setServings(newServings)
         if (baseNutrition) {
             setNutritionInfo({
-                calories: Math.round(baseNutrition.calories * newServings),
-                carbs: Math.round(baseNutrition.carbs * newServings),
-                alcohol: Math.round(baseNutrition.alcohol * newServings),
+                calories: Math.round((baseNutrition.calories || 0) * clamped),
+                carbs: Math.round((baseNutrition.carbs || 0) * clamped),
+                alcohol: Math.round((baseNutrition.alcohol || 0) * clamped),
             })
         }
     }
@@ -295,9 +309,7 @@ const DrinkDetails = () => {
                                     <label className="text-sm font-terminal text-[#f5efe4]">
                                         SERVINGS
                                     </label>
-                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">
-                                        {servings}
-                                    </span>
+                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
                                 </div>
                                 <input
                                     type="range"
@@ -305,7 +317,7 @@ const DrinkDetails = () => {
                                     max="12"
                                     value={servings}
                                     onChange={(e) => handleServingsChange(Number(e.target.value))}
-                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#ce7c1c]"
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
                                 />
                                 <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
                                     <span>1</span>
@@ -314,18 +326,20 @@ const DrinkDetails = () => {
                                 </div>
                             </div>
 
+
                             <div className="grid grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2"/>
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                    {nutritionInfo.calories}
+                                        {nutritionInfo.calories}
                                     </div>
                                     <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">
                                         Calories
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#ce7c1c] rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <div
+                                        className="w-6 h-6 sm:w-8 sm:h-8 bg-[#ce7c1c] rounded-full flex items-center justify-center mx-auto mb-2">
                                         <span className="text-white font-bold text-xs sm:text-sm">C</span>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
@@ -337,7 +351,7 @@ const DrinkDetails = () => {
                                 </div>
                                 {isAlcoholic && (
                                     <div className="text-center">
-                                        <Wine className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2" />
+                                        <Wine className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2"/>
                                         <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
                                             {nutritionInfo.alcohol}g
                                         </div>
@@ -348,7 +362,6 @@ const DrinkDetails = () => {
                                 )}
                             </div>
                         </div>
-
                         {/* Preparation Instructions */}
                         <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                             <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">

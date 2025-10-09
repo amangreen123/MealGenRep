@@ -288,7 +288,7 @@ const MealDBRecipeDetails = () => {
                                     max="12"
                                     value={servings}
                                     onChange={(e) => handleServingsChange(Number(e.target.value))}
-                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#ce7c1c]"
+                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
                                 />
                                 <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
                                     <span>1</span>
