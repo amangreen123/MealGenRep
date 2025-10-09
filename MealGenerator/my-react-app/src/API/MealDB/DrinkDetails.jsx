@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { slugify } from "@/utils/slugify"
 
 const DrinkDetails = () => {
     const { id } = useParams()
@@ -440,15 +441,28 @@ const DrinkDetails = () => {
                                                 <h4 className="font-terminal text-sm font-bold text-[#f5efe4] mb-2 line-clamp-2 uppercase leading-tight">
                                                     {relatedRecipe.strDrink}
                                                 </h4>
-                                                <div className="flex items-center gap-2 text-xs font-terminal text-gray-400 mb-2">
-                                                    <span>5 min</span>
-                                                    <span>•</span>
-                                                    <span className="text-[#ce7c1c]">220 kcal</span>
-                                                </div>
-                                                <div className="flex gap-2 text-xs font-terminal text-gray-400">
-                                                    <span>0P</span>
-                                                    <span>18C</span>
-                                                    <span>12A</span>
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {relatedRecipe.strCategory && (
+                                                        <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
+                                                            {relatedRecipe.strCategory}
+                                                        </Badge>
+                                                    )}
+                                                    {relatedRecipe.strAlcoholic && (
+                                                        <Badge
+                                                            className={`${
+                                                                relatedRecipe.strAlcoholic.toLowerCase().includes("non")
+                                                                    ? "bg-green-900/30 text-green-400 border-green-700/30"
+                                                                    : "bg-purple-900/30 text-purple-400 border-purple-700/30"
+                                                            } font-terminal text-xs px-2 py-0.5 rounded-full`}
+                                                        >
+                                                            {relatedRecipe.strAlcoholic}
+                                                        </Badge>
+                                                    )}
+                                                    {relatedRecipe.strGlass && (
+                                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-terminal text-xs px-2 py-0.5 rounded-full">
+                                                            {relatedRecipe.strGlass}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
