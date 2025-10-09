@@ -16,6 +16,7 @@ import DietSelector from "@/components/DietSelector.jsx"
 import GenerateButton from "@/components/GenerateButton.jsx"
 import PopularRecipesSection from "@/components/PopularRecipesSection.jsx"
 
+
 import useLocalStorageState from "@/hooks/useLocalStorageState.jsx"
 import useRecipeSearch from "@/hooks/useRecipeSearch.jsx"
 import useIngredientManager from "@/hooks/useIngredientManager.jsx"
@@ -247,7 +248,7 @@ const UserInput = () => {
                         </div>
                     </div>
 
-                    {/* Search bar - Fixed alignment */}
+                    {/* Search bar */}
                     <div className="search-input-container w-full max-w-2xl mx-auto mb-4 relative">
                         <Input
                             type="text"

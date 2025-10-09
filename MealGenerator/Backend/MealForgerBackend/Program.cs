@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 //builder.Services.AddSwaggerGen();
+builder.Services.AddAntiforgery();
 
 //DB Context
 builder.Services.AddDbContext<MealForgerContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MealForgerRecipes")));
@@ -582,7 +583,7 @@ app.MapPost("/identify-ingredient", async (GeminiService gemini, IFormFile image
         return Results.StatusCode(500);
     }
     
-});
+}).DisableAntiforgery();
 
 
 app.MapControllers();

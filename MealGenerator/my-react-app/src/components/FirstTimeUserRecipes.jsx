@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Sparkles, X, ChevronDown, ChevronUp } from "lucide-react"
-import { slugify } from "./utils/slugify"
 
 const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [recipes, setRecipes] = useState([])

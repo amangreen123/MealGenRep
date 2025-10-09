@@ -53,7 +53,7 @@ namespace MealForgerBackend.Services
                     }
                 };
 
-                var apiKey = _config["GEMINI_API_KEY"];
+                var apiKey = _config["GEMINIAPIKEY"];
                 var request = new HttpRequestMessage(HttpMethod.Post,
                     $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}")
                 {
