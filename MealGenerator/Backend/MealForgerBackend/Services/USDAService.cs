@@ -45,8 +45,7 @@ namespace MealForgerBackend.Services
                 int fdcId = food.FdcId;
 
                 
-                var detailedResponse = await _http.GetAsync(
-                    $"https://api.nal.usda.gov/fdc/v1/food/{fdcId}?api_key={apiKey}");
+                var detailedResponse = await _http.GetAsync($"https://api.nal.usda.gov/fdc/v1/foods/search?query={Uri.EscapeDataString(ingredient)}&dataType=SR%20Legacy,Foundation&pageSize=5&api_key={apiKey}");
                 
                 if(!detailedResponse.IsSuccessStatusCode)
                 {
@@ -74,13 +73,13 @@ namespace MealForgerBackend.Services
                 {
                     Description = detailedFood.Description,
                     FdcId = detailedFood.FdcId,
-                    Calories = ExtractNutrient(detailedFood.FoodNutrients, "208"),
-                    Protein = ExtractNutrient(detailedFood.FoodNutrients, "203"),
-                    Carbs = ExtractNutrient(detailedFood.FoodNutrients, "205"),
-                    Fat = ExtractNutrient(detailedFood.FoodNutrients, "204"),
-                    Fiber = ExtractNutrient(detailedFood.FoodNutrients, "291"),
-                    Sugar = ExtractNutrient(detailedFood.FoodNutrients, "269"),
-                    Sodium = ExtractNutrient(detailedFood.FoodNutrients, "307"),
+                    Calories = ExtractNutrientById(detailedFood.FoodNutrients, 1008),      
+                    Protein = ExtractNutrientById(detailedFood.FoodNutrients, 1003),       
+                    Carbs = ExtractNutrientById(detailedFood.FoodNutrients, 1005),         
+                    Fat = ExtractNutrientById(detailedFood.FoodNutrients, 1004),           
+                    Fiber = ExtractNutrientById(detailedFood.FoodNutrients, 1079),         
+                    Sugar = ExtractNutrientById(detailedFood.FoodNutrients, 2000),        
+                    Sodium = ExtractNutrientById(detailedFood.FoodNutrients, 1093)         
                 };
                 
                 Console.WriteLine($"✅ USDA: {ingredient} → Calories: {nutritionData.Calories}, Protein: {nutritionData.Protein}g");
@@ -96,23 +95,32 @@ namespace MealForgerBackend.Services
 
         }
         
-        private double ExtractNutrient(List<FoodNutrient>? foodNutrients, string nutrientNumber)
+        private double ExtractNutrientById(List<FoodNutrient>? foodNutrients, int nutrientId)
         {
             if (foodNutrients == null) return 0.0;
             
-            var nutrient = foodNutrients.FirstOrDefault(n => n.NutrientNumber == nutrientNumber);
-            
-            if (nutrient != null)
-            {
-                Console.WriteLine($"   ✓ Found nutrient {nutrientNumber}: {nutrient.Value}{nutrient.UnitName}");
-            }
-            else
-            {
-                Console.WriteLine($"   ✗ Nutrient {nutrientNumber} not found");
-            }
+            var nutrient = foodNutrients.FirstOrDefault(n => n.NutrientId == nutrientId);
             
             return nutrient?.Value ?? 0.0;
         }
+        
+        // private double ExtractNutrient(List<FoodNutrient>? foodNutrients, string nutrientNumber)
+        // {
+        //     if (foodNutrients == null) return 0.0;
+        //     
+        //     var nutrient = foodNutrients.FirstOrDefault(n => n.NutrientNumber == nutrientNumber);
+        //     
+        //     if (nutrient != null)
+        //     {
+        //         Console.WriteLine($"   ✓ Found nutrient {nutrientNumber}: {nutrient.Value}{nutrient.UnitName}");
+        //     }
+        //     else
+        //     {
+        //         Console.WriteLine($"   ✗ Nutrient {nutrientNumber} not found");
+        //     }
+        //     
+        //     return nutrient?.Value ?? 0.0;
+        // }
        
         
         public class USDANutritionData
