@@ -172,10 +172,7 @@ namespace MealForgerBackend.Services
                             "  \"fiber\": <number>,\n" +
                             "  \"sugar\": <number>,\n" +
                             "  \"sodium\": <number>\n" +
-                            "}\n\n" +
-                            "Units: calories in kcal, all others in grams, sodium in mg.\n" +
-                            "Calculate TOTAL nutrition for ALL ingredients combined.\n" +
-                            "Use the EXACT measures provided (oz, cups, tbsp, etc.)."
+                            "\"Alcohol\": <number> // grams of alcohol\n" 
                     },
                     new
                     {
