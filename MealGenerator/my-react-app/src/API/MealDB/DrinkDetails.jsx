@@ -252,7 +252,7 @@ const DrinkDetails = () => {
                             <div className="flex flex-wrap gap-2 mb-6">
                                 {drinkDetails.strCategory && (
                                     <Badge className="bg-gray-800 text-[#f5efe4] border-gray-700 font-terminal text-xs px-3 py-1 rounded-full">
-                                        {drinkDetails.strCategory}
+                                        {drinkDetails.strGlass}
                                     </Badge>
                                 )}
                                 <Badge
@@ -490,7 +490,7 @@ const DrinkDetails = () => {
                                                 <div className="flex flex-wrap gap-2 mt-2">
                                                     {relatedRecipe.strCategory && (
                                                         <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
-                                                            {relatedRecipe.strCategory}
+                                                            {relatedRecipe.strGlass}
                                                         </Badge>
                                                     )}
                                                 </div>
