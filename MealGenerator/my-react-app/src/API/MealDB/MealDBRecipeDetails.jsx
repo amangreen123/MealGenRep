@@ -443,11 +443,15 @@ const MealDBRecipeDetails = () => {
                                                 <h4 className="text-sm sm:text-base font-semibold font-terminal text-[#f5efe4]">
                                                     {recipe.strMeal}
                                                 </h4>
-                                                {recipe.strCategory && (
-                                                    <div className="text-xs font-terminal text-gray-400">
-                                                        {recipe.strCategory}
-                                                    </div>
-                                                )}
+                                                
+                                                <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
+                                                    {recipe.strCategory && (
+                                                        <div className="text-xs font-terminal text-gray-400">
+                                                            {recipe.strCategory}
+                                                        </div>
+                                                    )}                                                
+                                                </Badge>
+                                               
                                             </div>
                                         </div>
                                     ))}
