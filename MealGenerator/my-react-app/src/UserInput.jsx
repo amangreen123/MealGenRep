@@ -8,6 +8,7 @@ import "@/fonts/fonts.css"
 
 import { InfoIcon, Search, Plus } from 'lucide-react'
 
+
 import MealForgerLogo from "./Images/Meal_Forger.png"
 import CookableSearch from "@/components/CookableSearch.jsx"
 import PantryList from "@/components/PantryList.jsx"
@@ -15,6 +16,7 @@ import QuickAddButtons from "@/components/QuickAddButtons.jsx"
 import DietSelector from "@/components/DietSelector.jsx"
 import GenerateButton from "@/components/GenerateButton.jsx"
 import PopularRecipesSection from "@/components/PopularRecipesSection.jsx"
+import CircularMatchIndicator from '@/components/CircularMatchIndicator';
 
 
 import useLocalStorageState from "@/hooks/useLocalStorageState.jsx"
@@ -27,7 +29,7 @@ import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
 import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
 import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
 import ImageIngredientUpload from "@/components/ImageIngredientUpload.jsx";
-
+import SearchStatsBanner from "@/components/SearchStatsBanner.jsx";
 
 
 const UserInput = () => {
@@ -61,6 +63,7 @@ const UserInput = () => {
         errorMessage: searchError,
         searchRecipes,
         categorySearch,
+        searchStats
     } = useRecipeSearch({
         getRecipes,
         getMealDBRecipes,
@@ -283,6 +286,25 @@ const UserInput = () => {
                         </Button>
                     </div>
 
+                    {/* Search Stats Banner - Shows after search */}
+                    {hasGeneratedRecipes && searchStats.totalResults > 0 && (
+                        <SearchStatsBanner searchStats={searchStats} />
+                    )}
+                    
+                    {searchStats.totalResults > 0 && (
+                        <div className="mb-6 p-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl">
+                            <p className="font-terminal text-sm text-[#f5efe4]">
+                                Found <span className="text-[#ce7c1c] font-bold">{searchStats.totalResults}</span> recipes
+                                {searchStats.perfectMatches > 0 && (
+                                    <> · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!</>
+                                )}
+                                {searchStats.searchMode === 'exact' && (
+                                    <> · <span className="text-yellow-500">Exact Match Mode</span></>
+                                )}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Filters section */}
                     {showFilters && (
                         <div className="w-full max-w-2xl mx-auto mb-6">
@@ -340,10 +362,16 @@ const UserInput = () => {
                                 <GenerateButton
                                     ingredients={ingredients}
                                     isSearching={isSearching}
-                                    onSearch={() => handleSearch({ cookableOnly: false, strictMode: false })}
+                                    onSearch={() => handleSearch({ searchType: "all", exactMatch: false })}
                                     loadingText={loadingText}
                                 />
                             )}
+
+                            {/* ✅ NEW: Search Stats Banner */}
+                            {hasGeneratedRecipes && searchStats.totalResults > 0 && (
+                                <SearchStatsBanner searchStats={searchStats} />
+                            )}
+
 
                             {/* Combined Recipes Display - VERTICAL SCROLL ONLY */}
                             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
@@ -372,14 +400,28 @@ const UserInput = () => {
                                         /* Show Generated Recipes only when generate button was pressed */
                                         <div className="space-y-4 pb-4">
                                             {allRecipes.map((recipe) => {
-                                                const title = recipe.title || recipe.strMeal || recipe.strDrink
-                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
+                                                const title = recipe.title || recipe.strMeal || recipe.strDrink;
+                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb;
+                                                const hasMatchData = recipe.matchScore !== undefined;
+                                                const canCook = recipe.canCook || recipe.canMake || false;
+
                                                 return (
                                                     <div
                                                         key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                                        className="bg-gray-800/50 rounded-xl overflow-hidden cursor-pointer hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                                                        className="bg-gray-800/50 rounded-xl overflow-hidden cursor-pointer hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative"
                                                         onClick={() => clickHandler(recipe)}
                                                     >
+                                                        {/* Circular Match Indicator - Top Right Corner */}
+                                                        {hasMatchData && (
+                                                            <div className="absolute top-2 right-2 z-10">
+                                                                <CircularMatchIndicator
+                                                                    matchPercentage={recipe.matchPercentage}
+                                                                    canCook={canCook}
+                                                                    size="md"
+                                                                />
+                                                            </div>
+                                                        )}
+
                                                         <div className="flex">
                                                             <div className="w-1/3">
                                                                 <img
@@ -389,16 +431,65 @@ const UserInput = () => {
                                                                     loading="lazy"
                                                                 />
                                                             </div>
-                                                            <div className="w-2/3 p-4">
-                                                                <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">{title}</h3>
+                                                            <div className="w-2/3 p-4 pr-16"> {/* Added pr-16 to make room for indicator */}
+                                                                <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">
+                                                                    {title}
+                                                                </h3>
+
+                                                                {/* Match Info Badge - Only show if not perfect match */}
+                                                                {hasMatchData && !canCook && (
+                                                                    <div className="mb-2">
+                            <span className="text-xs font-terminal text-gray-400">
+                                {recipe.matchScore}/{recipe.totalIngredients} ingredients
+                            </span>
+                                                                        {recipe.missingIngredients > 0 && (
+                                                                            <span className="text-xs font-terminal text-red-400 ml-2">· Need {recipe.missingIngredients} more</span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Perfect Match Badge */}
+                                                                {canCook && (
+                                                                    <div className="mb-2">
+                            <span className="inline-flex items-center gap-1 text-xs font-terminal px-2 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/30">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Can Cook Now!
+                            </span>
+                                                                    </div>
+                                                                )}
+
                                                                 <div className="flex flex-wrap gap-2 mb-2">
                                                                     {recipe.strCategory && (
-                                                                        <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strCategory}</span>
+                                                                        <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                {recipe.strCategory}
+                            </span>
                                                                     )}
                                                                     {recipe.strArea && (
-                                                                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strArea}</span>
+                                                                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                {recipe.strArea}
+                            </span>
+                                                                    )}
+
+                                                                    {/* Diet Badges */}
+                                                                    {recipe.isVegan && (
+                                                                        <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                🌱 Vegan
+                            </span>
+                                                                    )}
+                                                                    {recipe.isKeto && (
+                                                                        <span className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                🥑 Keto
+                            </span>
+                                                                    )}
+                                                                    {recipe.isGlutenFree && (
+                                                                        <span className="bg-amber-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                🌾 GF
+                            </span>
                                                                     )}
                                                                 </div>
+
                                                                 <div className="text-sm text-gray-400 font-terminal">
                                                                     {recipe.readyInMinutes && `${recipe.readyInMinutes} min`}
                                                                     {recipe.servings && ` • ${recipe.servings} servings`}
@@ -406,7 +497,7 @@ const UserInput = () => {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )
+                                                );
                                             })}
                                         </div>
                                     ) : (
@@ -432,16 +523,8 @@ const UserInput = () => {
                                                                 {recipe.strMeal}
                                                             </h3>
                                                             <div className="flex flex-wrap gap-2 mb-2">
-                                                                {recipe.strCategory && (
-                                                                    <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                    {recipe.strCategory}
-                                  </span>
-                                                                )}
-                                                                {recipe.strArea && (
-                                                                    <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                    {recipe.strArea}
-                                  </span>
-                                                                )}
+                                                                {recipe.strCategory && (<span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strCategory}</span>)}
+                                                                {recipe.strArea && (<span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strArea}</span>)}
                                                             </div>
                                                         </div>
                                                     </div>

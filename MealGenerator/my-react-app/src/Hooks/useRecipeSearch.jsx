@@ -1,12 +1,23 @@
 ﻿import { useState, useEffect } from "react"
+import axios from "axios";
+
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
 
 const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, slugify }) => {
+    
     const [isSearching, setIsSearching] = useState(false)
     const [loadingText, setLoadingText] = useState("")
     const [errorMessage, setErrorMessage] = useState("")
     const [apiLimitReached, setApiLimitReached] = useState(false)
     const [allRecipes, setAllRecipes] = useState([])
-
+    const [searchStats, setSearchStats] = useState({
+        totalSearches: 0,
+        perfectMatches: 0,
+        searchMode:'general',
+        dietFilter: null
+    })
+    
     const searchRecipes = async  ({
                                       ingredients,
                                       selectedDiet,
@@ -22,9 +33,79 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         }
 
         setIsSearching(true)
-        setLoadingText("SEARCHING...")
+        setLoadingText(exactMatch ? "FINDING EXACT MATCHES..." : "SEARCHING...")
         setErrorMessage("")
         setAllRecipes([]) // Clear previous results
+        
+        
+        try {
+            
+            const ingredientString = ingredients.join(", ");
+            const searchMode = exactMatch ? 'exact' : 'general';
+
+            console.log(`🔍 Enhanced Search:`, {
+                ingredients: ingredientString,
+                searchMode,
+                type: searchType,
+                diet: selectedDiet
+            });
+
+            const params = new URLSearchParams({
+                ingredients: ingredientString,
+                searchMode,
+                type: searchType,
+                ...selectedDiet && { diet: selectedDiet },
+                maxResults: '50'
+            });
+
+
+            const response = await axios.get(`${BASE_URL}/enhanced-search?${params}`);
+            const data = response.data;
+
+            console.log(`✅ Search Results:`, {
+                totalResults: data.totalResults,
+                perfectMatches: data.perfectMatches,
+                meals: data.meals?.length || 0,
+                drinks: data.drinks?.length || 0
+            });
+            
+            const allResults = [...(data.meals || []), ...(data.drinks || [])];
+            
+            const recipesWithSlugs = allResults.map((recipe) => ({
+                ...recipe,
+                slug: slugify(recipe.strMeal || recipe.strDrink || recipe.title || "recipe"),
+            }));
+            
+            setAllRecipes(recipesWithSlugs);
+            setSearchStats({
+                totalSearches: searchStats.totalSearches + 1,
+                perfectMatches: searchStats.perfectMatches + (data.perfectMatches || 0),
+                searchMode,
+                dietFilter: selectedDiet
+            });
+            
+            if(recipesWithSlugs.length === 0) {
+                if (exactMatch) {
+                    setErrorMessage("No exact matches found. Try a general search.");
+                } else {
+                    setErrorMessage("No recipes found. Try adding different ingredients.");
+                }
+            }
+        } catch (error) {
+            console.error("❌ Enhanced search error:", error);
+            setErrorMessage("Something went wrong while searching.");
+            setAllRecipes([]); // Ensure we clear results on error
+        } finally {
+            setIsSearching(false)
+            setLoadingText("")
+            console.log("🏁 Search completed");
+        }
+        
+        return; // Exit after enhanced search
+        
+        // Fallback to original multi-API search if needed
+        const cookableOnly = searchType === "cookable"
+        const strictMode = exactMatch
 
         let spooncularResults = []
         let mealDBResults = []
@@ -113,9 +194,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
                     }
                 })(),
             ])
-
-   
-
+            
             // Combine all results
             const allResults = [...spooncularResults, ...mealDBResults, ...cocktailDBResults]
 
@@ -269,6 +348,7 @@ const useRecipeSearch = ({ getRecipes, getMealDBRecipes, getCocktailDBDrinks, sl
         allRecipes,
         searchRecipes,
         categorySearch,
+        searchStats,
         apiLimitReached
     }
 }
