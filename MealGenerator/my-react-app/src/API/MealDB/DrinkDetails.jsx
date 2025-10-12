@@ -114,12 +114,7 @@ const DrinkDetails = () => {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-[#f5efe4] text-xl font-terminal mb-4">
-                        Loading drink details...
-                    </div>
-                    <div className="text-[#ce7c1c] text-sm font-terminal animate-pulse">
-                        FETCHING FROM DATABASE
-                    </div>
+                    <div className="text-[#f5efe4] text-3xl font-terminal mb-4">Loading drink details...</div>
                 </div>
             </div>
         )

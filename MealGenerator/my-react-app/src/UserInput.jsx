@@ -30,9 +30,15 @@ import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
 import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
 import ImageIngredientUpload from "@/components/ImageIngredientUpload.jsx";
 import SearchStatsBanner from "@/components/SearchStatsBanner.jsx";
-
+import FirstTimeUser from "@/components/FirstTimeUser.jsx";
+import FirstTimeUserRecipes from "@/components/FirstTimeUserRecipes.jsx";
 
 const UserInput = () => {
+    const [isFirstTime, setisFirstTime] = useState(true)
+    const { isFirstTimeUser, markAsReturningUser } = FirstTimeUser({
+        onFirstTimeStatusChange: setisFirstTime,
+    })
+
     // Use custom hooks instead of manual state management
     const [inputString, setInputString] = useState("")
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
@@ -63,7 +69,7 @@ const UserInput = () => {
         errorMessage: searchError,
         searchRecipes,
         categorySearch,
-        searchStats
+        searchStats,
     } = useRecipeSearch({
         getRecipes,
         getMealDBRecipes,
@@ -75,6 +81,11 @@ const UserInput = () => {
 
     // Combine error messages
     const errorMessage = ingredientError || searchError
+
+    const handleFirstTimeUser = () => {
+        markAsReturningUser()
+        setisFirstTime(false)
+    }
 
     const handleCameraIngredient = async (ingredient) => {
         try {
@@ -108,10 +119,9 @@ const UserInput = () => {
         }
     }
 
-
     const handleSearch = async ({
-                                    searchType = "all", 
-                                    exactMatch = false, 
+                                    searchType = "all",
+                                    exactMatch = false,
                                     focusSearch = false,
                                     focusIngredient = null,
                                 }) => {
@@ -119,7 +129,7 @@ const UserInput = () => {
         await searchRecipes({
             ingredients,
             selectedDiet,
-            searchType, 
+            searchType,
             exactMatch,
             focusSearch,
             focusIngredient,
@@ -200,7 +210,7 @@ const UserInput = () => {
             },
         })
     }
-    
+
     // Determine what to show in the recipes section
     const showGeneratedRecipes = allRecipes.length > 0 || isSearching
     const recipeSectionTitle = showGeneratedRecipes ? "RECIPES YOU CAN COOK" : "POPULAR RECIPES"
@@ -236,8 +246,12 @@ const UserInput = () => {
                 <div className="max-w-7xl mx-auto px-4 md:px-6">
                     {/* Logo - centered */}
                     <div className="flex justify-center mb-6">
-                        <div className="text-3xl md:text-4xl font-bold font-title">
-                            <img src={MealForgerLogo} alt="Meal Forger Logo" className="h-20 md:h-16" />
+                        <div className="text-3xl md:text-4xl font-bold font-title transform transition-transform duration-300 hover:scale-105">
+                            <img
+                                src={MealForgerLogo || "/placeholder.svg"}
+                                alt="Meal Forger Logo"
+                                className="h-24 md:h-28 drop-shadow-[0_0_15px_rgba(206,124,28,0.3)] animate-logo"
+                            />
                         </div>
                     </div>
 
@@ -285,19 +299,23 @@ const UserInput = () => {
                     </div>
 
                     {/* Search Stats Banner - Shows after search */}
-                    {hasGeneratedRecipes && searchStats.totalResults > 0 && (
-                        <SearchStatsBanner searchStats={searchStats} />
-                    )}
-                    
+                    {hasGeneratedRecipes && searchStats.totalResults > 0 && <SearchStatsBanner searchStats={searchStats} />}
+
                     {searchStats.totalResults > 0 && (
                         <div className="mb-6 p-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl">
                             <p className="font-terminal text-sm text-[#f5efe4]">
                                 Found <span className="text-[#ce7c1c] font-bold">{searchStats.totalResults}</span> recipes
                                 {searchStats.perfectMatches > 0 && (
-                                    <> · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!</>
+                                    <>
+                                        {" "}
+                                        · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!
+                                    </>
                                 )}
-                                {searchStats.searchMode === 'exact' && (
-                                    <> · <span className="text-yellow-500">Exact Match Mode</span></>
+                                {searchStats.searchMode === "exact" && (
+                                    <>
+                                        {" "}
+                                        · <span className="text-yellow-500">Exact Match Mode</span>
+                                    </>
                                 )}
                             </p>
                         </div>
@@ -331,6 +349,8 @@ const UserInput = () => {
             {/* Main Content */}
             <main className="flex-grow">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
+                    {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={handleFirstTimeUser} />}
+
                     {/* MY PANTRY - Slimmer design */}
                     <div className="mb-6">
                         <PantryList ingredients={ingredients} onRemove={removeIngredient} />
@@ -366,10 +386,7 @@ const UserInput = () => {
                             )}
 
                             {/* ✅ NEW: Search Stats Banner */}
-                            {hasGeneratedRecipes && searchStats.totalResults > 0 && (
-                                <SearchStatsBanner searchStats={searchStats} />
-                            )}
-
+                            {hasGeneratedRecipes && searchStats.totalResults > 0 && <SearchStatsBanner searchStats={searchStats} />}
 
                             {/* Combined Recipes Display - VERTICAL SCROLL ONLY */}
                             <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
@@ -398,10 +415,10 @@ const UserInput = () => {
                                         /* Show Generated Recipes only when generate button was pressed */
                                         <div className="space-y-4 pb-4">
                                             {allRecipes.map((recipe) => {
-                                                const title = recipe.title || recipe.strMeal || recipe.strDrink;
-                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb;
-                                                const hasMatchData = recipe.matchScore !== undefined;
-                                                const canCook = recipe.canCook || recipe.canMake || false;
+                                                const title = recipe.title || recipe.strMeal || recipe.strDrink
+                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
+                                                const hasMatchData = recipe.matchScore !== undefined
+                                                const canCook = recipe.canCook || recipe.canMake || false
 
                                                 return (
                                                     <div
@@ -429,65 +446,69 @@ const UserInput = () => {
                                                                     loading="lazy"
                                                                 />
                                                             </div>
-                                                            <div className="w-2/3 p-4 pr-16"> {/* Added pr-16 to make room for indicator */}
-                                                                <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">
-                                                                    {title}
-                                                                </h3>
-
+                                                            <div className="w-2/3 p-4 pr-16">
+                                                                {" "}
+                                                                {/* Added pr-16 to make room for indicator */}
+                                                                <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">{title}</h3>
                                                                 {/* Match Info Badge - Only show if not perfect match */}
                                                                 {hasMatchData && !canCook && (
                                                                     <div className="mb-2">
-                            <span className="text-xs font-terminal text-gray-400">
-                                {recipe.matchScore}/{recipe.totalIngredients} ingredients
-                            </span>
+                                    <span className="text-xs font-terminal text-gray-400">
+                                      {recipe.matchScore}/{recipe.totalIngredients} ingredients
+                                    </span>
                                                                         {recipe.missingIngredients > 0 && (
-                                                                            <span className="text-xs font-terminal text-red-400 ml-2">· Need {recipe.missingIngredients} more</span>
+                                                                            <span className="text-xs font-terminal text-red-400 ml-2">
+                                        · Need {recipe.missingIngredients} more
+                                      </span>
                                                                         )}
                                                                     </div>
                                                                 )}
-
                                                                 {/* Perfect Match Badge */}
                                                                 {canCook && (
                                                                     <div className="mb-2">
-                            <span className="inline-flex items-center gap-1 text-xs font-terminal px-2 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/30">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Can Cook Now!
-                            </span>
+                                    <span className="inline-flex items-center gap-1 text-xs font-terminal px-2 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/30">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                        <path
+                                            d="M20 6L9 17L4 12"
+                                            stroke="currentColor"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                      Can Cook Now!
+                                    </span>
                                                                     </div>
                                                                 )}
-
                                                                 <div className="flex flex-wrap gap-2 mb-2">
                                                                     {recipe.strCategory && (
                                                                         <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                {recipe.strCategory}
-                            </span>
+                                      {recipe.strCategory}
+                                    </span>
                                                                     )}
                                                                     {recipe.strArea && (
                                                                         <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                {recipe.strArea}
-                            </span>
+                                      {recipe.strArea}
+                                    </span>
                                                                     )}
 
                                                                     {/* Diet Badges */}
                                                                     {recipe.isVegan && (
                                                                         <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                🌱 Vegan
-                            </span>
+                                      🌱 Vegan
+                                    </span>
                                                                     )}
                                                                     {recipe.isKeto && (
                                                                         <span className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                🥑 Keto
-                            </span>
+                                      🥑 Keto
+                                    </span>
                                                                     )}
                                                                     {recipe.isGlutenFree && (
                                                                         <span className="bg-amber-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                🌾 GF
-                            </span>
+                                      🌾 GF
+                                    </span>
                                                                     )}
                                                                 </div>
-
                                                                 <div className="text-sm text-gray-400 font-terminal">
                                                                     {recipe.readyInMinutes && `${recipe.readyInMinutes} min`}
                                                                     {recipe.servings && ` • ${recipe.servings} servings`}
@@ -495,7 +516,7 @@ const UserInput = () => {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                );
+                                                )
                                             })}
                                         </div>
                                     ) : (
@@ -521,8 +542,16 @@ const UserInput = () => {
                                                                 {recipe.strMeal}
                                                             </h3>
                                                             <div className="flex flex-wrap gap-2 mb-2">
-                                                                {recipe.strCategory && (<span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strCategory}</span>)}
-                                                                {recipe.strArea && (<span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strArea}</span>)}
+                                                                {recipe.strCategory && (
+                                                                    <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                    {recipe.strCategory}
+                                  </span>
+                                                                )}
+                                                                {recipe.strArea && (
+                                                                    <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
+                                    {recipe.strArea}
+                                  </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -557,7 +586,6 @@ const UserInput = () => {
 }
 
 export default UserInput
-
 
 
 

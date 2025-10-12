@@ -94,9 +94,7 @@ const MealDBRecipeDetails = () => {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-[#ce7c1c] text-sm font-terminal animate-pulse">
-                        Loading recipe details...
-                    </div>
+                    <div className="text-[#ce7c1c] text-3xl font-terminal animate-pulse">Loading recipe details...</div>
                 </div>
             </div>
         )

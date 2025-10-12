@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Sparkles, X, ChevronDown, ChevronUp } from "lucide-react"
+import { slugify } from "@/utils/slugify"
 
 const FirstTimeUserRecipes = ({ onDismiss }) => {
+  
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -15,6 +17,7 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [expanded, setExpanded] = useState(false)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 768)
   const navigate = useNavigate()
+  
 
   // Track window width for responsive design
   useEffect(() => {

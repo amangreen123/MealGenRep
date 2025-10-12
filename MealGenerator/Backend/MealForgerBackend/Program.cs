@@ -93,29 +93,17 @@ app.MapPost("/validate-ingredient", async (DeepSeekService deepSeek, IngredientR
 });
 
 // Seed MealDB Recipes
-app.MapPost("/seed-mealdb", async (RecipeSeeder seeder) =>
+app.MapPost("/seed/mealdb", async (RecipeSeeder seeder) =>
 {
     await seeder.SeedMealDbAsync();
-    return Results.Ok("Seeding process completed.");
-    
+    return Results.Ok("✅ MealDB seeding complete!");
 });
 
 // Seed CocktailDB Recipes
-app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
+app.MapPost("/seed/cocktaildb", async (CocktailSeeder seeder) =>
 {
-    try
-    {
-        Console.WriteLine("Starting cocktail seeding...");
-        await seeder.SeedCocktailDbAsync();
-        return Results.Ok("Cocktail seeding completed.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"ERROR: {ex.Message}");
-        Console.WriteLine($"INNER: {ex.InnerException?.Message}");
-        Console.WriteLine($"STACK: {ex.StackTrace}");
-        return Results.Problem($"Error: {ex.Message}");
-    }
+    await seeder.SeedCocktailsAsync();
+    return Results.Ok("✅ CocktailDB seeding complete!");
 });
 
 
