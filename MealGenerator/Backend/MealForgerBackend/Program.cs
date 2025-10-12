@@ -118,6 +118,8 @@ app.MapPost("/seed-cocktaildb", async (CocktailSeeder seeder) =>
     }
 });
 
+
+
 app.MapGet("/general-recipes-search", async (MealForgerContext db, string ingredients, string diet = "", int maxResults = 50) => 
 {
     if(string.IsNullOrWhiteSpace(ingredients))

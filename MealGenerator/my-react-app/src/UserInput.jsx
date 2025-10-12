@@ -374,7 +374,6 @@ const UserInput = () => {
                                             {allRecipes.map((recipe) => {
                                                 const title = recipe.title || recipe.strMeal || recipe.strDrink
                                                 const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
-
                                                 return (
                                                     <div
                                                         key={recipe.id || recipe.idMeal || recipe.idDrink}
@@ -394,14 +393,10 @@ const UserInput = () => {
                                                                 <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">{title}</h3>
                                                                 <div className="flex flex-wrap gap-2 mb-2">
                                                                     {recipe.strCategory && (
-                                                                        <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      {recipe.strCategory}
-                                    </span>
+                                                                        <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strCategory}</span>
                                                                     )}
                                                                     {recipe.strArea && (
-                                                                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      {recipe.strArea}
-                                    </span>
+                                                                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">{recipe.strArea}</span>
                                                                     )}
                                                                 </div>
                                                                 <div className="text-sm text-gray-400 font-terminal">

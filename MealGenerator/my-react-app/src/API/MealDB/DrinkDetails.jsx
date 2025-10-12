@@ -189,9 +189,16 @@ const DrinkDetails = () => {
 
     // Get related recipes
     const relatedRecipes = allRecipes
-        .filter((r) => r.idDrink !== drinkDetails.idDrink)
-        .slice(0, 3)
-
+        .filter((r) => {
+            
+            if(r.idDrink){
+                return r.idDrink !== drinkDetails.idDrink
+            }
+            
+            return false
+        })
+        .slice(0,3);
+    
     return (
         <div className="min-h-screen bg-[#131415] text-[#f5efe4]">
             {/* Top Navigation */}
