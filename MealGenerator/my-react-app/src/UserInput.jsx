@@ -237,9 +237,7 @@ const UserInput = () => {
                     {/* Logo - centered */}
                     <div className="flex justify-center mb-6">
                         <div className="text-3xl md:text-4xl font-bold font-title">
-                            <span className="text-white">MEAL</span>
-                            <br />
-                            <span className="text-[#ce7c1c]">FORGER</span>
+                            <img src={MealForgerLogo} alt="Meal Forger Logo" className="h-20 md:h-16" />
                         </div>
                     </div>
 

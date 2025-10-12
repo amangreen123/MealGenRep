@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Net.Http.Json;
 
-
 namespace MealForgerBackend.Services
 {
     public class CocktailSeeder
@@ -20,148 +19,175 @@ namespace MealForgerBackend.Services
             _config = config;
         }
 
-        public async Task SeedCocktailDbAsync()
-    {
-    var apiKey = _config["COCKTAILDBAPIKEY"];
-
-    var url = $"https://www.thecocktaildb.com/api/json/v2/{apiKey}/search.php?s=";
-
-    var response = await _http.GetFromJsonAsync<CocktailDbResponse>(url);
-
-    if (response?.Drinks == null || !response.Drinks.Any())
-    {
-        Console.WriteLine("❌ No drinks found in the API response.");
-        return;
-    }
-
-    foreach (var drink in response.Drinks)
-    {
-
-        if (await _db.CockTails.AnyAsync(c => c.Id == drink.idDrink))
+        /// <summary>
+        /// Fetches all cocktails (A–Z) and seeds them.
+        /// </summary>
+        public async Task SeedCocktailsAsync()
         {
-            Console.WriteLine($" ⏭️  Skipping existing cocktail: {drink.strDrink}");
-            continue;
-        }
-        Console.WriteLine($"➕ Processing: {drink.strDrink}");
-       
-        var drinkRecipe = new CockTails 
-        {
-             Id = drink.idDrink,
-             Name = drink.strDrink,
-             Category = drink.strCategory,
-             Alcoholic = drink.strAlcoholic,
-             Glass = drink.strGlass,
-             Instructions = drink.strInstructions,
-             Thumbnail = drink.strDrinkThumb
-        };
-        
-        _db.CockTails.Add(drinkRecipe);
-        await _db.SaveChangesAsync();
+            var apiKey = _config["CocktailDbApiKey"];
 
-        var ingredientMeasures = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        
-        for (int i = 1; i <= 15; i++)
-        {
-            var drinkIngredientName = drink.GetType().GetProperty($"strIngredient{i}")?.GetValue(drink)?.ToString();
-            var drinkIngredientMeasure = drink.GetType().GetProperty($"strMeasure{i}")?.GetValue(drink)?.ToString();
-
-            if (string.IsNullOrWhiteSpace(drinkIngredientName)) continue;
-
-            drinkIngredientName = drinkIngredientName.Trim();
-
-            if (!ingredientMeasures.ContainsKey(drinkIngredientName))
+            if (string.IsNullOrEmpty(apiKey))
             {
-                ingredientMeasures[drinkIngredientName] = new List<string>();
+                Console.WriteLine("❌ CocktailDB API key is missing in configuration.");
+                return;
             }
 
-            if (!string.IsNullOrWhiteSpace(drinkIngredientMeasure))
+            var letters = Enumerable.Range('a', 26).Select(i => (char)i);
+            int totalAdded = 0;
+            int totalSkipped = 0;
+
+            foreach (var letter in letters)
             {
-                ingredientMeasures[drinkIngredientName].Add(drinkIngredientMeasure.Trim());
-            }
-        }
-        
-        var ingredientList = string.Join(", ", ingredientMeasures.Keys);
-        
-        var dietInfo = await new DeepSeekService(_http, _config).ClassifyAllDietsAsync(ingredientList);
-        drinkRecipe.IsVegan = dietInfo.IsVegan;
-        drinkRecipe.IsVegetarian = dietInfo.IsVegetarian;
-        drinkRecipe.IsGlutenFree = dietInfo.IsGlutenFree;
-        drinkRecipe.IsKeto = dietInfo.IsKeto;
-        drinkRecipe.IsPaleo = dietInfo.IsPaleo;
-        
+                var url = $"https://www.thecocktaildb.com/api/json/v2/{apiKey}/search.php?f={letter}";
+                CocktailDbResponse? response = null;
 
-        foreach (KeyValuePair<string, List<string>> drinkIngredientEntry in ingredientMeasures)
-        {
-            var drinkIngredientName = drinkIngredientEntry.Key;
-            var drinkIngredientMeasures = drinkIngredientEntry.Value;
-
-            var combinedMeasure = drinkIngredientMeasures.Any() 
-                ? string.Join(" + ", drinkIngredientMeasures) 
-                : string.Empty;
-
-            // Check DrinkIngredients table, not Ingredients
-            var existingIngredient = await _db.DrinkIngredients
-                .FirstOrDefaultAsync(i => i.Name.ToLower() == drinkIngredientName.ToLower());
-
-            DrinkIngredient ingredient;
-
-            if (existingIngredient != null) 
-            {
-                ingredient = existingIngredient;
-            }
-            else
-            {
-                ingredient = new DrinkIngredient { Name = drinkIngredientName };
-                _db.DrinkIngredients.Add(ingredient);
-                
-                try
+                for (int attempt = 1; attempt <= 3; attempt++)
                 {
-                    await _db.SaveChangesAsync();
+                    try
+                    {
+                        Console.WriteLine($"🍸 Fetching cocktails starting with '{letter}' (Attempt {attempt})...");
+                        response = await _http.GetFromJsonAsync<CocktailDbResponse>(url);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"⚠️ Error fetching cocktails for '{letter}': {ex.Message}");
+                        if (attempt == 3)
+                        {
+                            Console.WriteLine("❌ Max retry attempts reached, skipping this letter.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("🔄 Retrying...");
+                            await Task.Delay(1000 * attempt);
+                        }
+                    }
                 }
-                catch (DbUpdateException dbEx) when (dbEx.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
-                {
-                    Console.WriteLine($" ⚠️  Ingredient already exists, fetching existing: {ingredient.Name}");
-                    _db.Entry(ingredient).State = EntityState.Detached;
-                    ingredient = await _db.DrinkIngredients.FirstOrDefaultAsync(i => i.Name.ToLower() == drinkIngredientName.ToLower());
-                }
-            }
-            
 
-            
-            var drinkRecipeIngredient = new DrinkRecipeIngredient
+                if (response?.Drinks == null || !response.Drinks.Any())
+                {
+                    Console.WriteLine($"❌ No cocktails found for '{letter}'.");
+                    continue;
+                }
+
+                Console.WriteLine($"📚 Found {response.Drinks.Count} cocktails for '{letter}'");
+
+                foreach (var drink in response.Drinks)
+                {
+                    if (await _db.Recipes.AnyAsync(r => r.ExternalId == drink.idDrink))
+                    {
+                        totalSkipped++;
+                        Console.WriteLine($"⏭️  Skipping existing cocktail: {drink.strDrink}");
+                        continue;
+                    }
+
+                    var recipe = await CreateRecipeFromDrink(drink);
+                    _db.Recipes.Add(recipe);
+                    totalAdded++;
+
+                    if (totalAdded % 10 == 0)
+                    {
+                        await _db.SaveChangesAsync();
+                        Console.WriteLine($"💾 Saved {totalAdded} cocktails so far...");
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+            }
+
+            Console.WriteLine($"\n✅ Done seeding CocktailDB recipes.");
+            Console.WriteLine($"   ➕ Added: {totalAdded}");
+            Console.WriteLine($"   ⏭️ Skipped: {totalSkipped}");
+        }
+
+        private async Task<Recipes> CreateRecipeFromDrink(CocktailDbDrink drink)
+        {
+            var recipe = new Recipes
             {
-                CockTailId = drinkRecipe.Id,  
-                DrinkIngredientId = ingredient.Id,
-                Measure = combinedMeasure
+                ExternalId = drink.idDrink,
+                Source = "cocktaildb",
+                Title = drink.strDrink,
+                Category = drink.strCategory,
+                Area = drink.strAlcoholic,
+                Instructions = drink.strInstructions,
+                ImageUrl = drink.strDrinkThumb,
+                IsDrink = true
             };
-            
-            
-            _db.DrinkRecipeIngredients.Add(drinkRecipeIngredient);
-            await _db.SaveChangesAsync();
-        }
-    }
- 
-    Console.WriteLine("✅ Cocktail seeding completed.");
-    
-    }
 
+            var ingredientMeasures = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 1; i <= 15; i++)
+            {
+                var ingredientName = drink.GetType().GetProperty($"strIngredient{i}")?.GetValue(drink)?.ToString();
+                var measure = drink.GetType().GetProperty($"strMeasure{i}")?.GetValue(drink)?.ToString();
+
+                if (string.IsNullOrWhiteSpace(ingredientName))
+                    continue;
+
+                ingredientName = ingredientName.Trim();
+
+                if (!ingredientMeasures.ContainsKey(ingredientName))
+                    ingredientMeasures[ingredientName] = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(measure))
+                    ingredientMeasures[ingredientName].Add(measure.Trim());
+            }
+
+            foreach (var kvp in ingredientMeasures)
+            {
+                var ingredientName = kvp.Key;
+                var combinedMeasure = kvp.Value.Any() ? string.Join(" + ", kvp.Value) : string.Empty;
+
+                var existingIngredient =
+                    await _db.Ingredients.FirstOrDefaultAsync(i => i.Name.ToLower() == ingredientName.ToLower());
+
+                Ingredient ingredient;
+                if (existingIngredient != null)
+                {
+                    ingredient = existingIngredient;
+                }
+                else
+                {
+                    ingredient = new Ingredient { Name = ingredientName };
+                    _db.Ingredients.Add(ingredient);
+
+                    try
+                    {
+                        await _db.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+                    {
+                        _db.Entry(ingredient).State = EntityState.Detached;
+                        ingredient = await _db.Ingredients.FirstAsync(i => i.Name.ToLower() == ingredientName.ToLower());
+                    }
+                }
+
+                recipe.RecipeIngredients.Add(new RecipeIngredient
+                {
+                    Ingredient = ingredient,
+                    Quantity = combinedMeasure
+                });
+            }
+
+            return recipe;
+        }
     }
 
     public class CocktailDbResponse
     {
-        public List<CockTailsDB>? Drinks { get; set; }
+        public List<CocktailDbDrink>? Drinks { get; set; }
     }
 
-    public class CockTailsDB
+    public class CocktailDbDrink
     {
-        public string idDrink { get; set; } = null!;
-        public string strDrink { get; set; } = null!;
-        public string strCategory { get; set; } = null!;
-        public string strAlcoholic { get; set; } = null!;
-        public string strGlass { get; set; } = null!;
-        public string strInstructions { get; set; } = null!;
-        public string strDrinkThumb { get; set; } = null!;
+        public string idDrink { get; set; } = string.Empty;
+        public string strDrink { get; set; } = string.Empty;
+        public string strCategory { get; set; } = string.Empty;
+        public string strAlcoholic { get; set; } = string.Empty;
+        public string strInstructions { get; set; } = string.Empty;
+        public string strDrinkThumb { get; set; } = string.Empty;
 
+        // Up to 15 ingredients in CocktailDB
         public string? strIngredient1 { get; set; }
         public string? strIngredient2 { get; set; }
         public string? strIngredient3 { get; set; }
@@ -195,4 +221,3 @@ namespace MealForgerBackend.Services
         public string? strMeasure15 { get; set; }
     }
 }
-        
