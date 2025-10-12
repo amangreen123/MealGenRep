@@ -32,3 +32,7 @@ GET http://localhost:5261/test-openrouter-detailed
 ### Test 3: Recipe endpoint
 GET http://localhost:5261/recipe/52772
 
+### reclassify-diets
+POST http://localhost:5261/reclassify-diets
+Content-Type: application/json
+

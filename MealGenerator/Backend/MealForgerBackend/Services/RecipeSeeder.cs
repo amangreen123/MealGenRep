@@ -78,15 +78,39 @@ namespace MealForgerBackend.Services
                 }
                 
                 var ingredientList = string.Join(", ", ingredientMeasures.Keys);
+                Console.WriteLine($"🔍 Classifying diet for: {meal.strMeal}");
+                Console.WriteLine($"   Ingredients: {ingredientList}");
                 
                 //Classify the diets
-                var dietInfo = await new DeepSeekService(_http, _config).ClassifyAllDietsAsync(ingredientList);
-                recipe.IsVegan = dietInfo.IsVegan;
-                recipe.IsVegetarian = dietInfo.IsVegetarian;
-                recipe.IsGlutenFree = dietInfo.IsGlutenFree;
-                recipe.IsKeto = dietInfo.IsKeto;
-                recipe.IsPaleo = dietInfo.IsPaleo;
+
+                try
+                {
+                    var deepSeekService = new DeepSeekService(_http, _config);
+                    var dietInfo = await deepSeekService.ClassifyAllDietsAsync(ingredientList);
                 
+                    recipe.IsVegan = dietInfo.IsVegan;
+                    recipe.IsVegetarian = dietInfo.IsVegetarian;
+                    recipe.IsGlutenFree = dietInfo.IsGlutenFree;
+                    recipe.IsKeto = dietInfo.IsKeto;
+                    recipe.IsPaleo = dietInfo.IsPaleo;
+    
+                    Console.WriteLine($"✅ Diet classification:");
+                    Console.WriteLine($"   Vegan: {dietInfo.IsVegan}");
+                    Console.WriteLine($"   Vegetarian: {dietInfo.IsVegetarian}");
+                    Console.WriteLine($"   Keto: {dietInfo.IsKeto}");
+                    Console.WriteLine($"   Gluten-Free: {dietInfo.IsGlutenFree}");
+                    Console.WriteLine($"   Paleo: {dietInfo.IsPaleo}");
+                    
+                } catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Error classifying diets for {meal.strMeal}: {ex.Message}");
+                    
+                    recipe.IsVegan = false;
+                    recipe.IsVegetarian = false;
+                    recipe.IsGlutenFree = false;
+                    recipe.IsKeto = false;
+                    recipe.IsPaleo = false;
+                }
                 
                 //Process the combined ingredients
                 foreach (KeyValuePair<string, List<string>> ingredientEntry in ingredientMeasures)

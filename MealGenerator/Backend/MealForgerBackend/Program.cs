@@ -205,6 +205,211 @@ app.MapGet("/general-recipes-search", async (MealForgerContext db, string ingred
     return Results.Ok(new { meals = scoredRecipes  });
 });
 
+app.MapGet("/enhanced-search", async (MealForgerContext db,
+    IMemoryCache cache,
+    string ingredients,
+    string? diet = null,
+    string? searchMode = "general",
+    string? type = "all",
+    int maxResults = 50) =>
+{
+    if(string.IsNullOrWhiteSpace(ingredients))
+    {
+        return Results.BadRequest("Ingredients parameter is required.");
+    }
+    
+    var ingredientList = ingredients.Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(i => i.Trim().ToLower())
+        .ToList();
+    
+    if(!ingredientList.Any())
+        return Results.BadRequest("At least one ingredient is required.");
+    
+    var cacheKey = $"enhanced_search_{string.Join("_", ingredientList.OrderBy(i => i))}_{diet}_{searchMode}_{type}_{maxResults}";
+    
+    if(cache.TryGetValue(cacheKey, out object? cachedResult))
+    {
+        Console.WriteLine($"✅ Cache HIT for enhanced search: {cacheKey}");
+        return Results.Ok(cachedResult);
+    }
+    
+    Console.WriteLine($"🔄 Cache MISS for enhanced search: {cacheKey}");
+    
+    var meals = new List<object>();
+    var drinks = new List<object>();
+
+    if (type == "all" || type == "meal")
+    {
+        var allRecipes = await cache.GetOrCreateAsync("all_recipes_cache", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+            entry.SetPriority(CacheItemPriority.High);
+            
+            Console.WriteLine("📚 Loading all recipes from database...");
+            return await db.Recipes
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
+                .AsNoTracking()
+                .ToListAsync();
+        });
+        
+        var scoredRecipes = allRecipes!
+            .Select(r => new
+            {
+                Recipe = r,
+                MatchCount = ingredientList.Count(userIng =>
+                    r.RecipeIngredients.Any(ri => ri.Ingredient.Name.ToLower().Contains(userIng))),
+                TotalIngredients = r.RecipeIngredients.Count,
+                MissingCount = r.RecipeIngredients.Count(ri =>
+                    !ingredientList.Any(userIng => ri.Ingredient.Name.ToLower().Contains(userIng)))
+            })
+             .Where(x => x.MatchCount > 0)
+            // ✅ NEW: Apply search mode filter
+            .Where(x => searchMode == "exact" ? x.MissingCount == 0 : true)
+            // ✅ FIXED: Apply diet filter properly
+            .Where(x => string.IsNullOrEmpty(diet) || diet.ToLower() switch
+            {
+                "vegan" => x.Recipe.IsVegan,
+                "vegetarian" => x.Recipe.IsVegetarian,
+                "keto" => x.Recipe.IsKeto,
+                "ketogenic" => x.Recipe.IsKeto,
+                "gluten-free" => x.Recipe.IsGlutenFree,
+                "paleo" => x.Recipe.IsPaleo,
+                _ => true
+            })
+            .Select(x => new
+            {
+                type = "meal",
+                idMeal = x.Recipe.ExternalId,
+                strMeal = x.Recipe.Title,
+                strMealThumb = x.Recipe.ImageUrl,
+                strCategory = x.Recipe.Category,
+                strArea = x.Recipe.Area,
+                matchScore = x.MatchCount,
+                totalIngredients = x.TotalIngredients,
+                missingIngredients = x.MissingCount,
+                matchPercentage = Math.Round((double)x.MatchCount / x.TotalIngredients * 100, 1),
+                userMatchPercentage = Math.Round((double)x.MatchCount / ingredientList.Count * 100, 1),
+                canCook = x.MissingCount == 0,
+                score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 50 : 0) - (x.MissingCount * 3),
+                matchLevel = x.MissingCount == 0 ? "perfect" :
+                            x.MatchCount >= (x.TotalIngredients * 0.75) ? "good" :
+                            x.MatchCount >= (x.TotalIngredients * 0.5) ? "okay" : "low",
+                isVegan = x.Recipe.IsVegan,
+                isVegetarian = x.Recipe.IsVegetarian,
+                isKeto = x.Recipe.IsKeto,
+                isGlutenFree = x.Recipe.IsGlutenFree,
+                isPaleo = x.Recipe.IsPaleo,
+                slug = x.Recipe.Title.ToLower().Replace(" ", "-").Replace("'", ""),
+                // ✅ NEW: Missing ingredients list
+                missingIngredientsList = x.Recipe.RecipeIngredients
+                    .Where(ri => !ingredientList.Any(userIng => ri.Ingredient.Name.ToLower().Contains(userIng)))
+                    .Select(ri => ri.Ingredient.Name)
+                    .Take(5)
+                    .ToList()
+            })
+            .OrderByDescending(x => x.score)
+            .ThenByDescending(x => x.matchPercentage)
+            .Take(maxResults)
+            .ToList();
+
+        meals = scoredRecipes.Cast<object>().ToList();
+    }
+
+    if (type == "all" || type == "drink")
+    {
+        var allCocktails = await cache.GetOrCreateAsync("all_cocktails_cache", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+            entry.SetPriority(CacheItemPriority.High);
+
+            Console.WriteLine("🍹 Loading all cocktails from database...");
+            return await db.CockTails
+                .Include(c => c.DrinkRecipeIngredients)
+                .ThenInclude(dri => dri.DrinkIngredient)
+                .AsNoTracking()
+                .ToListAsync();
+        });
+
+        var scoredCocktails = allCocktails!
+            .Select(c => new
+            {
+                Cocktail = c,
+                MatchCount = ingredientList.Count(userIng =>
+                    c.DrinkRecipeIngredients.Any(dri => dri.DrinkIngredient.Name.ToLower().Contains(userIng))),
+                TotalIngredients = c.DrinkRecipeIngredients.Count,
+                MissingCount = c.DrinkRecipeIngredients.Count(dri =>
+                    !ingredientList.Any(userIng => dri.DrinkIngredient.Name.ToLower().Contains(userIng)))
+            })
+            .Where(x => x.MatchCount > 0)
+            // ✅ NEW: Apply search mode filter
+            .Where(x => searchMode == "exact" ? x.MissingCount == 0 : true)
+            .Select(x => new
+            {
+                type = "drink",
+                idDrink = x.Cocktail.Id,
+                strDrink = x.Cocktail.Name,
+                strDrinkThumb = x.Cocktail.Thumbnail,
+                strCategory = x.Cocktail.Category,
+                strAlcoholic = x.Cocktail.Alcoholic,
+                strGlass = x.Cocktail.Glass,
+                matchScore = x.MatchCount,
+                totalIngredients = x.TotalIngredients,
+                missingIngredients = x.MissingCount,
+                matchPercentage = Math.Round((double)x.MatchCount / x.TotalIngredients * 100, 1),
+                userMatchPercentage = Math.Round((double)x.MatchCount / ingredientList.Count * 100, 1),
+                canMake = x.MissingCount == 0,
+                score = (x.MatchCount * 10) + (x.MissingCount == 0 ? 50 : 0) - (x.MissingCount * 3),
+                matchLevel = x.MissingCount == 0 ? "perfect" :
+                    x.MatchCount >= (x.TotalIngredients * 0.75) ? "good" :
+                    x.MatchCount >= (x.TotalIngredients * 0.5) ? "okay" : "low",
+                slug = x.Cocktail.Name.ToLower().Replace(" ", "-").Replace("'", ""),
+                // ✅ NEW: Missing ingredients list
+                missingIngredientsList = x.Cocktail.DrinkRecipeIngredients
+                    .Where(dri => !ingredientList.Any(userIng => dri.DrinkIngredient.Name.ToLower().Contains(userIng)))
+                    .Select(dri => dri.DrinkIngredient.Name)
+                    .Take(5)
+                    .ToList()
+            })
+            .OrderByDescending(x => x.score)
+            .ThenByDescending(x => x.matchPercentage)
+            .Take(maxResults)
+            .ToList();
+
+        drinks = scoredCocktails.Cast<object>().ToList();
+    }
+    
+    var result = new
+    {
+        searchMode = searchMode,
+        dietFilter = diet,
+        totalResults = meals.Count + drinks.Count,
+        perfectMatches = meals.Count(m => 
+        {
+            var dict = m as dynamic;
+            return dict != null && dict.canCook == true;
+        }) + drinks.Count(d =>
+        {
+            var dict = d as dynamic;
+            return dict != null && dict.canMake == true;
+        }),
+        meals = meals,
+        drinks = drinks
+    };
+
+    cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+        SlidingExpiration = TimeSpan.FromMinutes(5)
+    });
+
+    return Results.Ok(result);
+    
+});
+
+
+    
+
 // Cocktail Search By Ingredients (with caching)
 app.MapGet("/general-cocktails-search", async (
     MealForgerContext db,
@@ -776,6 +981,88 @@ app.MapPost("/identify-ingredient", async (GeminiService gemini, IFormFile image
     
 }).DisableAntiforgery();
 
+
+app.MapPost("/reclassify-diets", async (MealForgerContext db, DeepSeekService deepSeek) =>
+{
+    Console.WriteLine("🔄 Starting diet reclassification for all recipes...");
+
+    var recipes = await db.Recipes
+        .Include(r => r.RecipeIngredients)
+        .ThenInclude(ri => ri.Ingredient)
+        .ToListAsync();
+
+    Console.WriteLine($"📚 Found {recipes.Count} recipes to classify");
+
+    int processed = 0;
+    int failed = 0;
+
+    foreach (var recipe in recipes)
+    {
+        try
+        {
+            var ingredientList = string.Join(", ", recipe.RecipeIngredients.Select(ri => ri.Ingredient.Name));
+            
+            if(string.IsNullOrWhiteSpace(ingredientList))
+            {
+                Console.WriteLine($"⚠️ Recipe '{recipe.Title}' has no ingredients, skipping.");
+                continue;
+            }
+            
+            Console.WriteLine($"🔍 Classifying '{recipe.Title}' with ingredients: {ingredientList}");
+            
+            var dietInfo = await deepSeek.ClassifyAllDietsAsync(ingredientList);
+            
+            recipe.IsVegan = dietInfo.IsVegan;
+            recipe.IsVegetarian = dietInfo.IsVegetarian;
+            recipe.IsKeto = dietInfo.IsKeto;
+            recipe.IsGlutenFree = dietInfo.IsGlutenFree;
+            recipe.IsPaleo = dietInfo.IsPaleo;
+            
+            
+            Console.WriteLine($"✅ {recipe.Title}:");
+            Console.WriteLine($"   V:{dietInfo.IsVegan} VG:{dietInfo.IsVegetarian} K:{dietInfo.IsKeto} GF:{dietInfo.IsGlutenFree} P:{dietInfo.IsPaleo}");
+            
+            processed++;
+            
+            if(processed % 10 == 0)
+            {
+                await db.SaveChangesAsync();
+                Console.WriteLine($"💾 Saved progress after {processed}/{recipes.Count} recipes...");
+            }
+
+            await Task.Delay(500);
+            
+        } catch(Exception ex) {
+            Console.WriteLine($"❌ Failed to classify '{recipe.Title}': {ex.Message}");
+            failed++;
+        }
+        
+        await db.SaveChangesAsync();
+    
+        Console.WriteLine($"✅ Reclassification complete!");
+        Console.WriteLine($"   Processed: {processed}");
+        Console.WriteLine($"   Failed: {failed}");
+        Console.WriteLine($"   Total: {recipes.Count}");
+        
+    }
+    
+    // Return summary
+    var summary = new
+    {
+        totalRecipes = recipes.Count,
+        processed = processed,
+        failed = failed,
+        veganCount = recipes.Count(r => r.IsVegan),
+        vegetarianCount = recipes.Count(r => r.IsVegetarian),
+        ketoCount = recipes.Count(r => r.IsKeto),
+        glutenFreeCount = recipes.Count(r => r.IsGlutenFree),
+        paleoCount = recipes.Count(r => r.IsPaleo)
+    };
+    
+    
+    return Results.Ok(summary);
+    
+});
 
 app.MapControllers();
 app.Run();
