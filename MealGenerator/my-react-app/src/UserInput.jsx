@@ -443,7 +443,6 @@ const UserInput = () => {
                                   </span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-sm text-gray-400 font-terminal">25 min • 4 servings</div>
                                                         </div>
                                                     </div>
                                                 </div>
