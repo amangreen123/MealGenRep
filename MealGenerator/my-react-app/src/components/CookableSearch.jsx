@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { ChefHat, Loader2, Wine, UtensilsCrossed, ScanEye, Sparkles } from "lucide-react"
 
 const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching = false, focusIngredient }) => {
-    const [searchType, setSearchType] = useState("all") // "all", "meals", "drinks"
+    const [searchType, setSearchType] = useState("all") 
     const [exactMatch, setExactMatch] = useState(false)
     const [focusSearch, setFocusSearch] = useState(false)
 

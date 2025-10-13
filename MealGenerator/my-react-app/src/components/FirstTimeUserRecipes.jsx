@@ -1,38 +1,24 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Sparkles, X, ChevronDown, ChevronUp } from "lucide-react"
-import { slugify } from "@/utils/slugify"
+import { Sparkles, X } from "lucide-react"
 
 const FirstTimeUserRecipes = ({ onDismiss }) => {
-  
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
-  const [expanded, setExpanded] = useState(false)
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 768)
   const navigate = useNavigate()
-  
 
-  // Track window width for responsive design
+  // Prevent body scroll when component mounts
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+    document.body.classList.add('first-time-active')
+    return () => {
+      document.body.classList.remove('first-time-active')
     }
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
   }, [])
-
-  // Automatically expand on desktop
-  useEffect(() => {
-    setExpanded(windowWidth >= 768)
-  }, [windowWidth])
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -41,7 +27,7 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
         const response = await fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
         const data = await response.json()
         if (data.categories) {
-          setCategories(data.categories)
+          setCategories(data.categories.slice(0, 8)) // Show first 8 categories
         }
       } catch (err) {
         console.error("Error fetching categories:", err)
@@ -57,7 +43,7 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
       try {
         setLoading(true)
 
-        const apiKey = import.meta.env.VITE_MEALDB_KEY || "1" // Use environment variable or default to free API
+        const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"
         let url = `https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`
 
         // If a category is selected, fetch recipes from that category
@@ -89,6 +75,16 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
     fetchRecipes()
   }, [selectedCategory])
 
+  const slugify = (text) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+  }
+
   const handleRecipeClick = (recipe) => {
     // Mark user as no longer new after they click a recipe
     localStorage.setItem("mealForgerFirstTimeUser", "false")
@@ -114,22 +110,12 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
     if (onDismiss) onDismiss()
   }
 
-  const toggleExpanded = () => {
-    setExpanded(!expanded)
-  }
-
-  // Determine how many recipes to show based on screen size and expanded state
-  const getRecipesToShow = () => {
-    if (windowWidth >= 768) return recipes.slice(0, 8) // Always show 8 on desktop
-    return expanded ? recipes.slice(0, 4) : recipes.slice(0, 3) // Show 3 or 4 on mobile
-  }
-
   if (loading) {
     return (
-        <div className="w-full flex justify-center items-center py-2">
-          <div className="text-center">
-            <Sparkles className="h-6 w-6 text-[#ce7c1c] mx-auto animate-pulse mb-1" />
-            <p className="font-terminal text-gray-400 text-xs">Loading recipes...</p>
+        <div className="first-time-overlay">
+          <div className="first-time-loading">
+            <div className="first-time-spinner" />
+            <p className="font-terminal text-gray-400 text-lg">Loading delicious recipes...</p>
           </div>
         </div>
     )
@@ -140,110 +126,86 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
   }
 
   return (
-      <div className="bg-gray-900/50 rounded-2xl border border-gray-700 p-3 md:p-6 shadow-lg shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/20 transition-all duration-300 mb-3 md:mb-8 relative">
-        {/* Dismiss button */}
+      <div className="first-time-overlay">
+        {/* Close button */}
         <button
             onClick={handleDismiss}
-            className="absolute top-2 right-2 bg-gray-800 hover:bg-gray-700 rounded-full p-1.5 text-gray-400 hover:text-white transition-all duration-300 transform hover:rotate-90 hover:scale-110 z-10"
-            aria-label="Dismiss popular recipes"
+            className="first-time-close-btn"
+            aria-label="Close welcome screen"
         >
-          <X size={16} />
+          <X size={24} className="text-[#ce7c1c]" />
         </button>
 
-        <div className="flex flex-col items-center mb-2 md:mb-4">
-          <h2 className="text-xl md:text-3xl font-bold font-title text-center">
-            <span className="text-[#ce7c1c]">WELCOME</span> <span className="text-white">TO MEAL FORGER</span>
-          </h2>
+        <div className="first-time-container">
+          {/* Header */}
+          <div className="first-time-header">
+            <h1 className="first-time-title">
+              <span className="text-[#ce7c1c]">WELCOME TO</span>{" "}
+              <span className="text-white">MEAL</span>{" "}
+              <span className="text-[#ce7c1c]">FORGER</span>
+            </h1>
+            <p className="first-time-subtitle font-terminal">
+              Discover amazing recipes and start cooking with what you have
+            </p>
+          </div>
 
-          <p className="text-gray-400 font-terminal text-xs md:text-sm mt-1 text-center px-2 md:px-0 max-w-md mx-auto">
-            Discover popular recipes to get started
-          </p>
-        </div>
+          {/* Category filters */}
+          <div className="first-time-filters">
+            <button
+                onClick={() => setSelectedCategory(null)}
+                className={`first-time-filter-btn font-terminal ${
+                    !selectedCategory ? "active" : "inactive"
+                }`}
+            >
+              All Recipes
+            </button>
 
-        {/* Category filters - horizontal scrollable row with better spacing */}
-        <div className="flex overflow-x-auto py-2 mb-3 scrollbar-thin scrollbar-thumb-[#ce7c1c] scrollbar-track-gray-800 px-1 gap-2 snap-x justify-center md:justify-start">
-          <Button
-              onClick={() => setSelectedCategory(null)}
-              className={`rounded-full px-3 py-1 text-xs md:text-sm whitespace-nowrap flex-shrink-0 ${
-                  !selectedCategory
-                      ? "bg-[#ce7c1c] text-white"
-                      : "bg-transparent border border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/10"
-              }`}
-          >
-            All
-          </Button>
+            {categories.map((category) => (
+                <button
+                    key={category.strCategory}
+                    onClick={() => handleCategoryChange(category.strCategory)}
+                    className={`first-time-filter-btn font-terminal ${
+                        selectedCategory === category.strCategory ? "active" : "inactive"
+                    }`}
+                >
+                  {category.strCategory}
+                </button>
+            ))}
+          </div>
 
-          {categories.slice(0, windowWidth >= 768 ? 6 : 4).map((category) => (
-              <Button
-                  key={category.strCategory}
-                  onClick={() => handleCategoryChange(category.strCategory)}
-                  className={`rounded-full px-3 py-1 text-xs md:text-sm whitespace-nowrap flex-shrink-0 ${
-                      selectedCategory === category.strCategory
-                          ? "bg-[#ce7c1c] text-white"
-                          : "bg-transparent border border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/10"
-                  }`}
-              >
-                {category.strCategory}
-              </Button>
-          ))}
-        </div>
-
-        {/* Recipe grid - responsive layout */}
-        <div className={`grid grid-cols-3 ${windowWidth >= 768 ? "md:grid-cols-4" : ""} gap-2 md:gap-4`}>
-          {getRecipesToShow().map((recipe) => (
-              <Card
-                  key={recipe.idMeal}
-                  className="bg-gray-800/50 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors rounded-lg overflow-hidden transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 snap-center"
-                  onClick={() => handleRecipeClick(recipe)}
-              >
-                <div className="p-0">
-                  <div className="relative">
-                    <img
-                        src={recipe.strMealThumb || "/placeholder.svg"}
-                        alt={recipe.strMeal}
-                        className="w-full h-20 sm:h-24 md:h-32 object-cover"
-                        loading="lazy"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 md:p-2">
-                      <h3 className="text-white font-terminal text-[10px] md:text-xs line-clamp-1">{recipe.strMeal}</h3>
-                    </div>
+          {/* Recipe grid */}
+          <div className="first-time-recipe-grid">
+            {recipes.slice(0, 16).map((recipe) => (
+                <div
+                    key={recipe.idMeal}
+                    className="first-time-recipe-card"
+                    onClick={() => handleRecipeClick(recipe)}
+                >
+                  <img
+                      src={recipe.strMealThumb || "/placeholder.svg"}
+                      alt={recipe.strMeal}
+                      className="first-time-recipe-image"
+                      loading="lazy"
+                  />
+                  <div className="first-time-recipe-info">
+                    <h3 className="first-time-recipe-title font-title">
+                      {recipe.strMeal}
+                    </h3>
                   </div>
                 </div>
-              </Card>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Show more/less toggle - visible on all devices */}
-        {recipes.length > (windowWidth >= 768 ? 8 : 3) && (
-            <div className="flex justify-center mt-3">
-              <Button
-                  onClick={toggleExpanded}
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs md:text-sm text-gray-400 hover:text-white flex items-center gap-1 py-1 px-3 h-auto"
-              >
-                {expanded ? (
-                    <>
-                      <ChevronUp size={14} /> Show Less
-                    </>
-                ) : (
-                    <>
-                      <ChevronDown size={14} /> Show More
-                    </>
-                )}
-              </Button>
-            </div>
-        )}
-
-        {/* Get Started button */}
-        <div className="flex justify-center mt-3 md:mt-4">
-          <Button
-              onClick={handleDismiss}
-              className="border border-[#ce7c1c] bg-[#ce7c1c]/10 hover:bg-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-1.5 font-terminal rounded-full cursor-pointer text-xs md:text-sm font-bold shadow-md shadow-[#ce7c1c]/10 hover:shadow-[#ce7c1c]/30 transform hover:scale-110 hover:translate-y-[-2px] active:translate-y-[1px] transition-all duration-300"
-          >
-            <Sparkles className="h-3 w-3 mr-1.5 animate-pulse" />
-            Get Started
-          </Button>
+          {/* Get Started CTA */}
+          <div className="first-time-cta">
+            <button
+                onClick={handleDismiss}
+                className="first-time-cta-btn font-terminal"
+            >
+              <Sparkles className="h-5 w-5 animate-pulse" />
+              Get Started
+            </button>
+          </div>
         </div>
       </div>
   )
