@@ -276,7 +276,7 @@ const UserInput = () => {
                         </div>
                         <ImageIngredientUpload
                             onIngredientIdentified={handleCameraIngredient}
-                            className="absolute right-12 top-1/2 transform -translate-y-1/2"
+                            className="absolute right-20 top-1/2 transform -translate-y-1/2"
                         />
                         <Button
                             className="search-button bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white transition-all duration-300 absolute right-4 top-1/2 transform -translate-y-1/2"
@@ -298,28 +298,25 @@ const UserInput = () => {
                         </Button>
                     </div>
 
-                    {/* Search Stats Banner - Shows after search */}
-                    {hasGeneratedRecipes && searchStats.totalResults > 0 && <SearchStatsBanner searchStats={searchStats} />}
-
-                    {searchStats.totalResults > 0 && (
-                        <div className="mb-6 p-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl">
-                            <p className="font-terminal text-sm text-[#f5efe4]">
-                                Found <span className="text-[#ce7c1c] font-bold">{searchStats.totalResults}</span> recipes
-                                {searchStats.perfectMatches > 0 && (
-                                    <>
-                                        {" "}
-                                        · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!
-                                    </>
-                                )}
-                                {searchStats.searchMode === "exact" && (
-                                    <>
-                                        {" "}
-                                        · <span className="text-yellow-500">Exact Match Mode</span>
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    )}
+                    {/*{searchStats.totalResults > 0 && (*/}
+                    {/*    <div className="mb-6 p-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl">*/}
+                    {/*        <p className="font-terminal text-sm text-[#f5efe4]">*/}
+                    {/*            Found <span className="text-[#ce7c1c] font-bold">{searchStats.totalResults}</span> recipes*/}
+                    {/*            {searchStats.perfectMatches > 0 && (*/}
+                    {/*                <>*/}
+                    {/*                    {" "}*/}
+                    {/*                    · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!*/}
+                    {/*                </>*/}
+                    {/*            )}*/}
+                    {/*            {searchStats.searchMode === "exact" && (*/}
+                    {/*                <>*/}
+                    {/*                    {" "}*/}
+                    {/*                    · <span className="text-yellow-500">Exact Match Mode</span>*/}
+                    {/*                </>*/}
+                    {/*            )}*/}
+                    {/*        </p>*/}
+                    {/*    </div>*/}
+                    {/*)}*/}
 
                     {/* Filters section */}
                     {showFilters && (
