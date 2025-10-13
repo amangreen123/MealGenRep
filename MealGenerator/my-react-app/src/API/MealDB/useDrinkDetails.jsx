@@ -1,7 +1,7 @@
 ﻿import { useState, useRef } from "react";
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5261';
+const BASE_URL = import.meta.env.VITE_DEPLOYED_BACKEND_URL || 'http://localhost:5261';
 
 export const useDrinkDetails = () => {
     const [loading, setLoading] = useState(false);

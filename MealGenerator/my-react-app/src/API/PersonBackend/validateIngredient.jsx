@@ -1,11 +1,14 @@
 ﻿export const validateIngredient = async (ingredient) => {
 
+    const BASE_URL = import.meta.env.VITE_DEPLOYED_BACKEND_URL || 'http://localhost:5261';
+
+
     if(!ingredient || ingredient.trim() === "") {
         return "Error: Ingredient cannot be empty.";
     }
     
     try {
-        const response = await fetch("http://localhost:5261/validate-ingredient",  {
+        const response = await fetch(`${BASE_URL}/validate-ingredient`,  {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
