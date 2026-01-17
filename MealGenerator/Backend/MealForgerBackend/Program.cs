@@ -1052,6 +1052,27 @@ app.MapPost("/reclassify-diets", async (MealForgerContext db, DeepSeekService de
     
 });
 
+app.MapGet("/random-recipes", async (MealForgerContext db, int count = 12) =>
+{
+    var randomRecipes = await db.Recipes
+        .Include(r => r.RecipeIngredients)
+        .ThenInclude(ri => ri.Ingredient)
+        .OrderBy(r => Guid.NewGuid()) // Random order
+        .Take(count)
+        .Select(r => new
+        {
+            idMeal = r.ExternalId,
+            strMeal = r.Title,
+            strMealThumb = r.ImageUrl,
+            strCategory = r.Category,
+            strArea = r.Area,
+            slug = r.Title.ToLower().Replace(" ", "-").Replace("'", "")
+        })
+        .ToListAsync();
+    
+    return Results.Ok(new { meals = randomRecipes });
+});
+
 app.MapControllers();
 app.Run();
 

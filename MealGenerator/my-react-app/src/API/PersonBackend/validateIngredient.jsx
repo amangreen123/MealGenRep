@@ -8,7 +8,7 @@
     }
     
     try {
-        const response = await fetch(`${BASE_URL}/validate-ingredient`,  {
+        const response = await fetch(`${BASE_URL}/validate-ingredient`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

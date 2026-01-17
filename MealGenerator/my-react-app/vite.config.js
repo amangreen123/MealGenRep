@@ -10,8 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      extensions: ['.js', '.jsx', '.ts', '.tsx']
     },
+      extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
   build:{
     sourcemap: true,
@@ -20,7 +20,7 @@ export default defineConfig({
     server: {
     proxy: {
         '/api': {
-            target:'https://localhost:5261',
+            target:'https://mealforger.org',
             changeOrigin: true,
             secure: false,
             rewrite: (path) => path.replace(/^\/api/, ''),
