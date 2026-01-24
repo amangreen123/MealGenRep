@@ -220,8 +220,9 @@ const UserInput = () => {
         const fetchRandomRecipes = async () => {
             try {
                 const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"
+                const BASE_URL =  import.meta.env.VITE_DEPLOYED_BACKEND_URL || 'http://localhost:5261';
                 //or use https://mealforger.org/enhanced-search?ingredients=chicken&type=meals&maxResults=12`
-                const response = await fetch(`https://mealforger.org/random-recipes?count=12`)
+                const response = await fetch(`${BASE_URL}/random-recipes?count=12`);
                 const data = await response.json()
 
                 if (data && data.meals) {
