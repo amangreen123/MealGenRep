@@ -31,7 +31,7 @@ const ImageIngredientUpload = ({ onIngredientIdentified }) => {
         formData.append("image", file)
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5261"
+            const apiUrl = import.meta.env.VITE_DEPLOYED_BACKEND_URL || "http://localhost:5261"
             const response = await fetch(`${apiUrl}/identify-ingredient`, {
                 method: "POST",
                 body: formData,
