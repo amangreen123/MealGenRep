@@ -49,7 +49,7 @@ const MealDBRecipeDetails = () => {
                     const mealData = data.meals[0]
                     setRecipeDetails(mealData)
 
-                    // Determine base nutrition (Mock data if missing)
+                    // Determine base nutrition
                     const initialCalories = mealData.nutrition?.perServing?.calories || 500;
                     const initialProtein = mealData.nutrition?.perServing?.protein || 25;
                     const initialFat = mealData.nutrition?.perServing?.fat || 20;
@@ -236,7 +236,6 @@ const MealDBRecipeDetails = () => {
 
     return (
         <HelmetProvider>
-            {/* ADDED 'relative z-10' TO FIX BACKGROUND OVERLAP */}
             <div className="min-h-screen bg-transparent text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white relative z-10">
 
                 <Helmet>
@@ -245,7 +244,7 @@ const MealDBRecipeDetails = () => {
                     <link rel="canonical" href={`https://mealforger.com/mealdb-recipe/${slugify(recipeDetails.strMeal)}`} />
                 </Helmet>
 
-                {/* Top Navigation - Updated BG Opacity */}
+                {/* Top Navigation */}
                 <div className="bg-[#131415]/90 border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
                         <div className="flex items-center justify-between gap-4">
@@ -298,7 +297,6 @@ const MealDBRecipeDetails = () => {
                                     <span className="text-[#ce7c1c]">{recipeDetails.strMeal}</span>
                                 </h1>
 
-                                {/* --- MAIN PREMIUM TAGS --- */}
                                 <div className="flex flex-wrap gap-3 mb-6">
                                     {recipeDetails.strCategory && (
                                         <div className="flex items-center gap-2 bg-[#ce7c1c]/10 border border-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-1.5 rounded-full shadow-sm shadow-orange-900/10">
@@ -415,18 +413,21 @@ const MealDBRecipeDetails = () => {
                                     <span className="text-white">INSTRUCTIONS</span>
                                 </h2>
 
-                                <div className="space-y-8 mb-8">
-                                    {instructionSteps.map((step, index) => (
-                                        <div key={index} className="flex gap-4 sm:gap-6 group">
-                                            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gray-800 border border-gray-700 text-[#ce7c1c] rounded-full flex items-center justify-center shadow-lg group-hover:border-[#ce7c1c] transition-colors">
-                                                <span className="font-sans text-lg font-bold">{index + 1}</span>
+                                {/* --- UPDATED: SCROLL AREA FOR INSTRUCTIONS --- */}
+                                <ScrollArea className="h-[400px] pr-4 mb-8">
+                                    <div className="space-y-8">
+                                        {instructionSteps.map((step, index) => (
+                                            <div key={index} className="flex gap-4 sm:gap-6 group">
+                                                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gray-800 border border-gray-700 text-[#ce7c1c] rounded-full flex items-center justify-center shadow-lg group-hover:border-[#ce7c1c] transition-colors">
+                                                    <span className="font-sans text-lg font-bold">{index + 1}</span>
+                                                </div>
+                                                <p className="font-sans text-base sm:text-lg text-gray-300 leading-8 pt-1 sm:pt-2">
+                                                    {step}
+                                                </p>
                                             </div>
-                                            <p className="font-sans text-base sm:text-lg text-gray-300 leading-8 pt-1 sm:pt-2">
-                                                {step}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
 
                                 <div className="pt-8 border-t border-gray-800">
                                     <Button
@@ -496,7 +497,7 @@ const MealDBRecipeDetails = () => {
                                 )}
                             </div>
 
-                            {/* --- SIDEBAR RELATED RECIPES --- */}
+                            {/* RELATED RECIPES */}
                             {relatedRecipes.length > 0 && (
                                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
                                     <h3 className="text-xl font-bold font-title mb-6">
@@ -504,7 +505,6 @@ const MealDBRecipeDetails = () => {
                                     </h3>
                                     <div className="space-y-4">
                                         {relatedRecipes.map((recipe) => {
-                                            // Get Icon for Sidebar Item
                                             const SideIcon = getCategoryIcon(recipe.strCategory);
 
                                             return (
@@ -533,7 +533,6 @@ const MealDBRecipeDetails = () => {
                                                             {recipe.strMeal}
                                                         </h4>
 
-                                                        {/* --- UPDATED SIDEBAR TAGS WITH ICONS --- */}
                                                         <div className="flex flex-wrap gap-2">
                                                             {recipe.strCategory && (
                                                                 <div className="flex items-center gap-1 bg-[#ce7c1c]/10 text-[#ce7c1c] px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border border-[#ce7c1c]/20">
