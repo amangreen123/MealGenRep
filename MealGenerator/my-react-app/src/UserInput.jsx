@@ -141,17 +141,40 @@ const UserInput = () => {
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title
         const recipeSlug = recipe.slug || slugify(recipeName)
 
+        // FIX: Determine which list is currently visible (Search Results OR Trending)
+        // If we are showing search results, pass 'allRecipes'. If trending, pass 'randomRecipes'.
+        const isShowingSearchResults = (hasGeneratedRecipes && allRecipes.length > 0) || isSearching;
+        const activeList = isShowingSearchResults ? allRecipes : randomRecipes;
+
         if (recipe.idDrink) {
             navigate(`/drink/${recipeSlug}`, {
-                state: { drink: recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.idDrink },
+                state: {
+                    drink: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: activeList, // <--- PASS THE ACTIVE LIST
+                    previousPath: currentPath,
+                    recipeId: recipe.idDrink
+                },
             })
         } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipeSlug}`, {
-                state: { meal: recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.idMeal },
+                state: {
+                    meal: recipe,
+                    userIngredients: ingredients,
+                    allRecipes: activeList, // <--- PASS THE ACTIVE LIST
+                    previousPath: currentPath,
+                    recipeId: recipe.idMeal
+                },
             })
         } else {
             navigate(`/recipe/${recipeSlug}`, {
-                state: { recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.id },
+                state: {
+                    recipe,
+                    userIngredients: ingredients,
+                    allRecipes: activeList,
+                    previousPath: currentPath,
+                    recipeId: recipe.id
+                },
             })
         }
     }
@@ -175,40 +198,28 @@ const UserInput = () => {
         fetchRandomRecipes()
     }, [])
 
-    // --- HELPER: Smart Icons for Categories ---
-    // Now accepts optional 'strAlcoholic' to better classify drinks
     const getCategoryIcon = (category, strAlcoholic = "") => {
         if (!category) return Tag;
         const c = category.toLowerCase();
         const a = strAlcoholic.toLowerCase();
 
-        // --- MEAL LOGIC ---
         if (c.includes('beef') || c.includes('chicken') || c.includes('lamb') || c.includes('pork') || c.includes('goat')) return Drumstick;
         if (c.includes('seafood') || c.includes('fish')) return Fish;
         if (c.includes('vegan') || c.includes('vegetarian')) return Leaf;
         if (c.includes('breakfast')) return Coffee;
         if (c.includes('dessert')) return CakeSlice;
 
-        // --- DRINK LOGIC ---
-        // 1. Specific Category Overrides (Shots, Beers, Coffee Drinks)
-        if (c.includes('shot')) return GlassWater; // Keep Shot Tag
+        if (c.includes('shot')) return GlassWater;
         if (c.includes('beer') || c.includes('ale')) return Beer;
         if (c.includes('coffee') || c.includes('tea') || c.includes('cocoa')) return Coffee;
 
-        // 2. Non-Alcoholic (Juice/Water Icon)
         if (a.includes('non')) return GlassWater;
-
-        // 3. Alcoholic General -> Cocktail Icon
-        // This fixes "Ordinary Drink" showing as water if it's actually alcoholic
         if (a.includes('alcohol')) return Martini;
-
-        // 4. Category Fallbacks
         if (c.includes('cocktail')) return Martini;
 
         return Utensils;
     }
 
-    // --- VIEW LOGIC ---
     const showGenerated = (hasGeneratedRecipes && allRecipes.length > 0) || isSearching;
     const displayRecipes = showGenerated ? allRecipes : randomRecipes;
 
@@ -222,20 +233,16 @@ const UserInput = () => {
     const titleParts = getTitleParts();
 
     return (
-        <div className="flex flex-col min-h-screen bg-transparent text-[#f5efe4] selection:bg-[#ce7c1c] selection:text-white font-sans">
+        // Added relative z-10 to ensure content sits above ambient background
+        <div className="flex flex-col min-h-screen bg-transparent text-[#f5efe4] selection:bg-[#ce7c1c] selection:text-white font-sans relative z-10">
             {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={handleFirstTimeDismiss} />}
 
             <main className="flex-grow pt-6 px-4 md:px-6">
-
-                {/* LOGO */}
                 <div className="mb-8 flex justify-center transform scale-75 md:scale-90">
                     <DynamicLogo className="h-32 md:h-48 w-auto" />
                 </div>
 
-                {/* --- MAIN SEARCH AREA --- */}
                 <div className="w-full max-w-2xl mx-auto relative z-20">
-
-                    {/* SEARCH BAR */}
                     <div className="flex items-center w-full bg-[#1a1a1a] p-2 rounded-full border-2 border-gray-700 shadow-xl focus-within:border-[#ce7c1c] transition-colors duration-300">
                         <div className="pl-3 pr-2 text-gray-400"><Search className="h-5 w-5" /></div>
 
@@ -262,7 +269,6 @@ const UserInput = () => {
                         </div>
                     </div>
 
-                    {/* --- VISIBLE PANTRY SHELF --- */}
                     {ingredients.length > 0 && (
                         <div className="mt-4 bg-[#1a1a1a]/50 border border-gray-800 rounded-2xl p-4 animate-in fade-in slide-in-from-top-4">
                             <div className="flex items-center gap-2 mb-3 text-gray-400 text-xs uppercase font-bold tracking-wider">
@@ -293,7 +299,6 @@ const UserInput = () => {
                         </div>
                     )}
 
-                    {/* CONTROLS ROW */}
                     <div className="mt-6 flex flex-wrap justify-center items-center gap-3">
                         <QuickAddButtons
                             onQuickSearch={handleQuickSearch}
@@ -345,7 +350,6 @@ const UserInput = () => {
                     </div>
                 </div>
 
-                {/* --- RESULTS GRID --- */}
                 <div className="w-full max-w-7xl mx-auto mt-12 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 px-2">
                         <div>
@@ -373,19 +377,15 @@ const UserInput = () => {
                             const canCook = recipe.canCook || recipe.canMake || false
                             const hasMatchData = recipe.matchScore !== undefined
 
-                            // --- DETECT IF DRINK OR MEAL ---
                             const isDrink = recipe.strDrink !== undefined || recipe.idDrink !== undefined;
 
-                            // Prepare Tags
                             let Tag1 = null;
                             let Tag2 = null;
 
                             if (isDrink) {
-                                // --- DRINK LOGIC ---
                                 const CategoryIcon = getCategoryIcon(recipe.strCategory, recipe.strAlcoholic);
                                 const isAlcoholic = recipe.strAlcoholic && !recipe.strAlcoholic.toLowerCase().includes('non');
 
-                                // Tag 1: Category
                                 Tag1 = recipe.strCategory ? (
                                     <div className="flex items-center gap-1.5 bg-[#ce7c1c]/10 border border-[#ce7c1c]/20 text-[#ce7c1c] px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                         <CategoryIcon className="w-3 h-3" />
@@ -393,7 +393,6 @@ const UserInput = () => {
                                     </div>
                                 ) : null;
 
-                                // Tag 2: Alcoholic Status
                                 Tag2 = recipe.strAlcoholic ? (
                                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
                                         isAlcoholic ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-green-500/10 border-green-500/20 text-green-400"
@@ -404,10 +403,8 @@ const UserInput = () => {
                                 ) : null;
 
                             } else {
-                                // --- MEAL LOGIC ---
                                 const CategoryIcon = getCategoryIcon(recipe.strCategory);
 
-                                // Tag 1: Category
                                 Tag1 = recipe.strCategory ? (
                                     <div className="flex items-center gap-1.5 bg-[#ce7c1c]/10 border border-[#ce7c1c]/20 text-[#ce7c1c] px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                         <CategoryIcon className="w-3 h-3" />
@@ -415,7 +412,6 @@ const UserInput = () => {
                                     </div>
                                 ) : null;
 
-                                // Tag 2: Area
                                 Tag2 = recipe.strArea ? (
                                     <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                         <Globe className="w-3 h-3" />
@@ -454,7 +450,6 @@ const UserInput = () => {
                                             {title}
                                         </h3>
 
-                                        {/* --- RENDER DYNAMIC TAGS --- */}
                                         <div className="flex flex-wrap gap-2 mb-3">
                                             {Tag1}
                                             {Tag2}
