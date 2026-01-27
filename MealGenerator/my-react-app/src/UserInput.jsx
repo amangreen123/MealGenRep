@@ -2,58 +2,52 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Alert,AlertDescription} from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InfoIcon, Search, Plus, X, SlidersHorizontal, ChefHat, ShoppingBasket, AlertTriangle } from 'lucide-react'
+
 import { slugify } from "./utils/slugify"
 import "@/fonts/fonts.css"
-
-import { InfoIcon, Search, Plus } from 'lucide-react'
 
 
 import MealForgerLogo from "./Images/Meal_Forger.png"
 import CookableSearch from "@/components/CookableSearch.jsx"
-import PantryList from "@/components/PantryList.jsx"
 import QuickAddButtons from "@/components/QuickAddButtons.jsx"
 import DietSelector from "@/components/DietSelector.jsx"
-import GenerateButton from "@/components/GenerateButton.jsx"
-import PopularRecipesSection from "@/components/PopularRecipesSection.jsx"
 import CircularMatchIndicator from '@/components/CircularMatchIndicator';
-
-
-import useLocalStorageState from "@/hooks/useLocalStorageState.jsx"
-import useRecipeSearch from "@/hooks/useRecipeSearch.jsx"
-import useIngredientManager from "@/hooks/useIngredientManager.jsx"
-import { getCategoryIngredient } from "./utils/categorySearch.js"
-import RandomSelectionRecipes from "@/components/RandomSelectionRecipes.jsx"
-
-import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
-import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
-import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
 import ImageIngredientUpload from "@/components/ImageIngredientUpload.jsx";
 import SearchStatsBanner from "@/components/SearchStatsBanner.jsx";
 import FirstTimeUser from "@/components/FirstTimeUser.jsx";
 import FirstTimeUserRecipes from "@/components/FirstTimeUserRecipes.jsx";
 
+import useIngredientManager from "@/hooks/useIngredientManager.jsx"
+import useRecipeSearch from "@/hooks/useRecipeSearch.jsx"
+import { getCategoryIngredient } from "./utils/categorySearch.js"
+import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
+import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
+import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
+
 const UserInput = () => {
+    // --- STATE & HOOKS ---
     const [isFirstTime, setisFirstTime] = useState(true)
     const { isFirstTimeUser, markAsReturningUser } = FirstTimeUser({
         onFirstTimeStatusChange: setisFirstTime,
     })
 
-    // Use custom hooks instead of manual state management
     const [inputString, setInputString] = useState("")
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState(null)
-    const [showFilters, setShowFilters] = useState(false)
     const [selectedDiet, setSelectedDiet] = useState(null)
     const [randomRecipes, setRandomRecipes] = useState([])
     const [hasGeneratedRecipes, setHasGeneratedRecipes] = useState(false)
+    const [visibleError, setVisibleError] = useState(null);
 
-    // Get API functions
+    // API Hooks
     const { recipes, error, getRecipes } = useFetchMeals()
     const { getMealDBRecipes, MealDBRecipes, loading } = useTheMealDB()
     const { CocktailDBDrinks, getCocktailDBDrinks } = useTheCocktailDB()
 
-    // Use custom hooks
     const {
         ingredients,
         addIngredients,
@@ -78,63 +72,52 @@ const UserInput = () => {
     })
 
     const navigate = useNavigate()
+    const rawErrorMessage = ingredientError || searchError
 
-    // Combine error messages
-    const errorMessage = ingredientError || searchError
+    // --- AUTO-DISMISS ERROR LOGIC ---
+    useEffect(() => {
+        if (rawErrorMessage) {
+            setVisibleError(rawErrorMessage);
+            const timer = setTimeout(() => {
+                setVisibleError(null);
+            }, 3000); // Disappear after 3 seconds
 
-    const handleFirstTimeUser = () => {
+            return () => clearTimeout(timer);
+        }
+    }, [rawErrorMessage]);
+    // --- HANDLERS ---
+    const handleFirstTimeDismiss = () => {
         markAsReturningUser()
         setisFirstTime(false)
     }
 
     const handleCameraIngredient = async (ingredient) => {
-        try {
-            await addIngredients(ingredient)
-        } catch (error) {
-            console.error("Failed to add camera ingredient:", error)
-        }
+        try { await addIngredients(ingredient) }
+        catch (error) { console.error("Failed to add camera ingredient:", error) }
     }
 
-    const handleInputChange = ({ target: { value } }) => {
-        setInputString(value)
-    }
+    const handleInputChange = ({ target: { value } }) => setInputString(value)
 
-    // Update the handleAddIngredient function to use the custom hook
     const handleAddIngredient = async () => {
-        if (inputString.trim() === "") {
-            return
-        }
-
+        if (inputString.trim() === "") return
         try {
             await addIngredients(inputString)
             setInputString("")
-        } catch (error) {
-            console.error("Failed to add ingredient:", error)
-        }
+        } catch (error) { console.error("Failed to add ingredient:", error) }
     }
 
     const handleKeyPress = (e) => {
-        if (e.key === "Enter") {
-            handleAddIngredient()
-        }
+        if (e.key === "Enter") handleAddIngredient()
     }
 
-    const handleSearch = async ({
-                                    searchType = "all",
-                                    exactMatch = false,
-                                    focusSearch = false,
-                                    focusIngredient = null,
-                                }) => {
+    const handleSearch = async ({ searchType = "all", exactMatch = false }) => {
         setHasGeneratedRecipes(true)
         await searchRecipes({
             ingredients,
             selectedDiet,
             searchType,
             exactMatch,
-            focusSearch,
-            focusIngredient,
         })
-        setShowFilters(false)
     }
 
     const handleQuickSearch = (category) => {
@@ -142,20 +125,14 @@ const UserInput = () => {
         setCategoryDialogOpen(true)
     }
 
-    // Update handleCategorySearch to use the utility function and custom hooks
     const handleCategorySearch = async (specificIngredient) => {
         setCategoryDialogOpen(false)
-
         try {
             const searchQuery = getCategoryIngredient(specificIngredient, selectedCategory)
             await addIngredients(searchQuery)
-
-            // Set the flag and trigger category search
             setHasGeneratedRecipes(true)
             await categorySearch({ ingredient: searchQuery })
-        } catch (error) {
-            console.error("Category search error:", error)
-        }
+        } catch (error) { console.error("Category search error:", error) }
     }
 
     const clickHandler = (recipe) => {
@@ -165,66 +142,25 @@ const UserInput = () => {
 
         if (recipe.idDrink) {
             navigate(`/drink/${recipeSlug}`, {
-                state: {
-                    drink: recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                    recipeId: recipe.idDrink,
-                },
+                state: { drink: recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.idDrink },
             })
         } else if (recipe.idMeal) {
             navigate(`/mealdb-recipe/${recipeSlug}`, {
-                state: {
-                    meal: recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                    recipeId: recipe.idMeal,
-                },
+                state: { meal: recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.idMeal },
             })
         } else {
             navigate(`/recipe/${recipeSlug}`, {
-                state: {
-                    recipe,
-                    userIngredients: ingredients,
-                    allRecipes: allRecipes,
-                    previousPath: currentPath,
-                    recipeId: recipe.id,
-                },
+                state: { recipe, userIngredients: ingredients, allRecipes: allRecipes, previousPath: currentPath, recipeId: recipe.id },
             })
         }
     }
 
-    const handleRandomRecipeClick = (recipe) => {
-        const currentPath = window.location.pathname
-        const recipeSlug = recipe.slug || slugify(recipe.strMeal)
-
-        navigate(`/mealdb-recipe/${recipeSlug}`, {
-            state: {
-                meal: recipe,
-                userIngredients: ingredients,
-                allRecipes: randomRecipes,
-                previousPath: currentPath,
-                recipeId: recipe.idMeal,
-            },
-        })
-    }
-
-    // Determine what to show in the recipes section
-    const showGeneratedRecipes = allRecipes.length > 0 || isSearching
-    const recipeSectionTitle = showGeneratedRecipes ? "RECIPES YOU CAN COOK" : "POPULAR RECIPES"
-
-    // Fetch random recipes on component mount
     useEffect(() => {
         const fetchRandomRecipes = async () => {
             try {
-                const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"
                 const BASE_URL =  import.meta.env.VITE_DEPLOYED_BACKEND_URL || 'http://localhost:5261';
-                //or use https://mealforger.org/enhanced-search?ingredients=chicken&type=meals&maxResults=12`
                 const response = await fetch(`${BASE_URL}/random-recipes?count=12`);
                 const data = await response.json()
-
                 if (data && data.meals) {
                     const recipesWithSlugs = data.meals.map((recipe) => ({
                         ...recipe,
@@ -233,350 +169,253 @@ const UserInput = () => {
                     }))
                     setRandomRecipes(recipesWithSlugs)
                 }
-            } catch (error) {
-                console.error("Error fetching random recipes:", error)
-            }
+            } catch (error) { console.error("Error fetching random recipes:", error) }
         }
-
         fetchRandomRecipes()
     }, [])
 
-    return (
-        <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4]">
-            {/* Header */}
-            <header className="py-6 md:py-8">
-                <div className="max-w-7xl mx-auto px-4 md:px-6">
-                    {/* Logo - centered */}
-                    <div className="flex justify-center mb-6">
-                        <div className="text-3xl md:text-4xl font-bold font-title transform transition-transform duration-300 hover:scale-105">
-                            <img
-                                src={MealForgerLogo || "/placeholder.svg"}
-                                alt="Meal Forger Logo"
-                                className="h-24 md:h-28 drop-shadow-[0_0_15px_rgba(206,124,28,0.3)] animate-logo"
-                            />
-                        </div>
-                    </div>
+    // --- VIEW LOGIC ---
+    const showGenerated = (hasGeneratedRecipes && allRecipes.length > 0) || isSearching;
+    const displayRecipes = showGenerated ? allRecipes : randomRecipes;
 
-                    {/* Search bar */}
-                    <div className="search-input-container w-full max-w-2xl mx-auto mb-4 relative">
+    // Helper for Two-Tone Titles (Matches Quick Add)
+    const getTitleParts = () => {
+        if (isSearching) return { white: "SEARCHING", orange: "RECIPES..." };
+        if (selectedDiet && showGenerated) return { white: selectedDiet.toUpperCase(), orange: "RECIPES" };
+        if (showGenerated) return { white: "RECIPES", orange: "YOU CAN COOK" };
+        return { white: "TRENDING", orange: "NOW" };
+    };
+
+    const titleParts = getTitleParts();
+
+    return (
+        <div className="flex flex-col min-h-screen bg-[#131415] text-[#f5efe4] selection:bg-[#ce7c1c] selection:text-white font-sans">
+
+            {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={handleFirstTimeDismiss} />}
+
+            <main className="flex-grow pt-6 px-4 md:px-6">
+
+                {/* LOGO */}
+                <div className="mb-6 flex justify-center transform scale-75 md:scale-90">
+                    <img
+                        src={MealForgerLogo || "/placeholder.svg"}
+                        alt="Meal Forger"
+                        className="h-24 md:h-32 drop-shadow-[0_0_25px_rgba(206,124,28,0.2)]"
+                    />
+                </div>
+
+                {/* --- MAIN SEARCH AREA --- */}
+                <div className="w-full max-w-2xl mx-auto relative z-20">
+
+                    {/* SEARCH BAR */}
+                    <div className="flex items-center w-full bg-[#1a1a1a] p-2 rounded-full border-2 border-gray-700 shadow-xl focus-within:border-[#ce7c1c] transition-colors duration-300">
+                        {/* Search Icon */}
+                        <div className="pl-3 pr-2 text-gray-400"><Search className="h-5 w-5" /></div>
+
+                        {/* Input */}
                         <Input
                             type="text"
-                            placeholder="Enter an ingredient ....."
-                            className="w-full bg-gray-800/50 border-2 border-gray-600 rounded-full text-white focus:border-[#ce7c1c] transition-all duration-300"
+                            placeholder="Add ingredient (e.g., Chicken)..."
+                            className="flex-grow border-none bg-transparent text-white text-lg placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 h-12"
                             value={inputString}
                             onChange={handleInputChange}
                             onKeyPress={handleKeyPress}
-                            style={{
-                                height: "48px",
-                                paddingLeft: "3rem",
-                                paddingRight: "8rem",
-                                lineHeight: "1",
-                            }}
                         />
-                        <div className="search-icon absolute left-12 top-1/2 transform -translate-y-1/2">
-                            <Search className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <ImageIngredientUpload
-                            onIngredientIdentified={handleCameraIngredient}
-                            className="absolute right-20 top-1/2 transform -translate-y-1/2"
-                        />
+
+                        {/* Plus Button - Pushed against the divider */}
                         <Button
-                            className="search-button bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white transition-all duration-300 absolute right-4 top-1/2 transform -translate-y-1/2"
                             onClick={handleAddIngredient}
-                            disabled={ingredientLoading}
+                            className="bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white rounded-full h-10 w-10 p-0 flex-shrink-0 mr-1"
                         >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-5 w-5" />
                         </Button>
+
+                        {/* Camera Button - Far right, right next to divider */}
+                        <div className="relative flex items-center justify-center pl-1 pr-1">
+                            <ImageIngredientUpload onIngredientIdentified={handleCameraIngredient} />
+                        </div>
                     </div>
 
-                    {/* Filters button */}
-                    <div className="flex justify-center mb-6">
-                        <Button
-                            variant="outline"
-                            className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c]/20 px-8 py-2 rounded-full font-terminal bg-transparent"
-                            onClick={() => setShowFilters(!showFilters)}
-                        >
-                            FILTERS
-                        </Button>
-                    </div>
-
-                    {/*{searchStats.totalResults > 0 && (*/}
-                    {/*    <div className="mb-6 p-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl">*/}
-                    {/*        <p className="font-terminal text-sm text-[#f5efe4]">*/}
-                    {/*            Found <span className="text-[#ce7c1c] font-bold">{searchStats.totalResults}</span> recipes*/}
-                    {/*            {searchStats.perfectMatches > 0 && (*/}
-                    {/*                <>*/}
-                    {/*                    {" "}*/}
-                    {/*                    · <span className="text-green-500 font-bold">{searchStats.perfectMatches}</span> you can cook now!*/}
-                    {/*                </>*/}
-                    {/*            )}*/}
-                    {/*            {searchStats.searchMode === "exact" && (*/}
-                    {/*                <>*/}
-                    {/*                    {" "}*/}
-                    {/*                    · <span className="text-yellow-500">Exact Match Mode</span>*/}
-                    {/*                </>*/}
-                    {/*            )}*/}
-                    {/*        </p>*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
-
-                    {/* Filters section */}
-                    {showFilters && (
-                        <div className="w-full max-w-2xl mx-auto mb-6">
-                            <CookableSearch
-                                onSearch={handleSearch}
-                                ingredients={ingredients}
-                                selectedDiet={selectedDiet}
-                                isSearching={isSearching}
-                                focusIngredient=""
-                            />
+                    {/* VISIBLE PANTRY SHELF */}
+                    {ingredients.length > 0 && (
+                        <div className="mt-4 bg-[#1a1a1a]/50 border border-gray-800 rounded-2xl p-4 animate-in fade-in slide-in-from-top-4">
+                            <div className="flex items-center gap-2 mb-3 text-gray-400 text-xs uppercase font-bold tracking-wider">
+                                <ShoppingBasket className="h-4 w-4 text-[#ce7c1c]" />
+                                Your Pantry
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {ingredients.map((ing, index) => (
+                                    <Badge
+                                        key={index}
+                                        className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 cursor-pointer shadow-sm transition-all hover:border-[#ce7c1c]"
+                                        onClick={() => removeIngredient(ing)}
+                                    >
+                                        {ing}
+                                        <X className="h-3 w-3 text-gray-400 hover:text-red-400" />
+                                    </Badge>
+                                ))}
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                                <Button
+                                    onClick={() => handleSearch({ searchType: "all" })}
+                                    className="bg-white text-black hover:bg-gray-200 font-bold rounded-full px-6 flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                                >
+                                    <ChefHat className="h-5 w-5" />
+                                    Find Matching Recipes
+                                </Button>
+                            </div>
                         </div>
                     )}
 
-                    {/* Main heading */}
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl md:text-3xl font-bold font-title">
-                            <span className="text-white">DISCOVER </span>
-                            <span className="text-[#ce7c1c]">RECIPES </span>
-                            <span className="text-white">WITH </span>
-                            <span className="text-[#ce7c1c]">WHAT YOU HAVE</span>
-                        </h1>
+                    {/* CONTROLS ROW */}
+                    <div className="mt-6 flex flex-wrap justify-center items-center gap-3">
+                        <QuickAddButtons
+                            onQuickSearch={handleQuickSearch}
+                            categoryDialogOpen={categoryDialogOpen}
+                            setCategoryDialogOpen={setCategoryDialogOpen}
+                            selectedCategory={selectedCategory}
+                            onCategorySearch={handleCategorySearch}
+                        />
+                        
+                        {/* DIET DIALOG */}
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="rounded-full border-gray-600 hover:bg-gray-800 hover:border-[#ce7c1c] transition-all duration-300 px-6 group"
+                                >
+                                    <SlidersHorizontal className="h-4 w-4 mr-2 text-gray-400 group-hover:text-[#ce7c1c] transition-colors" />
+
+                                    <span className="font-title text-base tracking-wide flex gap-1 items-center">
+                                        {selectedDiet ? (
+                                            <span className="text-[#ce7c1c] uppercase tracking-wider">{selectedDiet}</span>
+                                        ) : (
+                                            <>
+                                                <span className="text-white">DIET</span>
+                                                <span className="text-[#ce7c1c]">& FILTERS</span>
+                                            </>
+                                        )}
+                                    </span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-lg w-[95%] max-h-[85vh] overflow-y-auto">
+                                <DialogHeader>
+                                    {/* UPDATED TITLE HERE */}
+                                    <DialogTitle className="text-2xl md:text-3xl font-bold font-title text-center mb-2">
+                                        <span className="text-white">FILTER</span> <span className="text-[#ce7c1c]">RECIPES</span>
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4 space-y-6">
+                                    <DietSelector selectedDiet={selectedDiet} setSelectedDiet={setSelectedDiet} />
+                                    <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+                                        <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Advanced Search</h4>
+                                        <CookableSearch
+                                            onSearch={handleSearch}
+                                            ingredients={ingredients}
+                                            selectedDiet={selectedDiet}
+                                            isSearching={isSearching}
+                                        />
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
-            </header>
 
-            {/* Main Content */}
-            <main className="flex-grow">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
-                    {isFirstTimeUser && <FirstTimeUserRecipes onDismiss={handleFirstTimeUser} />}
+                {/* --- RESULTS GRID --- */}
+                <div className="w-full max-w-7xl mx-auto mt-12 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
-                    {/* MY PANTRY - Slimmer design */}
-                    <div className="mb-6">
-                        <PantryList ingredients={ingredients} onRemove={removeIngredient} />
+                    {/* Header Section */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 px-2">
+                        <div>
+                            {/* TWO-TONE HEADER */}
+                            <h2 className="text-3xl md:text-4xl font-bold font-title tracking-wide mb-2">
+                                <span className="text-white">{titleParts.white}</span> <span className="text-[#ce7c1c]">{titleParts.orange}</span>
+                            </h2>
+
+                            {/* STYLED INTRO TEXT */}
+                            {!showGenerated && ingredients.length === 0 && (
+                                <p className="font-title text-gray-400 text-lg md:text-xl tracking-wide">
+                                    HERE'S WHAT'S POPULAR. <span className="text-[#ce7c1c]">ADD INGREDIENTS ABOVE</span> TO FIND MATCHES.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
-                    {/* 2 Column Layout */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Left Column - Controls */}
-                        <div className="space-y-6">
-                            {/* QUICK ADD */}
-                            <QuickAddButtons
-                                onQuickSearch={handleQuickSearch}
-                                categoryDialogOpen={categoryDialogOpen}
-                                setCategoryDialogOpen={setCategoryDialogOpen}
-                                selectedCategory={selectedCategory}
-                                onCategorySearch={handleCategorySearch}
-                            />
-
-                            {/* MY DIET */}
-                            <DietSelector selectedDiet={selectedDiet} setSelectedDiet={setSelectedDiet} />
+                    {/* Stats Banner */}
+                    {hasGeneratedRecipes && searchStats.totalResults > 0 && (
+                        <div className="mb-8">
+                            <SearchStatsBanner searchStats={searchStats} />
                         </div>
+                    )}
 
-                        {/* Right Column - Combined Recipes Section */}
-                        <div className="lg:col-span-1 space-y-6">
-                            {/* Generate Button - only shows if ingredients exist */}
-                            {ingredients.length > 0 && (
-                                <GenerateButton
-                                    ingredients={ingredients}
-                                    isSearching={isSearching}
-                                    onSearch={() => handleSearch({ searchType: "all", exactMatch: false })}
-                                    loadingText={loadingText}
-                                />
-                            )}
+                    {/* Recipe Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {displayRecipes.map((recipe) => {
+                            const title = recipe.title || recipe.strMeal || recipe.strDrink
+                            const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
+                            const canCook = recipe.canCook || recipe.canMake || false
+                            const hasMatchData = recipe.matchScore !== undefined
 
-                            {/* ✅ NEW: Search Stats Banner */}
-                            {hasGeneratedRecipes && searchStats.totalResults > 0 && <SearchStatsBanner searchStats={searchStats} />}
-
-                            {/* Combined Recipes Display - VERTICAL SCROLL ONLY */}
-                            <div className="bg-gray-900/50 rounded-3xl border border-gray-700 p-4 md:p-6 shadow-lg">
-                                <h2 className="text-2xl md:text-3xl font-bold mb-6 font-title text-center">
-                                    {hasGeneratedRecipes && (allRecipes.length > 0 || isSearching) ? (
-                                        <>
-                                            <span className="text-[#ce7c1c]">RE</span>
-                                            <span className="text-white">CIPES</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="text-[#ce7c1c]">POPULAR</span>
-                                            <span className="text-white"> RECIPES</span>
-                                        </>
-                                    )}
-                                </h2>
-
-                                {/* Large vertical scrolling container with smooth mobile-like scrolling */}
-                                <div className="h-[600px] overflow-y-auto recipe-smooth-scroll">
-                                    {isSearching ? (
-                                        <div className="flex flex-col items-center justify-center h-full">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ce7c1c] mb-4"></div>
-                                            <p className="text-gray-400 font-terminal">{loadingText || "Searching..."}</p>
-                                        </div>
-                                    ) : hasGeneratedRecipes && allRecipes.length > 0 ? (
-                                        /* Show Generated Recipes only when generate button was pressed */
-                                        <div className="space-y-4 pb-4">
-                                            {allRecipes.map((recipe) => {
-                                                const title = recipe.title || recipe.strMeal || recipe.strDrink
-                                                const image = recipe.image || recipe.strMealThumb || recipe.strDrinkThumb
-                                                const hasMatchData = recipe.matchScore !== undefined
-                                                const canCook = recipe.canCook || recipe.canMake || false
-
-                                                return (
-                                                    <div
-                                                        key={recipe.id || recipe.idMeal || recipe.idDrink}
-                                                        className="bg-gray-800/50 rounded-xl overflow-hidden cursor-pointer hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative"
-                                                        onClick={() => clickHandler(recipe)}
-                                                    >
-                                                        {/* Circular Match Indicator - Top Right Corner */}
-                                                        {hasMatchData && (
-                                                            <div className="absolute top-2 right-2 z-10">
-                                                                <CircularMatchIndicator
-                                                                    matchPercentage={recipe.matchPercentage}
-                                                                    canCook={canCook}
-                                                                    size="md"
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex">
-                                                            <div className="w-1/3">
-                                                                <img
-                                                                    src={image || "/placeholder.svg"}
-                                                                    alt={title}
-                                                                    className="w-full h-32 object-cover"
-                                                                    loading="lazy"
-                                                                />
-                                                            </div>
-                                                            <div className="w-2/3 p-4 pr-16">
-                                                                {" "}
-                                                                {/* Added pr-16 to make room for indicator */}
-                                                                <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">{title}</h3>
-                                                                {/* Match Info Badge - Only show if not perfect match */}
-                                                                {hasMatchData && !canCook && (
-                                                                    <div className="mb-2">
-                                    <span className="text-xs font-terminal text-gray-400">
-                                      {recipe.matchScore}/{recipe.totalIngredients} ingredients
-                                    </span>
-                                                                        {recipe.missingIngredients > 0 && (
-                                                                            <span className="text-xs font-terminal text-red-400 ml-2">
-                                        · Need {recipe.missingIngredients} more
-                                      </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                                {/* Perfect Match Badge */}
-                                                                {canCook && (
-                                                                    <div className="mb-2">
-                                    <span className="inline-flex items-center gap-1 text-xs font-terminal px-2 py-1 bg-green-500/20 text-green-500 rounded-full border border-green-500/30">
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                        <path
-                                            d="M20 6L9 17L4 12"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
+                            return (
+                                <div
+                                    key={recipe.id || recipe.idMeal || recipe.idDrink}
+                                    onClick={() => clickHandler(recipe)}
+                                    className="group bg-[#1a1a1a] rounded-2xl overflow-hidden border border-gray-800 hover:border-[#ce7c1c]/50 transition-all duration-300 cursor-pointer shadow-lg hover:-translate-y-1"
+                                >
+                                    <div className="relative aspect-video overflow-hidden">
+                                        <img
+                                            src={image || "/placeholder.svg"}
+                                            alt={title}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            loading="lazy"
                                         />
-                                      </svg>
-                                      Can Cook Now!
-                                    </span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="flex flex-wrap gap-2 mb-2">
-                                                                    {recipe.strCategory && (
-                                                                        <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      {recipe.strCategory}
-                                    </span>
-                                                                    )}
-                                                                    {recipe.strArea && (
-                                                                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      {recipe.strArea}
-                                    </span>
-                                                                    )}
+                                        {hasMatchData && (
+                                            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full p-1 shadow-xl">
+                                                <CircularMatchIndicator matchPercentage={recipe.matchPercentage} canCook={canCook} size="sm" />
+                                            </div>
+                                        )}
+                                        {canCook && (
+                                            <div className="absolute bottom-3 left-3 bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                                                <span>Ready to Cook</span>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                                                    {/* Diet Badges */}
-                                                                    {recipe.isVegan && (
-                                                                        <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      🌱 Vegan
-                                    </span>
-                                                                    )}
-                                                                    {recipe.isKeto && (
-                                                                        <span className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      🥑 Keto
-                                    </span>
-                                                                    )}
-                                                                    {recipe.isGlutenFree && (
-                                                                        <span className="bg-amber-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                      🌾 GF
-                                    </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-sm text-gray-400 font-terminal">
-                                                                    {recipe.readyInMinutes && `${recipe.readyInMinutes} min`}
-                                                                    {recipe.servings && ` • ${recipe.servings} servings`}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
+                                    <div className="p-4">
+                                        <h3 className="text-xl font-bold font-title text-gray-100 mb-2 line-clamp-2 leading-tight group-hover:text-[#ce7c1c] transition-colors">
+                                            {title}
+                                        </h3>
+
+                                        <div className="flex flex-wrap gap-3 text-sm text-gray-400">
+                                            {recipe.readyInMinutes && <span>⏱ {recipe.readyInMinutes}m</span>}
+                                            {recipe.servings && <span>👥 {recipe.servings}</span>}
+                                            {recipe.strCategory && <span className="text-[#ce7c1c]">{recipe.strCategory}</span>}
                                         </div>
-                                    ) : (
-                                        /* Show Popular Recipes by default or when no generated recipes */
-                                        <div className="space-y-4 pb-4">
-                                            {randomRecipes.slice(0, 12).map((recipe) => (
-                                                <div
-                                                    key={recipe.idMeal}
-                                                    className="bg-gray-800/50 rounded-xl overflow-hidden cursor-pointer hover:shadow-md hover:shadow-[#ce7c1c]/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                                                    onClick={() => handleRandomRecipeClick(recipe)}
-                                                >
-                                                    <div className="flex">
-                                                        <div className="w-1/3">
-                                                            <img
-                                                                src={recipe.strMealThumb || "/placeholder.svg"}
-                                                                alt={recipe.strMeal}
-                                                                className="w-full h-32 object-cover"
-                                                                loading="lazy"
-                                                            />
-                                                        </div>
-                                                        <div className="w-2/3 p-4">
-                                                            <h3 className="text-lg font-bold font-title mb-2 text-white line-clamp-2">
-                                                                {recipe.strMeal}
-                                                            </h3>
-                                                            <div className="flex flex-wrap gap-2 mb-2">
-                                                                {recipe.strCategory && (
-                                                                    <span className="bg-[#ce7c1c] text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                    {recipe.strCategory}
-                                  </span>
-                                                                )}
-                                                                {recipe.strArea && (
-                                                                    <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-terminal">
-                                    {recipe.strArea}
-                                  </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+
+                                        {hasMatchData && !canCook && recipe.missingIngredients > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-500">
+                                                You need {recipe.missingIngredients} more ingredient{recipe.missingIngredients > 1 ? 's' : ''}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            )
+                        })}
                     </div>
                 </div>
             </main>
 
-            {/* Load random recipes on mount - hidden component */}
-            {/* <RandomSelectionRecipes 
-        onRecipeClick={handleRandomRecipeClick}
-        setRandomRecipes={setRandomRecipes}
-      /> */}
-
-            {/* Error Message */}
-            {errorMessage && (
-                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-md">
-                    <Alert className="bg-red-950 border-red-800 text-white rounded-xl shadow-lg">
-                        <InfoIcon className="h-4 w-4 text-red-300 flex-shrink-0" />
-                        <AlertDescription className="font-medium font-terminal text-sm">{errorMessage}</AlertDescription>
+            {/* ERROR ALERT */}
+            {visibleError && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-4">
+                    <Alert className="pointer-events-auto bg-red-950/95 border-red-500 text-white rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.5)] backdrop-blur-xl p-6 flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in duration-300 max-w-md w-full">
+                        <div className="bg-red-500/20 p-3 rounded-full animate-bounce">
+                            <AlertTriangle className="h-8 w-8 text-red-500" />
+                        </div>
+                        <AlertDescription className="text-lg font-bold font-title tracking-wide ml-0">
+                            {visibleError}
+                        </AlertDescription>
                     </Alert>
                 </div>
             )}
@@ -585,10 +424,3 @@ const UserInput = () => {
 }
 
 export default UserInput
-
-
-
-
-
-
-

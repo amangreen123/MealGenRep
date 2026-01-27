@@ -5,28 +5,31 @@ const CircularMatchIndicator = ({
                                     canCook = false,
                                     size = 'md' // 'sm', 'md', 'lg'
                                 }) => {
-    // Size configurations
+    // Size configurations - INCREASED FONT SIZES
     const sizeConfig = {
         sm: {
             width: 40,
             height: 40,
             strokeWidth: 3,
-            fontSize: 'text-[8px]',
-            iconSize: 12
+            fontSize: 'text-[12px]',   // Was 8px
+            percentSize: 'text-[9px]', // Was 6px
+            iconSize: 14
         },
         md: {
             width: 56,
             height: 56,
             strokeWidth: 4,
-            fontSize: 'text-[10px]',
-            iconSize: 16
+            fontSize: 'text-[16px]',   // Was 10px
+            percentSize: 'text-[11px]',// Was 6px
+            iconSize: 22
         },
         lg: {
             width: 72,
             height: 72,
             strokeWidth: 5,
-            fontSize: 'text-xs',
-            iconSize: 20
+            fontSize: 'text-[22px]',   // Was xs
+            percentSize: 'text-[14px]',// Was 6px
+            iconSize: 32
         }
     };
 
@@ -127,15 +130,15 @@ const CircularMatchIndicator = ({
                         />
                     </svg>
                 ) : (
-                    // Percentage text
-                    <>
-            <span className={`${config.fontSize} font-bold font-terminal ${colors.text} leading-none`}>
-              {Math.round(percentage)}
-            </span>
-                        <span className={`text-[6px] font-terminal ${colors.text} leading-none`}>
-              %
-            </span>
-                    </>
+                    // Percentage text - Flex row ensures alignment
+                    <div className="flex items-baseline justify-center">
+                        <span className={`${config.fontSize} font-bold font-terminal ${colors.text} leading-none`}>
+                          {Math.round(percentage)}
+                        </span>
+                        <span className={`${config.percentSize} font-terminal ${colors.text} ml-[1px]`}>
+                          %
+                        </span>
+                    </div>
                 )}
             </div>
 

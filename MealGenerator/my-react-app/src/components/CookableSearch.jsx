@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { ChefHat, Loader2, Wine, UtensilsCrossed, ScanEye, Sparkles } from "lucide-react"
 
 const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching = false, focusIngredient }) => {
-    const [searchType, setSearchType] = useState("all") 
+    const [searchType, setSearchType] = useState("all")
     const [exactMatch, setExactMatch] = useState(false)
     const [focusSearch, setFocusSearch] = useState(false)
 
@@ -84,7 +84,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                 </p>
             </div>
 
-            {/* Search Mode Selection - Button Style */}
+            {/* Search Mode Selection */}
             <div className="space-y-3">
                 <Label className="text-base font-terminal">Search Mode</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -142,7 +142,7 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                 </p>
             </div>
 
-            {/* Focus Search Toggle - Button Style */}
+            {/* Focus Search Toggle */}
             {ingredients.length > 0 && (
                 <div className="space-y-3">
                     <Label className="text-base font-terminal">Focus Ingredient</Label>
@@ -197,11 +197,19 @@ const CookableSearch = ({ onSearch, ingredients = [], selectedDiet, isSearching 
                     </>
                 )}
             </Button>
-
-            {/* Ingredient Count Info */}
-            <div className="text-sm text-gray-400 text-center font-terminal bg-gray-700/30 rounded-full py-2 px-4">
-                Searching with <span className="text-[#ce7c1c] font-bold">{ingredients.length}</span> ingredient{ingredients.length !== 1 ? "s" : ""}
-                {selectedDiet && <span className="text-green-400"> • {selectedDiet} diet</span>}
+            
+            {/* Search Summary */}
+            <div className="text-xs md:text-sm text-gray-400 text-center font-terminal bg-gray-700/30 rounded-xl py-3 px-4">
+                <div className="mb-1">
+                    Searching with <span className="text-[#ce7c1c] font-bold">{ingredients.length}</span> ingredient{ingredients.length !== 1 ? "s" : ""}
+                </div>
+                {/* Active Settings Badge Row */}
+                <div className="flex flex-wrap justify-center gap-2 font-bold opacity-80 mt-2">
+                    {selectedDiet && <span className="text-green-400">• {selectedDiet}</span>}
+                    <span className="text-blue-400">• {searchType === 'all' ? 'All Types' : searchType.charAt(0).toUpperCase() + searchType.slice(1)}</span>
+                    <span className="text-purple-400">• {exactMatch ? 'Exact Match' : 'General Search'}</span>
+                    {focusSearch && <span className="text-[#ce7c1c]">• Focused</span>}
+                </div>
             </div>
         </div>
     )

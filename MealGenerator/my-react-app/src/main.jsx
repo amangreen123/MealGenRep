@@ -34,6 +34,7 @@ const AppRoutes = () => {
                 <Route path="/recipe/:recipeId" element={<RecipeDetails />} />
                 <Route path="/mealdb-recipe/:id" element={<MealDBRecipeDetails />} />
                 <Route path="/drink/:id" element={<DrinkDetails />} />
+                <Route path="/mealdb-recipe/:slug" element={<MealDBRecipeDetails />} />
             </Routes>
         </>
     );

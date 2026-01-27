@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="144784f1-7be8-4f8d-a4c3-4d98e2317d60" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/API/MealDB/MealDBRecipeDetails.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/API/MealDB/MealDBRecipeDetails.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/UserInput.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/UserInput.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/CircularMatchIndicator.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/CircularMatchIndicator.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/CookableSearch.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/CookableSearch.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/FirstTimeUserRecipes.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/FirstTimeUserRecipes.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/ui/alert.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/ui/alert.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/main.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/tailwind.config.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Github Projects/MealForgerDev/MealGenRep" value="38p7NxooDlfUyTCkPwwLjPz0MDf" />
+    </persistenceIdMap>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="38p7NxooDlfUyTCkPwwLjPz0MDf" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\JetBrains Rider 2024.1.5\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="144784f1-7be8-4f8d-a4c3-4d98e2317d60" name="Changes" comment="" />
+      <created>1769484623766</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769484623766</updated>
+      <workItem from="1769484626114" duration="7420000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
