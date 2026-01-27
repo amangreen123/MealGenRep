@@ -1,14 +1,12 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home, Youtube, Search, ChefHat } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { slugify } from "@/utils/slugify"
-import useRecipeDetails from "@/Hooks/useRecipeDetails.jsx";
-
+import useRecipeDetails from "@/Hooks/useRecipeDetails.jsx"
+import { Helmet, HelmetProvider } from 'react-helmet-async'
 
 const DrinkDetails = () => {
     const { id } = useParams()
@@ -19,18 +17,24 @@ const DrinkDetails = () => {
 
     const drinkId = state.recipeId || drink?.idDrink || id
 
-    // Use the cached hook instead of local state
+    // Use the cached hook
     const { getDrinkDetails, loading, error: fetchError } = useRecipeDetails()
 
     const [drinkDetails, setDrinkDetails] = useState(null)
-    const [ingredients, setIngredients] = useState([])
-    const [baseNutrition, setBaseNutrition] = useState(null)
-    const [servings, setServings] = useState(1)
-    const [nutritionInfo, setNutritionInfo] = useState({ calories: 0, carbs: 0, alcohol: 0 })
     const [error, setError] = useState(null)
 
+    // Default base servings
+    const BASE_SERVINGS = 1;
+    const [servings, setServings] = useState(BASE_SERVINGS)
+
+    const [baseNutrition, setBaseNutrition] = useState(null)
+    const [nutritionInfo, setNutritionInfo] = useState({
+        calories: 0,
+        carbs: 0,
+        alcohol: 0
+    })
+
     useEffect(() => {
-        
         let mounted = true
         const fetchDrinkData = async () => {
             if (!drinkId) {
@@ -39,33 +43,16 @@ const DrinkDetails = () => {
             }
 
             try {
-                // Use cached hook - only fetches ONCE per drink
                 const data = await getDrinkDetails(drinkId)
-                console.log("Drink data from API:", data)
 
                 if(!mounted) return;
-                
+
                 if (data?.drinks?.[0]) {
                     const drinkData = data.drinks[0]
                     setDrinkDetails(drinkData)
 
-                    console.log("Drink details set:", drinkData)
-                    // Extract ingredients
-                    const extractedIngredients = []
-                    for (let i = 1; i <= 15; i++) {
-                        const ingredient = drinkData[`strIngredient${i}`]
-                        const measure = drinkData[`strMeasure${i}`]
-                        if (ingredient && ingredient.trim() !== "") {
-                            extractedIngredients.push({
-                                ingredient,
-                                measure: measure || "To taste"
-                            })
-                        }
-                    }
-                    setIngredients(extractedIngredients)
-                    
+                    // Nutrition Estimation
                     if (drinkData.nutrition) {
-                        
                         const baseNutritionData = {
                             calories: drinkData.nutrition.perServing.calories || 0,
                             carbs: drinkData.nutrition.perServing.carbs || 0,
@@ -73,7 +60,7 @@ const DrinkDetails = () => {
                         }
                         setBaseNutrition(baseNutritionData)
 
-                        const initialServings = drinkData.nutrition.servings || 1
+                        const initialServings = drinkData.nutrition.servings || BASE_SERVINGS
                         setServings(initialServings)
 
                         setNutritionInfo({
@@ -81,6 +68,10 @@ const DrinkDetails = () => {
                             carbs: Math.round(baseNutritionData.carbs * initialServings),
                             alcohol: Math.round(baseNutritionData.alcohol * initialServings),
                         })
+                    } else {
+                        // Fallback nutrition if not provided
+                        setBaseNutrition({ calories: 150, carbs: 10, alcohol: 14 })
+                        setNutritionInfo({ calories: 150, carbs: 10, alcohol: 14 })
                     }
                 } else {
                     setError("Drink not found")
@@ -91,30 +82,66 @@ const DrinkDetails = () => {
             }
         }
         fetchDrinkData()
-        
         return () => { mounted = false }
     }, [drinkId, getDrinkDetails])
 
     const handleServingsChange = (newServings) => {
-        const clamped = Math.max(1, Math.min(12, Number(newServings) || 1))
-        setServings(clamped)
-        console.log("Base nutrition:", baseNutrition)
-        console.log("Clamped servings:", clamped)
-        
+        setServings(newServings)
         if (baseNutrition) {
             setNutritionInfo({
-                calories: Math.round((baseNutrition.calories || 0) * clamped),
-                carbs: Math.round((baseNutrition.carbs || 0) * clamped),
-                alcohol: Math.round((baseNutrition.alcohol || 0) * clamped),
+                calories: Math.round(baseNutrition.calories * newServings),
+                carbs: Math.round(baseNutrition.carbs * newServings),
+                alcohol: Math.round(baseNutrition.alcohol * newServings),
             })
         }
     }
+
+    const handleVideoClick = () => {
+        // Fallback search since API rarely has videos
+        const query = encodeURIComponent(`${drinkDetails.strDrink} cocktail recipe tutorial`);
+        window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
+    }
+
+    // --- INGREDIENT SCALER LOGIC ---
+    const getScaledMeasure = (originalMeasure, currentServings) => {
+        if (!originalMeasure) return "";
+        const ratio = currentServings / BASE_SERVINGS;
+
+        if (Math.abs(ratio - 1) < 0.01) return originalMeasure;
+
+        // Regex to find leading numbers (e.g. "1/2 oz", "2 shots", "1.5 cl")
+        return originalMeasure.replace(/^([\d\s\/\.]+)/, (match) => {
+            try {
+                let value = 0;
+                const parts = match.trim().split(/\s+/);
+                parts.forEach(part => {
+                    if (part.includes('/')) {
+                        const [num, den] = part.split('/');
+                        value += parseFloat(num) / parseFloat(den);
+                    } else {
+                        value += parseFloat(part);
+                    }
+                });
+
+                if (isNaN(value)) return match;
+
+                const newValue = value * ratio;
+                const formatted = Number.isInteger(newValue)
+                    ? newValue.toString()
+                    : parseFloat(newValue.toFixed(2));
+
+                return formatted + " ";
+            } catch (e) {
+                return match;
+            }
+        });
+    };
 
     if (loading) {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-[#f5efe4] text-3xl font-terminal mb-4">Loading drink details...</div>
+                    <div className="text-[#ce7c1c] text-3xl font-title animate-pulse">Loading drink details...</div>
                 </div>
             </div>
         )
@@ -124,12 +151,12 @@ const DrinkDetails = () => {
         return (
             <div className="min-h-screen bg-[#131415] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-[#f5efe4] text-xl font-terminal mb-4">
+                    <div className="text-[#f5efe4] text-xl font-sans mb-4">
                         {error || fetchError || "Drink not found"}
                     </div>
                     <Button
                         onClick={() => navigate(previousPath)}
-                        className="bg-[#ce7c1c] text-white hover:bg-[#b56a15] font-terminal"
+                        className="bg-[#ce7c1c] text-white hover:bg-[#b56a15] font-bold rounded-full"
                     >
                         Go Back
                     </Button>
@@ -138,10 +165,19 @@ const DrinkDetails = () => {
         )
     }
 
-    // Determine matching and missing ingredients
-    const userIngredientsNormalized = userIngredients.map((ing) =>
-        ing.toLowerCase().trim()
-    )
+    // Extract & Scale Ingredients
+    const ingredients = []
+    for (let i = 1; i <= 15; i++) {
+        const ingredient = drinkDetails[`strIngredient${i}`]
+        const rawMeasure = drinkDetails[`strMeasure${i}`]
+
+        if (ingredient && ingredient.trim() !== "") {
+            const scaledMeasure = getScaledMeasure(rawMeasure || "To taste", servings);
+            ingredients.push({ ingredient, measure: scaledMeasure })
+        }
+    }
+
+    const userIngredientsNormalized = userIngredients.map((ing) => ing.toLowerCase().trim())
     const pantryItems = ingredients.filter((item) =>
         userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
     )
@@ -149,14 +185,12 @@ const DrinkDetails = () => {
         (item) => !userIngredientsNormalized.includes(item.ingredient.toLowerCase().trim())
     )
 
-    // Parse instructions
     const instructionSteps = drinkDetails.strInstructions
         .split(/\.\s+/)
         .filter((step) => step.trim())
         .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
 
-    const isAlcoholic = drinkDetails.strAlcoholic &&
-        !drinkDetails.strAlcoholic.toLowerCase().includes("non")
+    const isAlcoholic = drinkDetails.strAlcoholic && !drinkDetails.strAlcoholic.toLowerCase().includes("non")
 
     // Navigation helpers
     const currentIndex = location.state?.allRecipes?.findIndex(
@@ -182,330 +216,316 @@ const DrinkDetails = () => {
         }
     }
 
-    // Get related recipes
     const relatedRecipes = allRecipes
-        .filter((r) => {
-            
-            if(r.idDrink){
-                return r.idDrink !== drinkDetails.idDrink
-            }
-            
-            return false
-        })
+        .filter((r) => r.idDrink && r.idDrink !== drinkDetails.idDrink)
         .slice(0,3);
-    
+
     return (
-        <div className="min-h-screen bg-[#131415] text-[#f5efe4]">
-            {/* Top Navigation */}
-            <div className="bg-[#131415]">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                onClick={() => navigate(previousPath)}
-                                className="text-[#ce7c1c] hover:text-[#ce7c1c] hover:bg-transparent font-terminal text-sm transition-all duration-300 px-0"
-                            >
-                                <Home className="w-4 h-4 mr-2" />
-                                Main Menu
-                            </Button>
+        <HelmetProvider>
+            <div className="min-h-screen bg-[#131415] text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white">
+
+                {/* --- SEO HEAD --- */}
+                <Helmet>
+                    <title>{drinkDetails.strDrink} | Meal Forger</title>
+                    <meta name="description" content={`Learn how to make a ${drinkDetails.strDrink} cocktail.`} />
+                    {/* Canonical Link fixes the "duplicate content" error */}
+                    <link rel="canonical" href={`https://mealforger.com/drink/${slugify(drinkDetails.strDrink)}`} />
+                </Helmet>
+
+                {/* Top Navigation */}
+                <div className="bg-[#131415] border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => navigate(previousPath)}
+                                    className="text-gray-400 hover:text-[#ce7c1c] hover:bg-transparent font-sans font-medium text-sm transition-all duration-300 px-0 flex items-center gap-2"
+                                >
+                                    <Home className="w-5 h-5" />
+                                    Back to Menu
+                                </Button>
+
+                                {/* PREVIOUS BUTTON: Visible on Mobile (Icon) & Desktop (Full) */}
+                                <Button
+                                    variant="outline"
+                                    onClick={() => navigateToRecipe("prev")}
+                                    disabled={!hasPrevious}
+                                    className="flex border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-700 bg-transparent font-bold rounded-full px-3 md:px-6 py-2 text-sm transition-all duration-300"
+                                >
+                                    <ChevronLeft className="w-4 h-4 md:mr-1" />
+                                    <span className="hidden md:inline">Previous</span>
+                                </Button>
+                            </div>
+
+                            {totalRecipes > 1 && (
+                                <div className="text-gray-500 font-sans text-xs uppercase tracking-widest hidden sm:block">
+                                    Drink {currentIndex + 1} of {totalRecipes}
+                                </div>
+                            )}
+
                             <Button
                                 variant="outline"
-                                onClick={() => navigateToRecipe("prev")}
-                                disabled={!hasPrevious}
-                                className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-700 bg-transparent font-terminal rounded-full px-6 py-2 text-sm transition-all duration-300"
+                                onClick={() => navigateToRecipe("next")}
+                                disabled={!hasNext}
+                                className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-700 bg-transparent font-bold rounded-full px-6 py-2 text-sm transition-all duration-300"
                             >
-                                <ChevronLeft className="w-4 h-4 mr-2" />
-                                Previous Recipe
+                                Next
+                                <ChevronRight className="w-4 h-4 ml-1" />
                             </Button>
                         </div>
-
-                        {totalRecipes > 1 && (
-                            <div className="text-[#f5efe4] font-terminal text-sm">
-                                {currentIndex + 1} of {totalRecipes}
-                            </div>
-                        )}
-
-                        <Button
-                            variant="outline"
-                            onClick={() => navigateToRecipe("next")}
-                            disabled={!hasNext}
-                            className="border-2 border-[#ce7c1c] text-[#ce7c1c] hover:bg-[#ce7c1c] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:border-gray-700 disabled:text-gray-700 bg-transparent font-terminal rounded-full px-6 py-2 text-sm transition-all duration-300"
-                        >
-                            Next Recipe
-                            <ChevronRight className="w-4 h-4 ml-2" />
-                        </Button>
                     </div>
                 </div>
-            </div>
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {/* Left Column - Drink Details */}
-                    <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-                        {/* Drink Header */}
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">
-                                    {drinkDetails.strDrink.toUpperCase()}
-                                </span>
-                            </h1>
-                            <div className="flex flex-wrap gap-2 mb-6">
-                                {drinkDetails.strCategory && (
-                                    <Badge className="bg-gray-800 text-[#f5efe4] border-gray-700 font-terminal text-xs px-3 py-1 rounded-full">
-                                        {drinkDetails.strGlass}
+                {/* Main Content */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                        {/* LEFT COLUMN */}
+                        <div className="lg:col-span-2 space-y-8">
+                            <div>
+                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-title mb-4 leading-tight">
+                                    <span className="text-[#ce7c1c]">{drinkDetails.strDrink}</span>
+                                </h1>
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {drinkDetails.strCategory && (
+                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
+                                            {drinkDetails.strCategory}
+                                        </Badge>
+                                    )}
+                                    {drinkDetails.strGlass && (
+                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
+                                            {drinkDetails.strGlass}
+                                        </Badge>
+                                    )}
+                                    <Badge className={`${
+                                        isAlcoholic ? "bg-purple-900/50 text-purple-200 border-purple-800" : "bg-green-900/50 text-green-200 border-green-800"
+                                    } font-sans text-sm px-4 py-1.5 rounded-full border`}>
+                                        {drinkDetails.strAlcoholic}
                                     </Badge>
-                                )}
-                                <Badge
-                                    className={`${
-                                        isAlcoholic
-                                            ? "bg-purple-900 border-purple-700"
-                                            : "bg-green-900 border-green-700"
-                                    } text-[#f5efe4] font-terminal text-xs px-3 py-1 rounded-full`}
-                                >
-                                    {drinkDetails.strAlcoholic}
-                                </Badge>
-                            </div>
-                        </div>
-
-                        {/* Drink Image */}
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                            <img
-                                src={drinkDetails.strDrinkThumb || "/placeholder.svg"}
-                                alt={drinkDetails.strDrink}
-                                className="w-full h-[300px] sm:h-[400px] md:h-[500px] object-cover"
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 sm:p-6">
-                                <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-white">
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm">5 min</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm">
-                                            {servings} serving{servings > 1 ? "s" : ""}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#ce7c1c]" />
-                                        <span className="font-terminal text-xs sm:text-sm font-bold">
-                                            {nutritionInfo.calories} kcal
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Nutrition Facts */}
-                        <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <div className="flex items-center justify-between mb-6 sm:mb-8">
-                                <h2 className="text-xl sm:text-2xl font-bold font-title">
-                                    <span className="text-[#ce7c1c]">NUTRITION</span>{" "}
-                                    <span className="text-white">FACTS</span>
-                                </h2>
-                                <div className="text-xs font-terminal text-gray-400">
-                                    Per Serving: {Math.round(nutritionInfo.calories / servings)} kcal
                                 </div>
                             </div>
 
-                            {/* Serving Size Slider */}
-                            <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className="text-sm font-terminal text-[#f5efe4]">
-                                        SERVINGS
-                                    </label>
-                                    <span className="text-2xl font-bold font-title text-[#ce7c1c]">{servings}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="12"
-                                    value={servings}
-                                    onChange={(e) => handleServingsChange(Number(e.target.value))}
-                                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-gray-800 group">
+                                <img
+                                    src={drinkDetails.strDrinkThumb || "/placeholder.svg"}
+                                    alt={drinkDetails.strDrink}
+                                    className="w-full h-[300px] sm:h-[400px] md:h-[500px] object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
-                                <div className="flex justify-between mt-2 text-xs font-terminal text-gray-500">
-                                    <span>1</span>
-                                    <span>4</span>
-                                    <span>8</span>
-                                </div>
-                            </div>
-
-
-                            <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                                <div className="text-center">
-                                    <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2"/>
-                                    <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {nutritionInfo.calories}
-                                    </div>
-                                    <div className="text-xs font-terminal text-gray-400 uppercase tracking-wider">
-                                        Calories
-                                    </div>
-                                </div>
-                                <div className="text-center">
-                                    <div
-                                        className="w-6 h-6 sm:w-8 sm:h-8 bg-[#ce7c1c] rounded-full flex items-center justify-center mx-auto mb-2">
-                                        <span className="text-white font-bold text-xs sm:text-sm">C</span>
-                                    </div>
-                                    <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                        {nutritionInfo.carbs}g
-                                    </div>
-                                    <div className="text-xs font-terminal text-yellow-400 uppercase tracking-wider">
-                                        Carbs
-                                    </div>
-                                </div>
-                                {isAlcoholic && (
-                                    <div className="text-center">
-                                        <Wine className="w-6 h-6 sm:w-8 sm:h-8 text-[#ce7c1c] mx-auto mb-2"/>
-                                        <div className="text-2xl sm:text-3xl font-bold font-title text-white mb-1">
-                                            {nutritionInfo.alcohol}g
-                                        </div>
-                                        <div className="text-xs font-terminal text-purple-400 uppercase tracking-wider">
-                                            Alcohol
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        {/* Preparation Instructions */}
-                        <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
-                            <h2 className="text-xl sm:text-2xl font-bold font-title mb-6 sm:mb-8">
-                                <span className="text-[#ce7c1c]">PREPARATION</span>{" "}
-                                <span className="text-white">INSTRUCTIONS</span>
-                            </h2>
-                            <ScrollArea className="h-[400px] sm:h-[500px] pr-4">
-                                <div className="space-y-4 sm:space-y-6">
-                                    {instructionSteps.map((step, index) => (
-                                        <div key={index} className="flex gap-3 sm:gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-[#ce7c1c] rounded-full flex items-center justify-center shadow-lg">
-                                                <span className="font-terminal text-xs sm:text-sm font-bold text-white">
-                                                    {index + 1}
-                                                </span>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent p-6 sm:p-8">
+                                    <div className="flex flex-wrap items-center gap-8 text-white">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-[#ce7c1c] p-2 rounded-full text-white">
+                                                <Clock className="w-5 h-5" />
                                             </div>
-                                            <p className="font-terminal text-xs sm:text-sm text-[#f5efe4] leading-relaxed pt-1 sm:pt-2">
+                                            <div>
+                                                <p className="text-xs text-gray-400 font-bold uppercase">Time</p>
+                                                <p className="font-sans font-bold text-lg">~5 min</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-[#ce7c1c] p-2 rounded-full text-white">
+                                                <Users className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-400 font-bold uppercase">Serves</p>
+                                                <p className="font-sans font-bold text-lg">{servings}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-[#ce7c1c] p-2 rounded-full text-white">
+                                                <Flame className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-400 font-bold uppercase">Calories</p>
+                                                <p className="font-sans font-bold text-lg">{nutritionInfo.calories}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-2xl font-bold font-title">
+                                        <span className="text-[#ce7c1c]">NUTRITION</span> FACTS
+                                    </h2>
+                                    <div className="text-sm font-sans text-gray-400 bg-gray-900 px-3 py-1 rounded-lg border border-gray-800">
+                                        Per Serving: <span className="text-white font-bold">{Math.round(nutritionInfo.calories / servings)} kcal</span>
+                                    </div>
+                                </div>
+
+                                <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">SERVINGS</label>
+                                        <span className="text-3xl font-bold font-title text-[#ce7c1c]">{servings}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="12"
+                                        value={servings}
+                                        onChange={(e) => handleServingsChange(Number(e.target.value))}
+                                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#ce7c1c]"
+                                    />
+                                    <div className="flex justify-between mt-3 text-xs font-sans text-gray-500 font-medium">
+                                        <span>1</span>
+                                        <span>6</span>
+                                        <span>12</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="text-center p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                                        <Flame className="w-6 h-6 text-[#ce7c1c] mx-auto mb-2" />
+                                        <div className="text-2xl font-bold font-sans text-white">{nutritionInfo.calories}</div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Calories</div>
+                                    </div>
+                                    <div className="text-center p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                                        <div className="w-6 h-6 text-yellow-500 font-bold mx-auto mb-2 flex items-center justify-center">C</div>
+                                        <div className="text-2xl font-bold font-sans text-white">{nutritionInfo.carbs}g</div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Carbs</div>
+                                    </div>
+                                    <div className="text-center p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+                                        <Wine className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold font-sans text-white">{nutritionInfo.alcohol}g</div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase">Alcohol</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
+                                <h2 className="text-2xl font-bold font-title mb-8 flex items-center gap-3">
+                                    <ChefHat className="text-[#ce7c1c] w-8 h-8" />
+                                    <span className="text-white">INSTRUCTIONS</span>
+                                </h2>
+
+                                <div className="space-y-8 mb-8">
+                                    {instructionSteps.map((step, index) => (
+                                        <div key={index} className="flex gap-4 sm:gap-6 group">
+                                            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gray-800 border border-gray-700 text-[#ce7c1c] rounded-full flex items-center justify-center shadow-lg group-hover:border-[#ce7c1c] transition-colors">
+                                                <span className="font-sans text-lg font-bold">{index + 1}</span>
+                                            </div>
+                                            <p className="font-sans text-base sm:text-lg text-gray-300 leading-8 pt-1 sm:pt-2">
                                                 {step}
                                             </p>
                                         </div>
                                     ))}
                                 </div>
-                            </ScrollArea>
-                        </div>
-                    </div>
 
-                    {/* Right Sidebar */}
-                    <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-                        {/* My Pantry */}
-                        <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
-                            <h3 className="text-lg sm:text-xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">MY</span>{" "}
-                                <span className="text-white">PANTRY</span>
-                            </h3>
-                            {pantryItems.length > 0 ? (
-                                <>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        {pantryItems.map((item, index) => (
-                                            <Badge
-                                                key={index}
-                                                className="bg-gray-800 text-[#f5efe4] border-gray-700 font-terminal text-xs px-3 py-1.5 rounded-full shadow-md hover:bg-gray-700 transition-colors duration-200"
-                                            >
-                                                {item.ingredient}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                    <div className="text-xs sm:text-sm font-terminal text-green-500 bg-green-900/20 px-3 py-2 rounded-full inline-block">
-                                        ✓ {pantryItems.length} matching ingredients
-                                    </div>
-                                </>
-                            ) : (
-                                <p className="text-xs sm:text-sm font-terminal text-gray-500 bg-gray-900/50 px-4 py-3 rounded-2xl">
-                                    NO MATCHING INGREDIENTS
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Shopping List */}
-                        <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
-                            <h3 className="text-lg sm:text-xl font-bold font-title mb-4">
-                                <span className="text-[#ce7c1c]">SHOPPING</span>{" "}
-                                <span className="text-white">LIST</span>
-                            </h3>
-                            {shoppingListItems.length > 0 ? (
-                                <ScrollArea className="h-[300px]">
-                                    <div className="space-y-2 pr-4">
-                                        {shoppingListItems.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="bg-gray-900 border border-gray-800 rounded-2xl px-4 py-3 font-terminal text-xs sm:text-sm text-[#f5efe4] hover:border-[#ce7c1c]/50 transition-colors duration-200"
-                                            >
-                                                <div>{item.ingredient}</div>
-                                                {item.measure && item.measure.trim() !== "" && (
-                                                    <div className="text-gray-500 text-xs mt-1">
-                                                        {item.measure}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </ScrollArea>
-                            ) : (
-                                <p className="text-xs sm:text-sm font-terminal text-gray-500 bg-gray-900/50 px-4 py-3 rounded-2xl">
-                                    YOU HAVE ALL INGREDIENTS
-                                </p>
-                            )}
-                        </div>
-
-                        {/* You Might Also Like */}
-                        {relatedRecipes.length > 0 && (
-                            <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-4 sm:p-6 shadow-lg">
-                                <h3 className="text-xl font-bold font-title mb-6">
-                                    <span className="text-white">YOU MIGHT</span>{" "}
-                                    <span className="text-[#ce7c1c]">ALSO LIKE</span>
-                                </h3>
-                                <div className="space-y-4">
-                                    {relatedRecipes.map((relatedRecipe) => (
-                                        <div
-                                            key={relatedRecipe.idDrink}
-                                            onClick={() =>
-                                                navigate(`/drink/${slugify(relatedRecipe.strDrink)}`, {
-                                                    state: {
-                                                        drink: relatedRecipe,
-                                                        userIngredients,
-                                                        allRecipes,
-                                                        previousPath,
-                                                        recipeId: relatedRecipe.idDrink,
-                                                    },
-                                                })
-                                            }
-                                            className="flex gap-4 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-4 cursor-pointer hover:border-[#ce7c1c] transition-all duration-300 transform hover:scale-[1.02]"
-                                        >
-                                            <img
-                                                src={relatedRecipe.strDrinkThumb || "/placeholder.svg"}
-                                                alt={relatedRecipe.strDrink}
-                                                className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-terminal text-sm font-bold text-[#f5efe4] mb-2 line-clamp-2 uppercase leading-tight">
-                                                    {relatedRecipe.strDrink}
-                                                </h4>
-                                                <div className="flex flex-wrap gap-2 mt-2">
-                                                    {relatedRecipe.strCategory && (
-                                                        <Badge className="bg-[#ce7c1c]/20 text-[#ce7c1c] border-[#ce7c1c]/30 font-terminal text-xs px-2 py-0.5 rounded-full">
-                                                            {relatedRecipe.strAlcoholic}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="pt-8 border-t border-gray-800">
+                                    <Button
+                                        onClick={handleVideoClick}
+                                        className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold font-sans py-6 px-8 rounded-xl shadow-lg flex items-center justify-center gap-3 text-lg transition-transform hover:-translate-y-1"
+                                    >
+                                        <Search className="w-6 h-6" />
+                                        Search on YouTube
+                                    </Button>
                                 </div>
                             </div>
-                        )}
+                        </div>
+
+                        {/* RIGHT SIDEBAR */}
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
+                                <h3 className="text-xl font-bold font-title mb-4">
+                                    <span className="text-[#ce7c1c]">MY</span> PANTRY
+                                </h3>
+                                {pantryItems.length > 0 ? (
+                                    <>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {pantryItems.map((item, index) => (
+                                                <Badge
+                                                    key={index}
+                                                    className="bg-green-900/30 text-green-400 border-green-900 font-sans text-xs px-3 py-1.5 rounded-full"
+                                                >
+                                                    ✓ {item.ingredient} {item.measure && `(${item.measure.trim()})`}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                        <p className="text-sm font-sans text-gray-400">
+                                            You have <span className="text-green-500 font-bold">{pantryItems.length}</span> ingredients ready.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm font-sans text-gray-500 bg-gray-900/50 px-4 py-3 rounded-xl border border-dashed border-gray-800">
+                                        No ingredients from your pantry matched.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
+                                <h3 className="text-xl font-bold font-title mb-4">
+                                    <span className="text-[#ce7c1c]">SHOPPING</span> LIST
+                                </h3>
+                                {shoppingListItems.length > 0 ? (
+                                    <ScrollArea className="h-[400px] pr-4">
+                                        <div className="space-y-3">
+                                            {shoppingListItems.map((item, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="group bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 hover:border-[#ce7c1c]/50 transition-colors duration-200 flex justify-between items-center"
+                                                >
+                                                    <div className="font-sans font-medium text-gray-200">{item.ingredient}</div>
+                                                    {item.measure && item.measure.trim() !== "" && (
+                                                        <div className="text-[#ce7c1c] text-sm font-bold font-sans">{item.measure}</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                ) : (
+                                    <div className="text-center py-8 bg-green-900/10 rounded-2xl border border-green-900/30">
+                                        <p className="text-green-500 font-bold font-sans">You have everything!</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {relatedRecipes.length > 0 && (
+                                <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
+                                    <h3 className="text-xl font-bold font-title mb-6">
+                                        YOU MIGHT <span className="text-[#ce7c1c]">ALSO LIKE</span>
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {relatedRecipes.map((recipe) => (
+                                            <div
+                                                key={recipe.idDrink}
+                                                className="flex items-center gap-4 cursor-pointer hover:bg-gray-800 p-3 rounded-2xl transition-all duration-200 group border border-transparent hover:border-gray-700"
+                                                onClick={() =>
+                                                    navigate(`/drink/${slugify(recipe.strDrink)}`, {
+                                                        state: {
+                                                            drink: recipe,
+                                                            userIngredients,
+                                                            allRecipes,
+                                                            previousPath,
+                                                            recipeId: recipe.idDrink,
+                                                        },
+                                                    })
+                                                }
+                                            >
+                                                <img
+                                                    src={recipe.strDrinkThumb || "/placeholder.svg"}
+                                                    alt={recipe.strDrink}
+                                                    className="w-16 h-16 object-cover rounded-xl shadow-md group-hover:scale-105 transition-transform"
+                                                />
+                                                <div>
+                                                    <h4 className="text-sm font-bold font-sans text-gray-200 group-hover:text-[#ce7c1c] line-clamp-2">
+                                                        {recipe.strDrink}
+                                                    </h4>
+                                                    <span className="text-xs text-gray-500 font-sans mt-1 block">
+                                                        {recipe.strCategory || "Drink"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </HelmetProvider>
     )
 }
 
