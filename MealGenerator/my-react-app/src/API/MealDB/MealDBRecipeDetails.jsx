@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Clock, Users, Flame, Zap, Home, Youtube, ChefHat, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Users, Flame, Zap, Home, Youtube, ChefHat, Search, Tag, Globe, Drumstick, Fish, Leaf, Coffee, CakeSlice, Utensils } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { slugify } from "@/utils/slugify"
@@ -49,11 +49,11 @@ const MealDBRecipeDetails = () => {
                     const mealData = data.meals[0]
                     setRecipeDetails(mealData)
 
-                    // Determine base nutrition
-                    const initialCalories = mealData.nutrition?.perServing?.calories || 0;
-                    const initialProtein = mealData.nutrition?.perServing?.protein || 0;
-                    const initialFat = mealData.nutrition?.perServing?.fat || 0;
-                    const initialCarbs = mealData.nutrition?.perServing?.carbs || 0;
+                    // Determine base nutrition (Mock data if missing)
+                    const initialCalories = mealData.nutrition?.perServing?.calories || 500;
+                    const initialProtein = mealData.nutrition?.perServing?.protein || 25;
+                    const initialFat = mealData.nutrition?.perServing?.fat || 20;
+                    const initialCarbs = mealData.nutrition?.perServing?.carbs || 45;
 
                     const baseNutritionData = {
                         calories: initialCalories,
@@ -105,6 +105,18 @@ const MealDBRecipeDetails = () => {
         }
     }
 
+    // --- HELPER: Get Icon for Category ---
+    const getCategoryIcon = (category) => {
+        if (!category) return Tag;
+        const c = category.toLowerCase();
+        if (c.includes('beef') || c.includes('chicken') || c.includes('lamb') || c.includes('pork') || c.includes('goat')) return Drumstick;
+        if (c.includes('seafood') || c.includes('fish')) return Fish;
+        if (c.includes('vegan') || c.includes('vegetarian')) return Leaf;
+        if (c.includes('breakfast')) return Coffee;
+        if (c.includes('dessert')) return CakeSlice;
+        return Utensils;
+    }
+
     // --- INGREDIENT SCALER ---
     const getScaledMeasure = (originalMeasure, currentServings) => {
         if (!originalMeasure) return "";
@@ -142,7 +154,7 @@ const MealDBRecipeDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#131415] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center relative z-10">
                 <div className="text-center">
                     <div className="text-[#ce7c1c] text-3xl font-title animate-pulse">Loading recipe details...</div>
                 </div>
@@ -152,7 +164,7 @@ const MealDBRecipeDetails = () => {
 
     if (error || fetchError || !recipeDetails) {
         return (
-            <div className="min-h-screen bg-[#131415] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center relative z-10">
                 <div className="text-center">
                     <div className="text-[#f5efe4] text-xl font-sans mb-4">
                         {error || fetchError || "Recipe not found"}
@@ -189,9 +201,11 @@ const MealDBRecipeDetails = () => {
     )
 
     const instructionSteps = recipeDetails.strInstructions
-        .split(/\.\s+/)
-        .filter((step) => step.trim())
-        .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
+        ? recipeDetails.strInstructions
+            .split(/\.\s+/)
+            .filter((step) => step.trim())
+            .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
+        : ["No instructions available."];
 
     const currentIndex = allRecipes.findIndex((r) => r.idMeal === recipeDetails.idMeal)
     const totalRecipes = allRecipes.length
@@ -217,19 +231,22 @@ const MealDBRecipeDetails = () => {
     const relatedRecipes = allRecipes.filter((r) => r.idMeal !== recipeDetails.idMeal).slice(0, 3)
     const hasDirectVideo = recipeDetails.strYoutube && recipeDetails.strYoutube !== "";
 
+    // Prepare Icon for Main Header
+    const MainCategoryIcon = getCategoryIcon(recipeDetails.strCategory);
+
     return (
         <HelmetProvider>
-            <div className="min-h-screen bg-[#131415] text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white">
+            {/* ADDED 'relative z-10' TO FIX BACKGROUND OVERLAP */}
+            <div className="min-h-screen bg-transparent text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white relative z-10">
 
-                {/* --- SEO HEAD --- */}
                 <Helmet>
                     <title>{recipeDetails.strMeal} | Meal Forger</title>
                     <meta name="description" content={`Learn how to cook ${recipeDetails.strMeal}.`} />
                     <link rel="canonical" href={`https://mealforger.com/mealdb-recipe/${slugify(recipeDetails.strMeal)}`} />
                 </Helmet>
 
-                {/* Top Navigation */}
-                <div className="bg-[#131415] border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+                {/* Top Navigation - Updated BG Opacity */}
+                <div className="bg-[#131415]/90 border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -242,7 +259,6 @@ const MealDBRecipeDetails = () => {
                                     Back to Menu
                                 </Button>
 
-                                {/* PREVIOUS BUTTON (FIXED: Visible on Mobile as Icon) */}
                                 <Button
                                     variant="outline"
                                     onClick={() => navigateToRecipe("prev")}
@@ -282,17 +298,19 @@ const MealDBRecipeDetails = () => {
                                     <span className="text-[#ce7c1c]">{recipeDetails.strMeal}</span>
                                 </h1>
 
-                                {/* --- UPDATED BADGES SECTION --- */}
-                                <div className="flex flex-wrap gap-2 mb-6">
+                                {/* --- MAIN PREMIUM TAGS --- */}
+                                <div className="flex flex-wrap gap-3 mb-6">
                                     {recipeDetails.strCategory && (
-                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
-                                            {recipeDetails.strCategory}
-                                        </Badge>
+                                        <div className="flex items-center gap-2 bg-[#ce7c1c]/10 border border-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-1.5 rounded-full shadow-sm shadow-orange-900/10">
+                                            <MainCategoryIcon className="w-4 h-4" />
+                                            <span className="font-bold text-sm tracking-wide uppercase font-title">{recipeDetails.strCategory}</span>
+                                        </div>
                                     )}
                                     {recipeDetails.strArea && (
-                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
-                                            {recipeDetails.strArea} Cuisine
-                                        </Badge>
+                                        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-1.5 rounded-full shadow-sm shadow-blue-900/10">
+                                            <Globe className="w-4 h-4" />
+                                            <span className="font-bold text-sm tracking-wide uppercase font-title">{recipeDetails.strArea}</span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -336,6 +354,7 @@ const MealDBRecipeDetails = () => {
                                 </div>
                             </div>
 
+                            {/* Nutrition Card */}
                             <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                                 <div className="flex items-center justify-between mb-8">
                                     <h2 className="text-2xl font-bold font-title">
@@ -477,43 +496,62 @@ const MealDBRecipeDetails = () => {
                                 )}
                             </div>
 
+                            {/* --- SIDEBAR RELATED RECIPES --- */}
                             {relatedRecipes.length > 0 && (
                                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
                                     <h3 className="text-xl font-bold font-title mb-6">
                                         YOU MIGHT <span className="text-[#ce7c1c]">ALSO LIKE</span>
                                     </h3>
                                     <div className="space-y-4">
-                                        {relatedRecipes.map((recipe) => (
-                                            <div
-                                                key={recipe.idMeal}
-                                                className="flex items-center gap-4 cursor-pointer hover:bg-gray-800 p-3 rounded-2xl transition-all duration-200 group border border-transparent hover:border-gray-700"
-                                                onClick={() =>
-                                                    navigate(`/mealdb-recipe/${slugify(recipe.strMeal)}`, {
-                                                        state: {
-                                                            meal: recipe,
-                                                            userIngredients,
-                                                            allRecipes,
-                                                            previousPath,
-                                                            recipeId: recipe.idMeal,
-                                                        },
-                                                    })
-                                                }
-                                            >
-                                                <img
-                                                    src={recipe.strMealThumb || "/placeholder.svg"}
-                                                    alt={recipe.strMeal}
-                                                    className="w-16 h-16 object-cover rounded-xl shadow-md group-hover:scale-105 transition-transform"
-                                                />
-                                                <div>
-                                                    <h4 className="text-sm font-bold font-sans text-gray-200 group-hover:text-[#ce7c1c] line-clamp-2">
-                                                        {recipe.strMeal}
-                                                    </h4>
-                                                    <span className="text-xs text-gray-500 font-sans mt-1 block">
-                                                        {recipe.strCategory || "Recipe"}
-                                                    </span>
+                                        {relatedRecipes.map((recipe) => {
+                                            // Get Icon for Sidebar Item
+                                            const SideIcon = getCategoryIcon(recipe.strCategory);
+
+                                            return (
+                                                <div
+                                                    key={recipe.idMeal}
+                                                    className="flex items-center gap-4 cursor-pointer hover:bg-gray-800 p-3 rounded-2xl transition-all duration-200 group border border-transparent hover:border-gray-700"
+                                                    onClick={() =>
+                                                        navigate(`/mealdb-recipe/${slugify(recipe.strMeal)}`, {
+                                                            state: {
+                                                                meal: recipe,
+                                                                userIngredients,
+                                                                allRecipes,
+                                                                previousPath,
+                                                                recipeId: recipe.idMeal,
+                                                            },
+                                                        })
+                                                    }
+                                                >
+                                                    <img
+                                                        src={recipe.strMealThumb || "/placeholder.svg"}
+                                                        alt={recipe.strMeal}
+                                                        className="w-16 h-16 object-cover rounded-xl shadow-md group-hover:scale-105 transition-transform"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-sm font-bold font-sans text-gray-200 group-hover:text-[#ce7c1c] line-clamp-2 mb-2">
+                                                            {recipe.strMeal}
+                                                        </h4>
+
+                                                        {/* --- UPDATED SIDEBAR TAGS WITH ICONS --- */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {recipe.strCategory && (
+                                                                <div className="flex items-center gap-1 bg-[#ce7c1c]/10 text-[#ce7c1c] px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border border-[#ce7c1c]/20">
+                                                                    <SideIcon className="w-3 h-3" />
+                                                                    {recipe.strCategory}
+                                                                </div>
+                                                            )}
+                                                            {recipe.strArea && (
+                                                                <div className="flex items-center gap-1 bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border border-blue-500/20">
+                                                                    <Globe className="w-3 h-3" />
+                                                                    {recipe.strArea}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )}

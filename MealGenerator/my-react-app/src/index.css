@@ -1,6 +1,19 @@
-@tailwind base;
+ @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+ body, html {
+   margin: 0;
+   padding: 0;
+   background-color: #131415; /* Fallback */
+   min-height: 100vh;
+ }
+
+ #root {
+   isolation: isolate; /* Creates a new stacking context */
+   position: relative;
+   z-index: 1;
+ }
 
 /* Font imports */
 @font-face {

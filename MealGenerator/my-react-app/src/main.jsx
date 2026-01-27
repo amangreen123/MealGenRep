@@ -9,6 +9,7 @@ import RecipeDetails from "./API/Spooncular/RecipeDetails.jsx";
 import MealDBRecipeDetails from "./API/MealDB/MealDBRecipeDetails.jsx";
 import DrinkDetails from "./API/MealDB/DrinkDetails.jsx"
 import GoogleAnalytics from "./GoogleAnalytics.jsx";
+import AmbientBackground from "./components/AmbientBackground.jsx";
 
 
 
@@ -44,6 +45,7 @@ const App = () => (
     <StrictMode>
         <GoogleAnalytics />
         <BrowserRouter>
+            <AmbientBackground />
             <AppRoutes />
         </BrowserRouter>
     </StrictMode>

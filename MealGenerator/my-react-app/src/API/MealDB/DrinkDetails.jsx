@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home, Youtube, Search, ChefHat } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Users, Flame, Wine, Home, Youtube, Search, ChefHat, Tag, Martini, GlassWater, Beer, Ban } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { slugify } from "@/utils/slugify"
@@ -97,19 +97,27 @@ const DrinkDetails = () => {
     }
 
     const handleVideoClick = () => {
-        // Fallback search since API rarely has videos
         const query = encodeURIComponent(`${drinkDetails.strDrink} cocktail recipe tutorial`);
         window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
     }
 
-    // --- INGREDIENT SCALER LOGIC ---
+    // --- HELPER: Icons for Drinks ---
+    const getGlassIcon = (glassType) => {
+        if (!glassType) return GlassWater;
+        const g = glassType.toLowerCase();
+        if (g.includes('martini') || g.includes('cocktail')) return Martini;
+        if (g.includes('wine') || g.includes('champagne')) return Wine;
+        if (g.includes('beer') || g.includes('mug') || g.includes('pint')) return Beer;
+        return GlassWater;
+    }
+
+    // --- INGREDIENT SCALER ---
     const getScaledMeasure = (originalMeasure, currentServings) => {
         if (!originalMeasure) return "";
         const ratio = currentServings / BASE_SERVINGS;
 
         if (Math.abs(ratio - 1) < 0.01) return originalMeasure;
 
-        // Regex to find leading numbers (e.g. "1/2 oz", "2 shots", "1.5 cl")
         return originalMeasure.replace(/^([\d\s\/\.]+)/, (match) => {
             try {
                 let value = 0;
@@ -139,7 +147,7 @@ const DrinkDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#131415] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center relative z-10">
                 <div className="text-center">
                     <div className="text-[#ce7c1c] text-3xl font-title animate-pulse">Loading drink details...</div>
                 </div>
@@ -149,7 +157,7 @@ const DrinkDetails = () => {
 
     if (error || fetchError || !drinkDetails) {
         return (
-            <div className="min-h-screen bg-[#131415] flex items-center justify-center">
+            <div className="min-h-screen bg-transparent flex items-center justify-center relative z-10">
                 <div className="text-center">
                     <div className="text-[#f5efe4] text-xl font-sans mb-4">
                         {error || fetchError || "Drink not found"}
@@ -186,9 +194,11 @@ const DrinkDetails = () => {
     )
 
     const instructionSteps = drinkDetails.strInstructions
-        .split(/\.\s+/)
-        .filter((step) => step.trim())
-        .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
+        ? drinkDetails.strInstructions
+            .split(/\.\s+/)
+            .filter((step) => step.trim())
+            .map((step) => step.trim() + (step.endsWith(".") ? "" : "."))
+        : ["No instructions available."];
 
     const isAlcoholic = drinkDetails.strAlcoholic && !drinkDetails.strAlcoholic.toLowerCase().includes("non")
 
@@ -220,20 +230,22 @@ const DrinkDetails = () => {
         .filter((r) => r.idDrink && r.idDrink !== drinkDetails.idDrink)
         .slice(0,3);
 
+    // Prepare Icons
+    const GlassIcon = getGlassIcon(drinkDetails.strGlass);
+
     return (
         <HelmetProvider>
-            <div className="min-h-screen bg-[#131415] text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white">
+            {/* ADDED 'relative z-10' HERE TOO */}
+            <div className="min-h-screen bg-transparent text-[#f5efe4] font-sans selection:bg-[#ce7c1c] selection:text-white relative z-10">
 
-                {/* --- SEO HEAD --- */}
                 <Helmet>
                     <title>{drinkDetails.strDrink} | Meal Forger</title>
                     <meta name="description" content={`Learn how to make a ${drinkDetails.strDrink} cocktail.`} />
-                    {/* Canonical Link fixes the "duplicate content" error */}
                     <link rel="canonical" href={`https://mealforger.com/drink/${slugify(drinkDetails.strDrink)}`} />
                 </Helmet>
 
-                {/* Top Navigation */}
-                <div className="bg-[#131415] border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+                {/* Top Navigation - Updated BG Opacity */}
+                <div className="bg-[#131415]/90 border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-md">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -246,7 +258,6 @@ const DrinkDetails = () => {
                                     Back to Menu
                                 </Button>
 
-                                {/* PREVIOUS BUTTON: Visible on Mobile (Icon) & Desktop (Full) */}
                                 <Button
                                     variant="outline"
                                     onClick={() => navigateToRecipe("prev")}
@@ -287,22 +298,30 @@ const DrinkDetails = () => {
                                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-title mb-4 leading-tight">
                                     <span className="text-[#ce7c1c]">{drinkDetails.strDrink}</span>
                                 </h1>
-                                <div className="flex flex-wrap gap-2 mb-6">
+
+                                {/* --- MAIN PREMIUM TAGS --- */}
+                                <div className="flex flex-wrap gap-3 mb-6">
                                     {drinkDetails.strCategory && (
-                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
-                                            {drinkDetails.strCategory}
-                                        </Badge>
+                                        <div className="flex items-center gap-2 bg-[#ce7c1c]/10 border border-[#ce7c1c]/30 text-[#ce7c1c] px-4 py-1.5 rounded-full shadow-sm shadow-orange-900/10">
+                                            <Tag className="w-4 h-4" />
+                                            <span className="font-bold text-sm tracking-wide uppercase font-title">{drinkDetails.strCategory}</span>
+                                        </div>
                                     )}
                                     {drinkDetails.strGlass && (
-                                        <Badge className="bg-gray-800 text-gray-300 border-gray-700 font-sans text-sm px-4 py-1.5 rounded-full hover:bg-gray-700">
-                                            {drinkDetails.strGlass}
-                                        </Badge>
+                                        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-4 py-1.5 rounded-full shadow-sm shadow-blue-900/10">
+                                            <GlassIcon className="w-4 h-4" />
+                                            <span className="font-bold text-sm tracking-wide uppercase font-title">{drinkDetails.strGlass}</span>
+                                        </div>
                                     )}
-                                    <Badge className={`${
-                                        isAlcoholic ? "bg-purple-900/50 text-purple-200 border-purple-800" : "bg-green-900/50 text-green-200 border-green-800"
-                                    } font-sans text-sm px-4 py-1.5 rounded-full border`}>
-                                        {drinkDetails.strAlcoholic}
-                                    </Badge>
+
+                                    <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full shadow-sm border ${
+                                        isAlcoholic
+                                            ? "bg-purple-500/10 border-purple-500/30 text-purple-400 shadow-purple-900/10"
+                                            : "bg-green-500/10 border-green-500/30 text-green-400 shadow-green-900/10"
+                                    }`}>
+                                        {isAlcoholic ? <Martini className="w-4 h-4" /> : <GlassWater className="w-4 h-4" />}
+                                        <span className="font-bold text-sm tracking-wide uppercase font-title">{drinkDetails.strAlcoholic}</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -345,6 +364,7 @@ const DrinkDetails = () => {
                                 </div>
                             </div>
 
+                            {/* Nutrition Facts */}
                             <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                                 <div className="flex items-center justify-between mb-8">
                                     <h2 className="text-2xl font-bold font-title">
@@ -355,6 +375,7 @@ const DrinkDetails = () => {
                                     </div>
                                 </div>
 
+                                {/* Serving Slider */}
                                 <div className="mb-8 bg-[#0a0b0c] border border-gray-800 rounded-2xl p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">SERVINGS</label>
@@ -394,6 +415,7 @@ const DrinkDetails = () => {
                                 </div>
                             </div>
 
+                            {/* Instructions */}
                             <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-lg">
                                 <h2 className="text-2xl font-bold font-title mb-8 flex items-center gap-3">
                                     <ChefHat className="text-[#ce7c1c] w-8 h-8" />
@@ -481,43 +503,67 @@ const DrinkDetails = () => {
                                 )}
                             </div>
 
+                            {/* --- SIDEBAR RELATED RECIPES --- */}
                             {relatedRecipes.length > 0 && (
                                 <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 shadow-lg">
                                     <h3 className="text-xl font-bold font-title mb-6">
                                         YOU MIGHT <span className="text-[#ce7c1c]">ALSO LIKE</span>
                                     </h3>
                                     <div className="space-y-4">
-                                        {relatedRecipes.map((recipe) => (
-                                            <div
-                                                key={recipe.idDrink}
-                                                className="flex items-center gap-4 cursor-pointer hover:bg-gray-800 p-3 rounded-2xl transition-all duration-200 group border border-transparent hover:border-gray-700"
-                                                onClick={() =>
-                                                    navigate(`/drink/${slugify(recipe.strDrink)}`, {
-                                                        state: {
-                                                            drink: recipe,
-                                                            userIngredients,
-                                                            allRecipes,
-                                                            previousPath,
-                                                            recipeId: recipe.idDrink,
-                                                        },
-                                                    })
-                                                }
-                                            >
-                                                <img
-                                                    src={recipe.strDrinkThumb || "/placeholder.svg"}
-                                                    alt={recipe.strDrink}
-                                                    className="w-16 h-16 object-cover rounded-xl shadow-md group-hover:scale-105 transition-transform"
-                                                />
-                                                <div>
-                                                    <h4 className="text-sm font-bold font-sans text-gray-200 group-hover:text-[#ce7c1c] line-clamp-2">
-                                                        {recipe.strDrink}
-                                                    </h4>
-                                                    <span className="text-xs text-gray-500 font-sans mt-1 block">
-                                                        {recipe.strCategory || "Drink"}
-                                                    </span>
+                                        {relatedRecipes.map((recipe) => {
+                                            // Determine Icons for Sidebar
+                                            const SideGlassIcon = getGlassIcon(recipe.strGlass);
+                                            const isSideAlcoholic = recipe.strAlcoholic && !recipe.strAlcoholic.toLowerCase().includes('non');
+
+                                            return (
+                                                <div
+                                                    key={recipe.idDrink}
+                                                    className="flex items-center gap-4 cursor-pointer hover:bg-gray-800 p-3 rounded-2xl transition-all duration-200 group border border-transparent hover:border-gray-700"
+                                                    onClick={() =>
+                                                        navigate(`/drink/${slugify(recipe.strDrink)}`, {
+                                                            state: {
+                                                                drink: recipe,
+                                                                userIngredients,
+                                                                allRecipes,
+                                                                previousPath,
+                                                                recipeId: recipe.idDrink,
+                                                            },
+                                                        })
+                                                    }
+                                                >
+                                                    <img
+                                                        src={recipe.strDrinkThumb || "/placeholder.svg"}
+                                                        alt={recipe.strDrink}
+                                                        className="w-16 h-16 object-cover rounded-xl shadow-md group-hover:scale-105 transition-transform"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-sm font-bold font-sans text-gray-200 group-hover:text-[#ce7c1c] line-clamp-2 mb-2">
+                                                            {recipe.strDrink}
+                                                        </h4>
+
+                                                        {/* --- UPDATED SIDEBAR TAGS WITH ICONS --- */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {recipe.strGlass && (
+                                                                <div className="flex items-center gap-1 bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border border-blue-500/20">
+                                                                    <SideGlassIcon className="w-3 h-3" />
+                                                                    {recipe.strGlass}
+                                                                </div>
+                                                            )}
+                                                            {recipe.strAlcoholic && (
+                                                                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                                                                    isSideAlcoholic
+                                                                        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                                                        : "bg-green-500/10 text-green-400 border-green-500/20"
+                                                                }`}>
+                                                                    {isSideAlcoholic ? <Martini className="w-3 h-3" /> : <GlassWater className="w-3 h-3" />}
+                                                                    {recipe.strAlcoholic}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )}
