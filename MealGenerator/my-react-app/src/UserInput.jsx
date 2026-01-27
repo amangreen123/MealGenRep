@@ -20,6 +20,7 @@ import ImageIngredientUpload from "@/components/ImageIngredientUpload.jsx";
 import SearchStatsBanner from "@/components/SearchStatsBanner.jsx";
 import FirstTimeUser from "@/components/FirstTimeUser.jsx";
 import FirstTimeUserRecipes from "@/components/FirstTimeUserRecipes.jsx";
+import DynamicLogo from "@/components/DynamicLogo.jsx"
 
 import useIngredientManager from "@/hooks/useIngredientManager.jsx"
 import useRecipeSearch from "@/hooks/useRecipeSearch.jsx"
@@ -196,12 +197,9 @@ const UserInput = () => {
             <main className="flex-grow pt-6 px-4 md:px-6">
 
                 {/* LOGO */}
-                <div className="mb-6 flex justify-center transform scale-75 md:scale-90">
-                    <img
-                        src={MealForgerLogo || "/placeholder.svg"}
-                        alt="Meal Forger"
-                        className="h-24 md:h-32 drop-shadow-[0_0_25px_rgba(206,124,28,0.2)]"
-                    />
+                <div className="mb-8 flex justify-center transform scale-75 md:scale-90">
+                    {/* Replaced static img with DynamicLogo */}
+                    <DynamicLogo className="h-32 md:h-48 w-auto" />
                 </div>
 
                 {/* --- MAIN SEARCH AREA --- */}

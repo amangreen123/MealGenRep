@@ -7,13 +7,19 @@ export default {
 	],
 	theme: {
 		extend: {
-			// ... (keep existing colors and radius)
 			fontFamily: {
 				machine: ['ITCMachine', 'sans-serif'],
-				// CHANGE: Switch terminal to a clean sans-serif for readability
 				sans: ['Inter', 'system-ui', 'sans-serif'],
-				terminal: ['Inter', 'system-ui', 'sans-serif'], // Remapped to sans for easy migration
-				
+				terminal: ['Inter', 'system-ui', 'sans-serif'],
+			},
+			keyframes: {
+				shimmer: {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(100%)' },
+				}
+			},
+			animation: {
+				shimmer: 'shimmer 2s linear infinite',
 			}
 		}
 	},
