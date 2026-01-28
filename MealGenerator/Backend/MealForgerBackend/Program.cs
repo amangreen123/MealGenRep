@@ -1055,6 +1055,88 @@ app.MapPost("/reclassify-diets", async (MealForgerContext db, DeepSeekService de
     
 });
 
+app.MapGet("/latest-recipes", async (MealForgerContext db, int count = 20) =>
+{
+    try
+    {
+        var latestRecipes = await db.Recipes
+            .Include(r => r.RecipeIngredients)
+            .ThenInclude(ri => ri.Ingredient)
+            .OrderByDescending(r => r.Id)
+            .Take(count)
+            .AsNoTracking()
+            .Select(r => new
+            {
+                idMeal = r.ExternalId,
+                strMeal = r.Title,
+                strMealThumb = r.ImageUrl,
+                strCategory = r.Category,
+                strArea = r.Area,
+                strTags = (string?)null,
+                strYoutube = (string?)null,
+                isVegan = r.IsVegan,
+                isVegetarian = r.IsVegetarian,
+                isKeto = r.IsKeto,
+                isGlutenFree = r.IsGlutenFree,
+                isPaleo = r.IsPaleo,
+                slug = r.Title.ToLower().Replace(" ", "-").Replace("'", ""),
+                dateModified = (string?)null
+            })
+            .ToListAsync();
+        
+        Console.WriteLine($"✅ Returned {latestRecipes.Count} latest recipes");
+        return Results.Ok(new { meals = latestRecipes });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error fetching latest recipes: {ex.Message}");
+        Console.WriteLine($"   Stack trace: {ex.StackTrace}");
+        return Results.Problem(
+            detail: ex.Message,
+            statusCode: 500,
+            title: "Failed to fetch recipes"
+        );
+    }
+});
+
+app.MapGet("/category-recipes", async (MealForgerContext db, string category, int count = 20) =>
+{
+    try
+    {
+        var categoryRecipes = await db.Recipes
+            .Include(r => r.RecipeIngredients)
+            .ThenInclude(ri => ri.Ingredient)
+            .Where(r => r.Category == category)
+            .OrderByDescending(r => r.Id)
+            .Take(count)
+            .AsNoTracking()
+            .Select(r => new
+            {
+                idMeal = r.ExternalId,
+                strMeal = r.Title,
+                strMealThumb = r.ImageUrl,
+                strCategory = r.Category,
+                strArea = r.Area,
+                isVegan = r.IsVegan,
+                isVegetarian = r.IsVegetarian,
+                isKeto = r.IsKeto,
+                isGlutenFree = r.IsGlutenFree,
+                isPaleo = r.IsPaleo,
+                slug = r.Title.ToLower().Replace(" ", "-").Replace("'", "")
+            })
+            .ToListAsync();
+        
+        Console.WriteLine($"✅ Returned {categoryRecipes.Count} recipes for category: {category}");
+        return Results.Ok(new { meals = categoryRecipes });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error fetching category recipes: {ex.Message}");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+
 app.MapGet("/random-recipes", async (MealForgerContext db, int count = 12) =>
 {
     var randomRecipes = await db.Recipes
@@ -1074,6 +1156,50 @@ app.MapGet("/random-recipes", async (MealForgerContext db, int count = 12) =>
         .ToListAsync();
     
     return Results.Ok(new { meals = randomRecipes });
+});
+
+app.MapGet("/latest-recipes", async (MealForgerContext db, int count = 20) =>
+{
+    try
+    {
+        var latestRecipes = await db.Recipes
+            .Include(r => r.RecipeIngredients)
+            .ThenInclude(ri => ri.Ingredient)
+            .OrderByDescending(r => r.Id) // Get most recently added
+            .Take(count)
+            .AsNoTracking()
+            .Select(r => new
+            {
+                idMeal = r.ExternalId,
+                strMeal = r.Title,
+                strMealThumb = r.ImageUrl,
+                strCategory = r.Category,
+                strArea = r.Area,
+                strTags = (string?)null,
+                strYoutube = (string?)null,
+                isVegan = r.IsVegan,
+                isVegetarian = r.IsVegetarian,
+                isKeto = r.IsKeto,
+                isGlutenFree = r.IsGlutenFree,
+                isPaleo = r.IsPaleo,
+                slug = r.Title.ToLower().Replace(" ", "-").Replace("'", ""),
+                dateModified = (string?)null
+            })
+            .ToListAsync();
+        
+        Console.WriteLine($"✅ Returned {latestRecipes.Count} latest recipes");
+        return Results.Ok(new { meals = latestRecipes });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error fetching latest recipes: {ex.Message}");
+        Console.WriteLine($"   Stack trace: {ex.StackTrace}");
+        return Results.Problem(
+            detail: ex.Message,
+            statusCode: 500,
+            title: "Failed to fetch recipes"
+        );
+    }
 });
 
 app.MapControllers();

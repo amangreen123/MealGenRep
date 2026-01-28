@@ -9,6 +9,7 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [error, setError] = useState(null)
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
+
   const navigate = useNavigate()
 
   // Lock body scroll when active
@@ -26,45 +27,62 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
         const response = await fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
         const data = await response.json()
         if (data.categories) setCategories(data.categories.slice(0, 8))
-      } catch (err) { console.error(err) }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err)
+      }
     }
     fetchCategories()
   }, [])
 
-  // Fetch recipes
+  // Fetch recipes from backend
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
         setLoading(true)
-        const apiKey = import.meta.env.VITE_MEALDB_KEY || "1"
-        let url = `https://www.themealdb.com/api/json/v2/${apiKey}/randomselection.php`
+        setError(null)
 
-        if (selectedCategory) {
-          url = `https://www.themealdb.com/api/json/v1/1/filter.php?c=${selectedCategory}`
+        const BASE_URL = import.meta.env.VITE_DEPLOYED_BACKEND_URL || 'http://localhost:5261'
+
+        // If category is selected, fetch filtered recipes
+        let url = selectedCategory
+            ? `${BASE_URL}/category-recipes?category=${encodeURIComponent(selectedCategory)}&count=12`
+            : `${BASE_URL}/latest-recipes?count=12`
+
+        console.log("Fetching from:", url)
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Backend returned ${response.status}: ${response.statusText}`)
         }
 
-        const response = await fetch(url)
         const data = await response.json()
+        console.log("Received data:", data)
 
-        if (data.meals) {
-          const recipesWithSlugs = data.meals.map((meal) => ({
-            ...meal,
-            slug: slugify(meal.strMeal),
-          }))
-          setRecipes(recipesWithSlugs)
+        if (data.meals && Array.isArray(data.meals)) {
+          setRecipes(data.meals)
+        } else {
+          throw new Error("Invalid response format from backend")
         }
-      } catch (err) { setError("Failed to fetch recipes") }
-      finally { setLoading(false) }
+      } catch (err) {
+        console.error("Error fetching recipes:", err)
+        setError(err.message || "Failed to fetch recipes from MealForger Backend")
+      } finally {
+        setLoading(false)
+      }
     }
+
     fetchRecipes()
   }, [selectedCategory])
 
-  const slugify = (text) => {
-    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-')
-  }
-
   const handleRecipeClick = (recipe) => {
     localStorage.setItem("mealForgerFirstTimeUser", "false")
+
     navigate(`/mealdb-recipe/${recipe.slug}`, {
       state: {
         meal: recipe,
@@ -75,17 +93,14 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
       },
     })
   }
-  
+
   const handleDismiss = () => {
     localStorage.setItem("mealForgerFirstTimeUser", "false")
     if (onDismiss) onDismiss()
   }
 
   return (
-      // Fixed Overlay
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
-
-        {/* Container */}
         <div className="bg-[#131415] w-full max-w-6xl h-[90vh] rounded-3xl border border-gray-800 shadow-2xl relative flex flex-col overflow-hidden">
 
           {/* Header Section */}
@@ -126,9 +141,15 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
                 {categories.map((category) => (
                     <Button
                         key={category.strCategory}
-                        onClick={() => setSelectedCategory(category.strCategory === selectedCategory ? null : category.strCategory)}
+                        onClick={() => setSelectedCategory(
+                            category.strCategory === selectedCategory ? null : category.strCategory
+                        )}
                         variant={selectedCategory === category.strCategory ? "default" : "outline"}
-                        className={`rounded-full font-sans ${selectedCategory === category.strCategory ? 'bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white border-none' : 'border-gray-700 text-gray-400'}`}
+                        className={`rounded-full font-sans ${
+                            selectedCategory === category.strCategory
+                                ? 'bg-[#ce7c1c] hover:bg-[#ce7c1c]/90 text-white border-none'
+                                : 'border-gray-700 text-gray-400'
+                        }`}
                     >
                       {category.strCategory}
                     </Button>
@@ -140,6 +161,22 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
                   <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ce7c1c] mb-4"></div>
                     <p className="text-gray-500 font-sans">Forging recipes...</p>
+                  </div>
+              ) : error ? (
+                  <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] text-red-400">
+                    <p className="mb-2">⚠️ {error}</p>
+                    <p className="text-sm text-gray-500 mb-4">Check that your backend is running on port 5261</p>
+                    <Button
+                        variant="outline"
+                        className="mt-4 border-gray-700"
+                        onClick={() => window.location.reload()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+              ) : recipes.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] text-gray-400">
+                    <p>No recipes found</p>
                   </div>
               ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-20">

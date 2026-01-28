@@ -140,9 +140,7 @@ const UserInput = () => {
         const currentPath = window.location.pathname
         const recipeName = recipe.strDrink || recipe.strMeal || recipe.title
         const recipeSlug = recipe.slug || slugify(recipeName)
-
-        // FIX: Determine which list is currently visible (Search Results OR Trending)
-        // If we are showing search results, pass 'allRecipes'. If trending, pass 'randomRecipes'.
+        
         const isShowingSearchResults = (hasGeneratedRecipes && allRecipes.length > 0) || isSearching;
         const activeList = isShowingSearchResults ? allRecipes : randomRecipes;
 
@@ -151,7 +149,7 @@ const UserInput = () => {
                 state: {
                     drink: recipe,
                     userIngredients: ingredients,
-                    allRecipes: activeList, // <--- PASS THE ACTIVE LIST
+                    allRecipes: activeList, 
                     previousPath: currentPath,
                     recipeId: recipe.idDrink
                 },
@@ -161,7 +159,7 @@ const UserInput = () => {
                 state: {
                     meal: recipe,
                     userIngredients: ingredients,
-                    allRecipes: activeList, // <--- PASS THE ACTIVE LIST
+                    allRecipes: activeList, 
                     previousPath: currentPath,
                     recipeId: recipe.idMeal
                 },
@@ -198,24 +196,32 @@ const UserInput = () => {
         fetchRandomRecipes()
     }, [])
 
+    // --- HELPER: Smart Icons for Categories ---
     const getCategoryIcon = (category, strAlcoholic = "") => {
         if (!category) return Tag;
         const c = category.toLowerCase();
         const a = strAlcoholic.toLowerCase();
 
+        // --- MEAL LOGIC ---
         if (c.includes('beef') || c.includes('chicken') || c.includes('lamb') || c.includes('pork') || c.includes('goat')) return Drumstick;
         if (c.includes('seafood') || c.includes('fish')) return Fish;
         if (c.includes('vegan') || c.includes('vegetarian')) return Leaf;
         if (c.includes('breakfast')) return Coffee;
         if (c.includes('dessert')) return CakeSlice;
 
+        // --- DRINK LOGIC ---
+        // 1. Specific Glass/Type Overrides
         if (c.includes('shot')) return GlassWater;
         if (c.includes('beer') || c.includes('ale')) return Beer;
         if (c.includes('coffee') || c.includes('tea') || c.includes('cocoa')) return Coffee;
 
+        // 2. Non-Alcoholic (Juice/Water Icon)
         if (a.includes('non')) return GlassWater;
+
+        // 3. Alcoholic General -> Cocktail Icon
         if (a.includes('alcohol')) return Martini;
-        if (c.includes('cocktail')) return Martini;
+        
+        if (c.includes('cocktail') || c.includes('ordinary drink')) return Martini;
 
         return Utensils;
     }
@@ -261,9 +267,7 @@ const UserInput = () => {
                         >
                             <Plus className="h-5 w-5" />
                         </Button>
-
-                        <div className="h-8 w-[1px] bg-gray-700 mx-0"></div>
-
+                        
                         <div className="relative flex items-center justify-center pl-1 pr-1">
                             <ImageIngredientUpload onIngredientIdentified={handleCameraIngredient} />
                         </div>
