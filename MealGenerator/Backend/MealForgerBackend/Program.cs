@@ -1055,49 +1055,6 @@ app.MapPost("/reclassify-diets", async (MealForgerContext db, DeepSeekService de
     
 });
 
-app.MapGet("/latest-recipes", async (MealForgerContext db, int count = 20) =>
-{
-    try
-    {
-        var latestRecipes = await db.Recipes
-            .Include(r => r.RecipeIngredients)
-            .ThenInclude(ri => ri.Ingredient)
-            .OrderByDescending(r => r.Id)
-            .Take(count)
-            .AsNoTracking()
-            .Select(r => new
-            {
-                idMeal = r.ExternalId,
-                strMeal = r.Title,
-                strMealThumb = r.ImageUrl,
-                strCategory = r.Category,
-                strArea = r.Area,
-                strTags = (string?)null,
-                strYoutube = (string?)null,
-                isVegan = r.IsVegan,
-                isVegetarian = r.IsVegetarian,
-                isKeto = r.IsKeto,
-                isGlutenFree = r.IsGlutenFree,
-                isPaleo = r.IsPaleo,
-                slug = r.Title.ToLower().Replace(" ", "-").Replace("'", ""),
-                dateModified = (string?)null
-            })
-            .ToListAsync();
-        
-        Console.WriteLine($"✅ Returned {latestRecipes.Count} latest recipes");
-        return Results.Ok(new { meals = latestRecipes });
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"❌ Error fetching latest recipes: {ex.Message}");
-        Console.WriteLine($"   Stack trace: {ex.StackTrace}");
-        return Results.Problem(
-            detail: ex.Message,
-            statusCode: 500,
-            title: "Failed to fetch recipes"
-        );
-    }
-});
 
 app.MapGet("/category-recipes", async (MealForgerContext db, string category, int count = 20) =>
 {

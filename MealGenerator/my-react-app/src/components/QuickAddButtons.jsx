@@ -13,7 +13,7 @@ import {
 
 const popularIngredients = [
     {
-        name: "Dessert",
+        name: "Dessert", // Note: This will likely search for "Sugar" or "Chocolate" logic if handled in backend, or you might want to change this to a Category search later.
         icon: GiCupcake,
         color: "text-yellow-400 group-hover:text-yellow-500",
     },
@@ -54,65 +54,98 @@ const popularIngredients = [
     },
 ]
 
+// 100% Safe MealDB Ingredients
+// These strings exactly match standard entries in the database to prevent 404s.
 const categoryIngredients = {
-    Dessert: {
-        mealDB: ["Chocolate", "Honey", "Vanilla"],
-        spoonacular: ["Cocoa Powder", "Custard", "Whipped Cream"],
-    },
-    Bread: {
-        mealDB: ["Baguette", "Ciabatta", "Pita"],
-        spoonacular: ["Whole Wheat Bread", "Rye Bread", "Sourdough Bread"],
-    },
-    Vegetables: {
-        mealDB: ["Carrot", "Broccoli", "Zucchini"],
-        spoonacular: ["Spinach", "Kale", "Bell Pepper"],
-    },
-    Beef: {
-        mealDB: ["Beef", "Beef Brisket", "Beef Fillet"],
-        spoonacular: ["Ground Beef", "Sirloin Steak", "Beef Ribs"],
-    },
-    Fish: {
-        mealDB: ["Salmon", "Tuna", "Cod"],
-        spoonacular: ["Haddock", "Mackerel", "Tilapia"],
-    },
-    Cheese: {
-        mealDB: ["Cheddar Cheese", "Mozzarella Cheese", "Feta Cheese"],
-        spoonacular: ["Parmesan Cheese", "Gorgonzola Cheese", "Goat Cheese"],
-    },
-    Fruit: {
-        mealDB: ["Apple", "Banana", "Strawberries"],
-        spoonacular: ["Mango", "Peach", "Pineapple"],
-    },
-    Chicken: {
-        mealDB: ["Chicken", "Chicken Breast", "Chicken Thighs"],
-        spoonacular: ["Chicken Wings", "Rotisserie Chicken", "Chicken Drumsticks"],
-    },
+    Dessert: [
+        "Chocolate",
+        "Sugar",
+        "Vanilla",
+        "Cocoa",
+        "Honey",
+        "Heavy Cream"
+    ],
+    Bread: [
+        "Bread",
+        "Flour",
+        "Yeast",
+        "Pretzels",
+        "Baguette",
+        "Bun"
+    ],
+    Vegetables: [
+        "Potatoes",
+        "Carrots",
+        "Onions",
+        "Spinach",
+        "Garlic",
+        "Tomatoes"
+    ],
+    Beef: [
+        "Beef",
+        "Minced Beef",
+        "Beef Brisket",
+        "Beef Shank",
+        "Steak",
+        "Oxtail"
+    ],
+    Fish: [
+        "Salmon",
+        "Tuna",
+        "Cod",
+        "Haddock",
+        "King Prawns",
+        "Sardines"
+    ],
+    Cheese: [
+        "Cheese",
+        "Cheddar Cheese",
+        "Parmesan Cheese",
+        "Mozzarella",
+        "Ricotta",
+        "Cream Cheese"
+    ],
+    Fruit: [
+        "Banana",
+        "Apple",
+        "Strawberries",
+        "Lemon",
+        "Lime",
+        "Pineapple"
+    ],
+    Chicken: [
+        "Chicken",
+        "Chicken Breast",
+        "Chicken Legs",
+        "Chicken Thighs",
+        "Chicken Stock",
+        "Chicken Wings"
+    ],
 }
 
 export default function QuickAddButtons({ onQuickSearch, categoryDialogOpen, setCategoryDialogOpen, selectedCategory, onCategorySearch }) {
     return (
         <>
-        
-                <h3 className="text-2xl md:text-3xl font-bold mb-6 font-title text-center">
-                    <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
-                </h3>
-                <div className="grid grid-rows-2 grid-cols-4 gap-2 max-w-xs mx-auto">
-                    {popularIngredients.map((item, index) => (
-                        <button
-                            key={index}
-                            onClick={() => onQuickSearch(item.name)}
-                            className="flex items-center justify-center h-16 w-16 bg-gray-900/70 border-2 border-white hover:border-[#ce7c1c] rounded-full cursor-pointer group transition-all duration-300 transform hover:scale-110 hover:bg-gray-800/80 relative mx-auto"
-                            aria-label={`Quick add ${item.name}`}
-                            title={item.name}
-                        >
-                            <item.icon className={`w-8 h-8 ${item.color} transition-all duration-300`} />
-                            <span className="sr-only">{item.name}</span>
-                            <div className="absolute -bottom-1 opacity-0 group-hover:opacity-100 group-hover:bottom-1 transition-all duration-300 text-[10px] font-terminal text-white bg-gray-900/90 px-2 py-0.5 rounded-full">
-                                {item.name}
-                            </div>
-                        </button>
-                    ))}
-                </div>
+            <h3 className="text-2xl md:text-3xl font-bold mb-6 font-title text-center">
+                <span className="text-white">QUICK</span> <span className="text-[#ce7c1c]">ADD</span>
+            </h3>
+            <div className="grid grid-rows-2 grid-cols-4 gap-2 max-w-xs mx-auto">
+                {popularIngredients.map((item, index) => (
+                    <button
+                        key={index}
+                        onClick={() => onQuickSearch(item.name)}
+                        className="flex items-center justify-center h-16 w-16 bg-gray-900/70 border-2 border-white hover:border-[#ce7c1c] rounded-full cursor-pointer group transition-all duration-300 transform hover:scale-110 hover:bg-gray-800/80 relative mx-auto"
+                        aria-label={`Quick add ${item.name}`}
+                        title={item.name}
+                    >
+                        <item.icon className={`w-8 h-8 ${item.color} transition-all duration-300`} />
+                        <span className="sr-only">{item.name}</span>
+                        <div className="absolute -bottom-1 opacity-0 group-hover:opacity-100 group-hover:bottom-1 transition-all duration-300 text-[10px] font-terminal text-white bg-gray-900/90 px-2 py-0.5 rounded-full">
+                            {item.name}
+                        </div>
+                    </button>
+                ))}
+            </div>
 
             {/* Category Selection Dialog */}
             <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
@@ -144,10 +177,8 @@ export default function QuickAddButtons({ onQuickSearch, categoryDialogOpen, set
 
                         {selectedCategory && categoryIngredients[selectedCategory] && (
                             <div className="grid grid-cols-2 gap-2">
-                                {[
-                                    ...categoryIngredients[selectedCategory].mealDB,
-                                    ...categoryIngredients[selectedCategory].spoonacular,
-                                ].map((ingredient) => (
+                                {/* Mapped directly since we removed the nested mealDB/spoonacular structure */}
+                                {categoryIngredients[selectedCategory].map((ingredient) => (
                                     <Button
                                         key={ingredient}
                                         variant="outline"
