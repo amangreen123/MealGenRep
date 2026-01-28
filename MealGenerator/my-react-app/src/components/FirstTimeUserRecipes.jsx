@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Sparkles, X, ChefHat } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import MealForgerLogo from "../Images/Meal_Forger.png";
+
 
 const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [recipes, setRecipes] = useState([])
@@ -104,26 +106,40 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
         <div className="bg-[#131415] w-full max-w-6xl h-[90vh] rounded-3xl border border-gray-800 shadow-2xl relative flex flex-col overflow-hidden">
 
           {/* Header Section */}
-          <div className="p-6 md:p-8 border-b border-gray-800 flex flex-col items-center text-center relative bg-gradient-to-b from-gray-900 to-[#131415]">
+          <div className="p-8 md:p-10 border-b border-gray-800 flex flex-col items-center text-center relative bg-gradient-to-b from-gray-900 to-[#131415] overflow-hidden">
+
+            {/* Background decorative glow (Matches your brand orange) */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-[#ce7c1c]/10 blur-[60px] rounded-full pointer-events-none" />
+
+            {/* Close Button */}
             <button
                 onClick={handleDismiss}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors z-20"
             >
               <X size={24} />
             </button>
 
-            <div className="mb-4 bg-[#ce7c1c]/10 p-4 rounded-full">
-              <ChefHat className="w-12 h-12 text-[#ce7c1c]" />
+            <div className="relative mb-6 group z-10">
+              {/* Subtle pulse animation behind logo */}
+              
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#ce7c1c]/0 via-[#ce7c1c]/20 to-[#ce7c1c]/0 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700"></div>
+              <img
+                  src={MealForgerLogo}           
+                  alt="Meal Forger Logo"
+                  className="h-32 md:h-48 w-auto object-contain drop-shadow-[0_0_15px_rgba(206,124,28,0.3)] transition-transform duration-500 hover:scale-105"
+              />
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-bold font-title mb-2">
-              <span className="text-white">WELCOME TO </span>
-              <span className="text-[#ce7c1c]">MEAL FORGER</span>
-            </h1>
-            <p className="text-gray-400 max-w-xl text-lg font-sans">
-              Stop wondering what to cook. We help you build amazing meals with the ingredients you already have matched with our AI.
-            </p>
-          </div>
+              {/* Title - Adjusted spacing */}
+              <h1 className="text-3xl md:text-5xl font-bold font-title mb-3 relative z-10">
+                <span className="text-white drop-shadow-lg">WELCOME TO </span>
+                <span className="text-[#ce7c1c] drop-shadow-[0_0_10px_rgba(206,124,28,0.4)]">MEAL FORGER</span>
+              </h1>
+
+              <p className="text-gray-400 max-w-xl text-lg font-sans relative z-10 leading-relaxed">
+                Stop wondering what to cook. We help you build amazing meals with the ingredients you already have matched with our AI.
+              </p>
+            </div>
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#131415]">
