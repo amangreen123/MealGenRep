@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Sparkles, X, ChefHat } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Sparkles, X, ChefHat, Download } from "lucide-react"
 import MealForgerLogo from "../Images/Meal_Forger.png";
-
+import { Button } from "./ui/button.tsx"
 
 const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [recipes, setRecipes] = useState([])
@@ -11,6 +10,27 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
   const [error, setError] = useState(null)
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
+
+  // --- PWA Logic ---
+  const [supportsPWA, setSupportsPWA] = useState(false)
+  const [promptInstall, setPromptInstall] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setSupportsPWA(true)
+      setPromptInstall(e)
+    }
+    window.addEventListener("beforeinstallprompt", handler)
+    return () => window.removeEventListener("beforeinstallprompt", handler)
+  }, [])
+
+  const handleInstallClick = (e) => {
+    e.preventDefault()
+    if (!promptInstall) return
+    promptInstall.prompt()
+  }
+ 
 
   const navigate = useNavigate()
 
@@ -64,16 +84,16 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
         }
 
         const data = await response.json()
-        console.log("Received data:", data)
 
         if (data.meals && Array.isArray(data.meals)) {
           setRecipes(data.meals)
         } else {
-          throw new Error("Invalid response format from backend")
+          // If filtering by category returns null (MealDB quirk), handle gracefully
+          setRecipes([])
         }
       } catch (err) {
         console.error("Error fetching recipes:", err)
-        setError(err.message || "Failed to fetch recipes from MealForger Backend")
+        setError(err.message || "Failed to fetch recipes")
       } finally {
         setLoading(false)
       }
@@ -108,10 +128,21 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
           {/* Header Section */}
           <div className="p-8 md:p-10 border-b border-gray-800 flex flex-col items-center text-center relative bg-gradient-to-b from-gray-900 to-[#131415] overflow-hidden">
 
-            {/* Background decorative glow (Matches your brand orange) */}
+            {/* Background decorative glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-[#ce7c1c]/10 blur-[60px] rounded-full pointer-events-none" />
 
-            {/* Close Button */}
+            {/* --- INSTALL BUTTON (Top Left) --- */}
+            {supportsPWA && (
+                <button
+                    onClick={handleInstallClick}
+                    className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[#ce7c1c]/10 text-[#ce7c1c] hover:bg-[#ce7c1c] hover:text-white transition-all duration-300 font-bold font-sans border border-[#ce7c1c]/50 z-20 group"
+                >
+                  <Download size={18} className="group-hover:animate-bounce" />
+                  <span className="hidden md:inline">Install App</span>
+                </button>
+            )}
+
+            {/* Close Button (Top Right) */}
             <button
                 onClick={handleDismiss}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors z-20"
@@ -119,27 +150,28 @@ const FirstTimeUserRecipes = ({ onDismiss }) => {
               <X size={24} />
             </button>
 
+            {/* Logo Section */}
             <div className="relative mb-6 group z-10">
-              {/* Subtle pulse animation behind logo */}
-              
               <div className="absolute -inset-4 bg-gradient-to-r from-[#ce7c1c]/0 via-[#ce7c1c]/20 to-[#ce7c1c]/0 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700"></div>
+
+              {/* ✅ LOGO FIX: Absolute Path + Bigger Size */}
               <img
-                  src={MealForgerLogo}           
+                  src={MealForgerLogo}
                   alt="Meal Forger Logo"
                   className="h-32 md:h-48 w-auto object-contain drop-shadow-[0_0_15px_rgba(206,124,28,0.3)] transition-transform duration-500 hover:scale-105"
               />
             </div>
 
-              {/* Title - Adjusted spacing */}
-              <h1 className="text-3xl md:text-5xl font-bold font-title mb-3 relative z-10">
-                <span className="text-white drop-shadow-lg">WELCOME TO </span>
-                <span className="text-[#ce7c1c] drop-shadow-[0_0_10px_rgba(206,124,28,0.4)]">MEAL FORGER</span>
-              </h1>
+            {/* Title */}
+            <h1 className="text-3xl md:text-5xl font-bold font-title mb-3 relative z-10">
+              <span className="text-white drop-shadow-lg">WELCOME TO </span>
+              <span className="text-[#ce7c1c] drop-shadow-[0_0_10px_rgba(206,124,28,0.4)]">MEAL FORGER</span>
+            </h1>
 
-              <p className="text-gray-400 max-w-xl text-lg font-sans relative z-10 leading-relaxed">
-                Stop wondering what to cook. We help you build amazing meals with the ingredients you already have matched with our AI.
-              </p>
-            </div>
+            <p className="text-gray-400 max-w-xl text-lg font-sans relative z-10 leading-relaxed">
+              Stop wondering what to cook. We help you build amazing meals with the ingredients you already have matched with our AI.
+            </p>
+          </div>
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#131415]">
