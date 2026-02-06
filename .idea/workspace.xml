@@ -2,16 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="144784f1-7be8-4f8d-a4c3-4d98e2317d60" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/public/image/apple-touch-icon.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/public/image/pwa-192x192.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/public/image/pwa-512x512.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/dev-dist/sw.js" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/dev-dist/sw.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/FirstTimeUserRecipes.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/components/FirstTimeUserRecipes.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/UserInput.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/UserInput.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/main.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MealGenerator/my-react-app/src/page.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/MealGenerator/my-react-app/src/page.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,6 +75,8 @@
       <workItem from="1769484626114" duration="30312000" />
       <workItem from="1769961106969" duration="8363000" />
       <workItem from="1770144326055" duration="2437000" />
+      <workItem from="1770308647359" duration="1533000" />
+      <workItem from="1770344723178" duration="2093000" />
     </task>
     <servers />
   </component>

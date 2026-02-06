@@ -31,6 +31,7 @@ import { getCategoryIngredient } from "./utils/categorySearch.js"
 import useFetchMeals from "@/API/Spooncular/GetMeals.jsx";
 import useTheMealDB from "@/API/MealDB/getTheMealDB.jsx";
 import useTheCocktailDB from "@/API/MealDB/GetCocktailDB.jsx";
+import ReactGA from "react-ga4";
 
 const UserInput = () => {
     // --- STATE & HOOKS ---
@@ -85,6 +86,30 @@ const UserInput = () => {
             return () => clearTimeout(timer);
         }
     }, [rawErrorMessage]);
+
+    useEffect(() => {
+        console.log('🔵 Setting up PWA install listener');
+
+        const handleAppInstalled = (evt) => {
+            console.log('🟢 PWA installed!');
+
+            ReactGA.event({
+                category: 'Engagement',
+                action: 'pwa_install',
+                label: 'User installed Meal Forger',
+            });
+
+            console.log('🟢 Install event sent to GA');
+        };
+
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            console.log('🔴 Removing PWA install listener');
+            window.removeEventListener('appinstalled', handleAppInstalled);
+        };
+    }, []);
+
 
     // --- HANDLERS ---
     const handleFirstTimeDismiss = () => {

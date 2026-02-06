@@ -12,9 +12,10 @@ import GoogleAnalytics from "./GoogleAnalytics.jsx";
 import AmbientBackground from "./components/AmbientBackground.jsx";
 
 
-
-ReactGA.initialize("G-5VEDN0823V");
-
+if (!window.GA_INITIALIZED) {
+    ReactGA.initialize("G-5VEDN0823V");
+    window.GA_INITIALIZED = true;
+}
 
 const TrackPageViews = () => {
     const location = useLocation();
@@ -43,7 +44,6 @@ const AppRoutes = () => {
 
 const App = () => (
     <StrictMode>
-        <GoogleAnalytics />
         <BrowserRouter>
             <AmbientBackground />
             <AppRoutes />
